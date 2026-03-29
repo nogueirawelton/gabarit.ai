@@ -1,0 +1,21 @@
+services:
+  crawler-worker:
+    volumes:
+      - ./services/crawler-worker:/app
+    build:
+      target: dev
+    command: watchfiles "python -m src.main" src/
+
+  postgres:
+    ports:
+      - "${POSTGRES_PORT}:${POSTGRES_PORT}"
+
+  rabbitmq:
+    ports:
+      - "${RABBITMQ_PORT}:${RABBITMQ_PORT}"
+      - "${RABBITMQ_MANAGEMENT_PORT}:${RABBITMQ_MANAGEMENT_PORT}"
+
+  minio:
+    ports:
+      - "${MINIO_PORT}:${MINIO_PORT}"
+      - "${MINIO_MANAGEMENT_PORT}:${MINIO_MANAGEMENT_PORT}"
