@@ -1,11 +1,12 @@
 from typing import Callable, Awaitable
+from src.infrastructure.logging.logger import logger
 
 import aio_pika
 import json
 from src.domain.ports.messaging import MessageConsumerPort
 
 
-class RabbitMQAdapter(MessageConsumerPort):
+class RabbitMQConsumer(MessageConsumerPort):
     def __init__(self, amqp_url: str):
         self.amqp_url = amqp_url
 
@@ -27,6 +28,9 @@ class RabbitMQAdapter(MessageConsumerPort):
 
             async with queue.iterator() as queue_iter:
                 async for message in queue_iter:
-                    async with message.process():
-                        payload = json.loads(message.body.decode())
-                        await callback(payload)
+                    async with message.process(requeue=False):
+                        try:
+                            payload = json.loads(message.body.decode())
+                            await callback(payload)
+                        except Exception as e:
+                            logger.error("Falha ao executar Scraping", error=e, payload=payload )

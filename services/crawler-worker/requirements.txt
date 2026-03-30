@@ -6,4 +6,4 @@ aio-pika
 
 # Infra & Utils
 python-dotenv
-beautifulsoup4
+selectolax

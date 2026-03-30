@@ -1,19 +1,22 @@
 import asyncio
 import os
 
+from infrastructure.adapters.services.scraper import Scraper
 from src.application.use_cases.scraping_use_case import ScrapingUseCase
-from src.infrastructure.adapters.rabbitmq_adapter import RabbitMQAdapter
+from infrastructure.adapters.messaging.rabbitmq_consumer import RabbitMQConsumer
 
 
 async def main():
     amqp_url = os.getenv("RABBITMQ_URL")
 
-    adapter = RabbitMQAdapter(amqp_url)
-    use_case = ScrapingUseCase()
+    messaging_consumer = RabbitMQConsumer(amqp_url)
+    scraper = Scraper()
+
+    use_case = ScrapingUseCase(scraper)
 
     print(" [*] Aguardando mensagens de scrap. Para sair pressione CTRL+C")
 
-    await adapter.consume(
+    await messaging_consumer.consume(
         queue_name="q_scraping_requests",
         callback=use_case.execute
     )
