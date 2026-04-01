@@ -51,6 +51,6 @@ services:
     environment:
       - MINIO_ROOT_USER=${MINIO_USER}
       - MINIO_ROOT_PASSWORD=${MINIO_PASSWORD}
-    command: server /data --console-address ":${MINIO_PORT}"
+    command: server /data --console-address ":${MINIO_MANAGEMENT_PORT}"
     volumes:
       - minio_data:/data
