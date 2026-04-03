@@ -5,13 +5,13 @@ from typing import List
 
 from pydantic import HttpUrl
 
-from domain.entities.exam import Exam, ExamDocument
-from domain.ports.scraper import ScraperPort
+from src.domain.entities.exam import Exam, ExamDocument
+from src.domain.ports.scraper import ScraperPort
 from selectolax.lexbor import LexborHTMLParser
 
-from infrastructure.logging.logger import logger
+from src.infrastructure.logging.logger import logger
 
-class Scraper(ScraperPort):
+class ScraperAdapter(ScraperPort):
     def __init__(self):
         self.headers = {
             "User-Agent": "GabaritAI-Crawler/1.0"

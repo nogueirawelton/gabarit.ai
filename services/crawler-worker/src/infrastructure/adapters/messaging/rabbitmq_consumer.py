@@ -3,10 +3,10 @@ from src.infrastructure.logging.logger import logger
 
 import aio_pika
 import json
-from src.domain.ports.messaging import MessageConsumerPort
+from src.domain.ports.messagins import MessageConsumerPort
 
 
-class RabbitMQConsumer(MessageConsumerPort):
+class RabbitMQConsumerAdapter(MessageConsumerPort):
     def __init__(self, amqp_url: str):
         self.amqp_url = amqp_url
 

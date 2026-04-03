@@ -1,6 +1,6 @@
 from typing import Protocol, List
 
-from domain.entities.exam import Exam
+from src.domain.entities.exam import Exam
 
 
 class ScraperPort(Protocol):
