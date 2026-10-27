@@ -36,18 +36,20 @@ Regra: um pacote usa o outro pelo serviço público dele (ex.: `ExamService`), n
 
 ---
 
-## Fase 1: modelo de concursos (pacote `exam`)
+## Fase 1: modelo de concursos (pacote `exam`) ✅
 
-- [ ] **`src/main/resources/db/migration/V1__create_exam.sql`**:
-  - `exam`: id, `source`, `external_id`, `title`, `url`, `uf`, `region`, `education_level`, `openings`, `registration_start`, `registration_end`, `registration_note`, `source_updated_at` (`timestamptz`, o `occurred_at` do último evento aplicado), `created_at`, `updated_at`.
-  - **`UNIQUE (source, external_id)`**: é a identidade do concurso, e o upsert depende disso.
-  - `exam_position`: id, `exam_id` (FK), `name`, `UNIQUE (exam_id, name)`.
-  - **Pesquisar:** *Flyway versioned migrations naming*, *por que nunca editar migration já aplicada*, *timestamptz vs timestamp*.
-- [ ] **Entidades JPA** `Exam` e `ExamPosition` (1:N, cargo só existe dentro do concurso).
-  - **Pesquisar:** *@OneToMany orphanRemoval*, *FetchType.LAZY e N+1*, *equals/hashCode em entidade JPA*.
-  - **Decisão sua:** cargo que some do evento (o concurso foi retificado) → apagar ou marcar inativo? Se planos vão referenciar cargo, marque inativo: apagar quebra o plano.
-- [ ] **`ExamRepository`** com busca por `(source, externalId)`.
-- **Pronto quando:** `make test s=core` sobe, o Flyway aplica a V1 e o Hibernate valida as entidades contra o schema.
+- [x] **`db/migration/V1__create_exam.sql`**: `exam` com `UNIQUE (source, external_id)` e `source_updated_at` (`occurred_at` do último evento aplicado); `exam_position` com `UNIQUE (exam_id, name)` e `active`.
+- [x] **`ExamSnapshot`**: estado completo do concurso vindo da fonte (o evento vira isto antes de chegar na entidade).
+- [x] **`Exam`** (entidade): só muda por `Exam.create(snapshot, occurredAt)` e `exam.apply(snapshot, occurredAt)`.
+  - `apply` ignora evento mais antigo ou do mesmo instante (devolve `false`) e recusa snapshot de outro concurso;
+  - cargos: cria os novos, **inativa os que sumiram** (não apaga: planos vão referenciar cargo) e reativa os que voltaram.
+- [x] **`ExamPosition`**: só o `Exam` cria/ativa/inativa (métodos package-private).
+- [x] **`ExamRepository`** (package-private): `findBySourceAndExternalId` já traz os cargos (`@EntityGraph`).
+- [x] Testes: `ExamTest` (regras, sem banco) e `ExamRepositoryTest` (`@DataJpaTest` no Postgres real com as migrations).
+
+> ✋ **Revisão:** implementada pelo Claude. Leia `Exam.apply`/`syncPositions` e pergunte o que não estiver claro.
+>
+> Detalhe que pega na Fase 2: com `GenerationType.IDENTITY` o `INSERT` sai já no `save()` (o Hibernate precisa do id), então violação de unique estoura no `save`, não no fim da transação.
 
 ---
 
@@ -62,9 +64,8 @@ Regra: um pacote usa o outro pelo serviço público dele (ex.: `ExamService`), n
   - **Não declare a fila no código** (`@Bean Queue`): ela é da infra (`infra/rabbitmq/definitions.json`). Declarar com argumento diferente derruba o listener com `PRECONDITION_FAILED`.
   - `version` diferente de 1 ou payload inválido → `AmqpRejectAndDontRequeueException` (vai direto pra DLQ).
   - Erro transitório (banco fora) → deixe a exceção subir: volta pra fila e, após 3 entregas, vai pra DLQ (`x-delivery-limit`).
-- [ ] **`ExamService.upsert(evento)`** com `@Transactional`:
-  - não existe → cria; existe → atualiza **só se `occurred_at` > `source_updated_at`** (evento atrasado ou reentregue não sobrescreve dado mais novo);
-  - cargos: sincroniza com a lista do evento (o evento traz o estado completo).
+- [ ] **`ExamService.upsert(snapshot, occurredAt)`** com `@Transactional`: busca por `(source, externalId)`; não existe → `Exam.create` + `save`; existe → `exam.apply` (a regra de evento atrasado e a sincronização dos cargos já estão na entidade).
+  - o listener traduz o DTO do evento para `ExamSnapshot` e chama o serviço.
   - **Pesquisar:** *event-carried state transfer*, *idempotent consumer*, *INSERT ... ON CONFLICT vs buscar-e-salvar*, *@Transactional em método chamado da mesma classe (self-invocation)*.
 - [ ] **Teste de integração** (Testcontainers): publica no `gabarit.events` → o concurso aparece no banco; publicar o mesmo evento de novo não duplica; evento mais antigo não sobrescreve.
   - O RabbitMQ do Testcontainers vem vazio: o teste precisa criar a topologia (importe o `definitions.json` ou declare no setup do teste).
