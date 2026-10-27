@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 ARG PYTHON_IMAGE=python:3.13-slim
-# Precisa bater com o playwright do requirements.txt (o build do builder confere)
+# Precisa bater com o playwright do requirements.lock (o build do builder confere)
 ARG PLAYWRIGHT_VERSION=1.63.0
 
 # ==========================================
@@ -21,15 +21,15 @@ WORKDIR /app
 FROM base AS builder
 ARG PLAYWRIGHT_VERSION
 RUN python -m venv /opt/venv
-COPY requirements.txt .
+COPY requirements.lock .
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install -r requirements.txt
+    pip install --no-deps -r requirements.lock
 RUN python -c "import importlib.metadata as m, sys; v = m.version('playwright'); \
-sys.exit(None if v == '${PLAYWRIGHT_VERSION}' else f'playwright {v} no requirements.txt != PLAYWRIGHT_VERSION ${PLAYWRIGHT_VERSION} no Dockerfile')"
+sys.exit(None if v == '${PLAYWRIGHT_VERSION}' else f'playwright {v} no requirements.lock != PLAYWRIGHT_VERSION ${PLAYWRIGHT_VERSION} no Dockerfile')"
 
 # ==========================================
 # RUNTIME: base + Chromium headless do Playwright e as libs de sistema dele
-# Instalado num venv descartável: mudar o requirements.txt não baixa o navegador de novo
+# Instalado num venv descartável: mudar as dependências não baixa o navegador de novo
 # ==========================================
 FROM base AS runtime
 ARG PLAYWRIGHT_VERSION
@@ -48,9 +48,9 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 # ==========================================
 FROM runtime AS dev
 COPY --from=builder /opt/venv /opt/venv
-COPY requirements-dev.txt .
+COPY requirements-dev.lock .
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install -r requirements-dev.txt
+    pip install --no-deps -r requirements-dev.lock
 CMD ["watchfiles", "python -m src.main", "src"]
 
 # ==========================================

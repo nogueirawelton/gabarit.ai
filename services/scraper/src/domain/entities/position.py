@@ -6,5 +6,5 @@ class Position(BaseModel):
 
     model_config = ConfigDict(frozen=True, str_strip_whitespace=True)
 
-    # Nome como a fonte escreve, sem normalizar: padronizar entre bancas é papel do `exam`
+    # Nome como a fonte escreve, sem normalizar: padronizar entre bancas é papel do `core`
     name: str = Field(min_length=1)

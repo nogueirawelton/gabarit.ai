@@ -4,7 +4,7 @@ Roteiro do serviço, na ordem de implementação. Cada item diz **o que o arquiv
 
 Itens com 🛠️ são infra: peça para o Claude fazer.
 
-**Fluxo do serviço:** recebe `scrape.requested` da fila → busca **todos** os concursos na fonte (cada um já vem com os cargos) → publica um `exam.discovered` por concurso → o serviço `exam` persiste.
+**Fluxo do serviço:** recebe `scrape.requested` da fila → busca **todos** os concursos na fonte (cada um já vem com os cargos) → publica um `exam.discovered` por concurso → o serviço `core` persiste.
 
 **Concurso e cargos:** um `Exam` tem vários `Position` (1:N). No scraper, o cargo só existe dentro do concurso: não tem ciclo de vida próprio e é publicado junto com ele.
 
@@ -41,7 +41,7 @@ Regra da fase: nada aqui importa `httpx`, `aio_pika`, `mcp` ou qualquer coisa de
 
 ## Fase 2: aplicação ✅ (caso de uso + contratos)
 
-- [x] **`contracts/commands/scrape.requested.v1.json`** e **`contracts/events/exam.discovered.v1.json`** (na **raiz do repo**): fonte da verdade compartilhada com o `exam` (Java). O evento leva o concurso **inteiro, com os cargos dentro**, para o `exam` fazer upsert por `(source, external_id)`.
+- [x] **`contracts/commands/scrape.requested.v1.json`** e **`contracts/events/exam.discovered.v1.json`** (na **raiz do repo**): fonte da verdade compartilhada com o `core` (Java). O evento leva o concurso **inteiro, com os cargos dentro**, para o `core` fazer upsert por `(source, external_id)`.
   - **Pesquisar:** *JSON Schema draft 2020-12*, *envelope de evento*, *event-carried state transfer*.
 - [x] **`src/application/messages.py`**: `ScrapeRequested` (recusa campo desconhecido) e `ExamDiscovered` (envelope com `event_id`, `event_type`, `version`, `occurred_at` em UTC, `correlation_id` e `data`).
 - [x] **`src/application/use_cases/scrape_exam.py`**: `ScrapeExams` busca tudo **antes** de publicar (se a fonte falha, nada sai) e publica um evento por concurso.
@@ -90,7 +90,7 @@ Regra da fase: nada aqui importa `httpx`, `aio_pika`, `mcp` ou qualquer coisa de
 - [x] `make up` sobe RabbitMQ + scraper do zero.
 - [x] Publicar `{"source":"pciconcursos"}` no exchange `gabarit.commands` com routing key `scrape.requested` (management em `http://localhost:15672`, usuário/senha no `.env`).
 - [x] Os `exam.discovered` chegam numa fila de teste ligada a `gabarit.events` e batem com o schema.
-- [ ] `make test s=scraper` passa. Hoje o target roda `pytest` no host e só funciona com o `.venv` ativado; o que funciona é `docker compose exec scraper pytest`. 🛠️ ajustar o Makefile.
+- [x] `make test s=scraper` passa (roda no container de dev, com `/contracts` montado).
 
 ---
 
@@ -106,9 +106,9 @@ Hoje o erro transitório volta pra fila na hora: as 3 reentregas acontecem em mi
 
 ---
 
-## Fase 8: agendamento (próximo)
+## Fase 8: agendamento ✅
 
-- [ ] 🛠️ **Quem dispara o `scrape.requested`** algumas vezes por dia. Um cron que só publica a mensagem, fora do scraper: o scraper continua só reagindo a comandos, e outros serviços podem ganhar jobs no mesmo agendador.
+- [x] 🛠️ **Quem dispara o `scrape.requested`** (`infra/scheduler`: supercronic + `publish`; manual: `make scrape`) algumas vezes por dia. Um cron que só publica a mensagem, fora do scraper: o scraper continua só reagindo a comandos, e outros serviços podem ganhar jobs no mesmo agendador.
   - **Pronto quando:** a coleta roda sozinha no horário, cada disparo leva um `message_id` próprio, e dá para disparar à mão com o mesmo comando.
 
 ---
@@ -128,6 +128,6 @@ Hoje o erro transitório volta pra fila na hora: as 3 reentregas acontecem em mi
 - Fazer o ack antes de terminar o processamento; você perde a mensagem se o container cair no meio.
 - Usar o horário sem timezone no evento; use sempre UTC.
 - Testes unitários que fazem requisição de verdade.
-- Normalizar o nome do cargo no scraper ("Analista Judiciário – Área Judiciária" vs "Analista Judiciário - Judiciária"). O scraper manda o nome cru, e a padronização entre bancas fica no `exam`.
+- Normalizar o nome do cargo no scraper ("Analista Judiciário – Área Judiciária" vs "Analista Judiciário - Judiciária"). O scraper manda o nome cru, e a padronização entre bancas fica no `core`.
 - Persistir `datas.aberto` ou `dias_restantes` do PCI: mudam todo dia. Calcule "aberto" a partir das datas.
 - Contornar captcha ou proteção anti-bot de uma fonte.

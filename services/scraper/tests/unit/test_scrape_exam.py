@@ -68,6 +68,6 @@ async def test_coletar_de_novo_mantem_a_identidade_do_concurso() -> None:
     await use_case.execute(ScrapeRequested(source="fake"))
 
     events = [json.loads(body) for _, _, body in publisher.published]
-    # eventos distintos, mesmo concurso: o `exam` faz upsert por (source, external_id)
+    # eventos distintos, mesmo concurso: o `core` faz upsert por (source, external_id)
     assert events[0]["event_id"] != events[1]["event_id"]
     assert {(e["data"]["source"], e["data"]["external_id"]) for e in events} == {("fake", "42")}

@@ -1,4 +1,4 @@
-"""As mensagens do serviço batem com os schemas em /contracts (compartilhados com o `exam`)."""
+"""As mensagens do serviço batem com os schemas em /contracts (compartilhados com o `core`)."""
 
 import json
 from pathlib import Path

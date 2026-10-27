@@ -1,4 +1,4 @@
-# Só entra na imagem de dev (as deps de prod já vêm do estágio builder)
+# Só entra na imagem de dev (as deps de prod já vêm do estágio builder). Lock: requirements-dev.lock (`make lock`)
 watchfiles
 pytest
 pytest-asyncio

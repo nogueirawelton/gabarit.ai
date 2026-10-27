@@ -1,0 +1,7 @@
+# Agendador do gabarit.ai: só publica comandos, quem trabalha são os serviços.
+# Job novo = uma linha nova. Disparo manual equivalente: ver alvos do Makefile (ex.: make scrape).
+# Formato: minuto hora dia mês dia-da-semana comando
+CRON_TZ=America/Sao_Paulo
+
+# Coleta do PCI Concursos às 6h, 12h e 18h (horário de Brasília)
+0 6,12,18 * * * publish gabarit.commands scrape.requested '{"source":"pciconcursos"}'
