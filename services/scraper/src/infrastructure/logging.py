@@ -32,5 +32,5 @@ def configure_logging(level: str) -> None:
     handler.setFormatter(JsonFormatter())
     logging.basicConfig(level=level.upper(), handlers=[handler], force=True)
     # libs muito verbosas em INFO
-    for noisy in ("httpx", "httpx2", "mcp", "aiormq", "aio_pika"):
+    for noisy in ("httpx", "httpcore", "aiormq", "aio_pika"):
         logging.getLogger(noisy).setLevel(logging.WARNING)

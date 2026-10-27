@@ -51,12 +51,14 @@ record ExamDiscoveredEvent(
 		ExamSnapshot toSnapshot() {
 			return new ExamSnapshot(source, externalId, title, url, uf, region, educationLevel, openings,
 					registrationStart, registrationEnd, registrationNote,
-					positions.stream().map(Position::name).toList());
+					positions.stream().map(p -> new ExamSnapshot.Position(p.name(), p.catalogSlugs())).toList());
 		}
 
 	}
 
-	record Position(@NotBlank String name) {
+	/** {@code catalog_slugs} é opcional no contrato: ausente vira lista vazia. */
+	@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+	record Position(@NotBlank String name, List<@NotBlank String> catalogSlugs) {
 	}
 
 }

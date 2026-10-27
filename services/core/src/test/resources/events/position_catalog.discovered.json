@@ -1,0 +1,15 @@
+{
+  "event_id": "7d1f0b6e-2c3a-4b8f-9e51-0a6c2d4e8f13",
+  "event_type": "position_catalog.discovered",
+  "version": 1,
+  "occurred_at": "2026-10-27T22:30:00.104512Z",
+  "correlation_id": "eed88739-2c9a-4e1e-9a47-98785717fdb6",
+  "data": {
+    "source": "pciconcursos",
+    "positions": [
+      { "slug": "enfermeiro", "name": "Enfermeiro" },
+      { "slug": "tecnico-em-contabilidade", "name": "Técnico em Contabilidade" },
+      { "slug": "agente-de-endemias", "name": "AGENTE DE ENDEMIAS" }
+    ]
+  }
+}

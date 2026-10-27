@@ -17,8 +17,8 @@
     "registration_end": "2026-12-10",
     "registration_note": null,
     "positions": [
-      { "name": "ESCREVENTE TÉCNICO JUDICIÁRIO" },
-      { "name": "OFICIAL DE JUSTIÇA" }
+      { "name": "ESCREVENTE TÉCNICO JUDICIÁRIO", "catalog_slugs": ["escrevente", "tecnico-judiciario"] },
+      { "name": "OFICIAL DE JUSTIÇA", "catalog_slugs": ["oficial-de-justica"] }
     ]
   }
 }

@@ -17,6 +17,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -128,23 +129,28 @@ public class Exam {
 	/**
 	 * Deixa ativos exatamente os cargos da lista: cria os novos, reativa os que voltaram
 	 * e inativa os que sumiram (sem apagar, porque planos podem referenciar o cargo).
+	 * Os slugs do catálogo de cada cargo ativo passam a ser os do snapshot.
 	 */
-	private void syncPositions(Collection<String> names) {
-		Set<String> wanted = new LinkedHashSet<>(names);
+	private void syncPositions(Collection<ExamSnapshot.Position> snapshot) {
+		// nome repetido no snapshot vira um só, com os slugs juntos
+		Map<String, Set<String>> wanted = new LinkedHashMap<>();
+		snapshot.forEach(p -> wanted.computeIfAbsent(p.name(), _ -> new LinkedHashSet<>()).addAll(p.catalogSlugs()));
 		Map<String, ExamPosition> current = positions.stream()
 				.collect(Collectors.toMap(ExamPosition::getName, Function.identity()));
 
 		current.forEach((name, position) -> {
-			if (wanted.contains(name)) {
-				position.activate();
+			if (wanted.containsKey(name)) {
+				position.activate(wanted.get(name));
 			}
 			else {
 				position.deactivate();
 			}
 		});
-		wanted.stream()
-				.filter(name -> !current.containsKey(name))
-				.forEach(name -> positions.add(new ExamPosition(this, name)));
+		wanted.forEach((name, slugs) -> {
+			if (!current.containsKey(name)) {
+				positions.add(new ExamPosition(this, name, slugs));
+			}
+		});
 	}
 
 	@PrePersist

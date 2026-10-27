@@ -71,7 +71,20 @@ class ExamDiscoveredContractTest {
 		assertThat(snapshot.educationLevel()).isEqualTo("Médio / Superior");
 		assertThat(snapshot.registrationStart()).isEqualTo(LocalDate.of(2026, 10, 28));
 		assertThat(snapshot.registrationNote()).isNull();
-		assertThat(snapshot.positions()).containsExactly("ESCREVENTE TÉCNICO JUDICIÁRIO", "OFICIAL DE JUSTIÇA");
+		assertThat(snapshot.positions()).containsExactly(
+				new ExamSnapshot.Position("ESCREVENTE TÉCNICO JUDICIÁRIO", List.of("escrevente", "tecnico-judiciario")),
+				new ExamSnapshot.Position("OFICIAL DE JUSTIÇA", List.of("oficial-de-justica")));
+	}
+
+	@Test
+	void catalogSlugsEOpcional() {
+		// eventos de antes do catálogo não têm o campo: continuam válidos e viram lista vazia
+		ObjectNode old = (ObjectNode) example.deepCopy();
+		old.get("data").get("positions").forEach(p -> ((ObjectNode) p).remove("catalog_slugs"));
+
+		assertThat(validate(old)).isEmpty();
+		ExamSnapshot snapshot = MAPPER.treeToValue(old, ExamDiscoveredEvent.class).data().toSnapshot();
+		assertThat(snapshot.positions()).allSatisfy(p -> assertThat(p.catalogSlugs()).isEmpty());
 	}
 
 	@Test

@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="pt-br" itemscope itemtype="https://schema.org/WebPage">
+<head>
+    <meta charset="utf-8">
+    <title>PCI Concursos - Pesquisa por Cargos</title>
+            <meta name="description" content="Concursos Públicos com inscrições abertas e previstas, empregos, estágios, provas, simulados, apostilas preparatórias e videoaulas.">
+                    <meta name="keywords" content="concursos, concurso, concursos publicos, empregos, estagios, curriculo, apostila">
+                        <meta name="robots" content="index,follow,noarchive">
+                <meta name="viewport" content="width=device-width">
+                <meta name="theme-color" content="#205c98">
+        <meta name="msapplication-TileColor" content="#205c98">
+        <meta name="msapplication-TileImage" content="https://www.pciconcursos.com.br/logo.png">
+                <meta itemprop="name" content="PCI Concursos - Pesquisa por Cargos<">
+        <meta itemprop="description" content="Concursos Públicos com inscrições abertas e previstas, empregos, estágios, provas, simulados, apostilas preparatórias e videoaulas.">
+        <meta itemprop="image" content="https://www.pciconcursos.com.br/logo.png">
+                <meta property="og:type" content="webpage">
+        <meta property="og:title" content="PCI Concursos - Pesquisa por Cargos">
+        <meta property="og:site_name" content="PCI Concursos">
+                <meta property="og:description" content="Concursos Públicos com inscrições abertas e previstas, empregos, estágios, provas, simulados, apostilas preparatórias e videoaulas.">
+                    <meta property="fb:app_id" content="211905988988008">
+                <meta property="fb:pages" content="115036158551264">
+        <meta property="og:locale" content="pt_BR">
+        <meta property="og:image" content="https://www.pciconcursos.com.br/logo.png">
+                    <meta property="article:publisher" content="https://www.facebook.com/pciconcursos">
+                <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="#205c98">
+    <meta name="apple-mobile-web-app-title" content="PCI Concursos">
+            <link rel="apple-touch-icon" href="https://www.pciconcursos.com.br/logo.png">
+                <link rel="search" type="application/opensearchdescription+xml" title="PCI Concursos"
+              href="https://www.pciconcursos.com.br/pesquisa.xml">
+                <link rel="manifest" href="https://www.pciconcursos.com.br/manifest.json">
+                <link rel="shortcut icon" href="https://www.pciconcursos.com.br/favicon.ico">
+            <base target="_top">
+<link rel="dns-prefetch" href="https://cdn.pci.app.br">
+<link rel="preconnect" href="https://cdn.pci.app.br">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap">
+<link rel="stylesheet" href="https://www.pciconcursos.com.br/css/bootstrap.css?31992378">
+<link rel="stylesheet" href="https://www.pciconcursos.com.br/css/custom.css?31992378?31992378">
+<link rel="stylesheet" href="https://www.pciconcursos.com.br/css/all.min.css?31992378">
+<link rel="stylesheet" href="https://www.pciconcursos.com.br/css/slicknav.min.css?31992378">
+<link rel="stylesheet" href="https://www.pciconcursos.com.br/css/site.css?31992378?31992378">
+<script src="https://www.pciconcursos.com.br/js/jquery.js"></script>
+</head>
+<body>
+<div id="menu_nav"></div>
+
+<div id="center">
+    <div id="g-login">
+    <div class="header-bar">
+                    <i class="fab fa-google google-icon"></i>
+            <span id="btn-login" class="login-btn">Entrar com Google</span>
+            </div>
+</div>
+<script>
+    // Aguarda DOM carregar
+    document.addEventListener('DOMContentLoaded', function () {
+        // Botão de login
+        const btnLogin = document.getElementById('btn-login');
+        if (btnLogin) {
+            btnLogin.addEventListener('click', function () {
+                fazerLogin();
+            });
+        }
+        // Botão de logout
+        const btnLogout = document.getElementById('btn-logout');
+        if (btnLogout) {
+            btnLogout.addEventListener('click', function () {
+                fazerLogout();
+            });
+        }
+    });
+
+    // Função de login
+    function fazerLogin() {
+        fetch('/google-auth-api?action=getAuthUrl')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Abre popup
+                    window.open(data.authUrl, 'googleLogin', 'width=500,height=600');
+                    // Verifica login a cada 3 segundos
+                    const verificar = setInterval(() => {
+                        fetch('/google-auth-api?action=checkLogin')
+                            .then(r => r.json())
+                            .then(resultado => {
+                                if (resultado.success && resultado.logged_in) {
+                                    clearInterval(verificar);
+                                    window.location.reload();
+                                }
+                            });
+                    }, 3000);
+                    // Para verificação após 5 minutos
+                    setTimeout(() => clearInterval(verificar), 300000);
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+            });
+    }
+
+    // Função de logout
+    function fazerLogout() {
+        fetch('/google-auth-api?action=logout')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.reload();
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+            });
+    }
+</script>    <div id="header">
+        <h1 id="logo"><a href="https://www.pciconcursos.com.br/"><img src="https://cdn.pci.app.br/img/p/pci_logo.png" alt="PCI Concursos"
+                                                       title="PCI Concursos"></a></h1>
+        <nav id="menu-topo">
+            <ul>
+                <li><a href="https://www.pciconcursos.com.br/concursos/">39.241 vagas em concursos</a></li>
+                <li><a href="https://www.pciconcursos.com.br/apostilas/">apostilas</a></li>
+                <li><a href="https://www.pciconcursos.com.br/noticias/">notícias</a></li>
+                <li><a href="https://www.pciconcursos.com.br/provas/">268.785 provas</a></li>
+                <li><a href="https://www.pciconcursos.com.br/contato/">contato</a></li>
+            </ul>
+        </nav>
+    </div>
+
+
+    <nav id="menu">
+        <ul id="menu_lateral">
+            <li class="pginicial"><a href="https://www.pciconcursos.com.br/" class="m_paginainicial"><i class="menu-i fas fa-home"></i>Página
+                    Inicial</a></li>
+            <li><a href="https://www.pciconcursos.com.br/apostilas/" class="m_apostilas"><i
+                            class="menu-i fas fa-book"></i>Apostilas</a></li>
+            <li><a href="https://www.pciconcursos.com.br/noticias/" class="m_noticias"><i class="menu-i fas fa-newspaper"></i>Notícias</a>
+            </li>
+            <li><a href="https://www.pciconcursos.com.br/concursos/" class="m_concursos"><i class="menu-i fa-kit fa-i-br"></i>Concursos</a>
+            </li>
+            <li><a href="https://www.pciconcursos.com.br/concursos/nacional/" class="m_nacional"><i class="menu-i fas fa-flag"></i>Nacional</a>
+            </li>
+            <li><a href="https://www.pciconcursos.com.br/concursos/sudeste/" class="m_sudeste"><i
+                            class="menu-i fa-kit fa-i-sudeste"></i>Sudeste</a></li>
+            <li><a href="https://www.pciconcursos.com.br/concursos/sul/" class="m_sul"><i class="menu-i fa-kit fa-i-sul"></i>Sul</a>
+            </li>
+            <li><a href="https://www.pciconcursos.com.br/concursos/norte/" class="m_norte"><i class="menu-i fa-kit fa-i-norte"></i>Norte</a>
+            </li>
+            <li><a href="https://www.pciconcursos.com.br/concursos/nordeste/" class="m_nordeste"><i
+                            class="menu-i fa-kit fa-i-nordeste"></i>Nordeste</a></li>
+            <li><a href="https://www.pciconcursos.com.br/concursos/centrooeste/" class="m_centrooeste"><i
+                            class="menu-i fa-kit fa-i-centrooeste"></i>Centro-Oeste</a></li>
+            <li><a href="https://www.pciconcursos.com.br/ultimas/" class="m_ultimas"><i class="menu-i fas fa-clock"></i>Últimas</a>
+            </li>
+            <li><a href="https://www.pciconcursos.com.br/mcp-e-gpt" class="m_mcp"><i class="menu-i fas fa-robot"></i>MCP e GPT</a></li>
+            <li><a href="https://www.pciconcursos.com.br/professores/" class="m_professores"><i
+                            class="menu-i fas fa-chalkboard-teacher"></i>Professores</a></li>
+            <!-- <li><a href="https://www.pciconcursos.com.br/previstos/" class="m_previstos"><i class="menu-i fas fa-eye"></i>Previstos</a></li> -->
+            <li><a href="https://www.pciconcursos.com.br/cargos/" class="m_cargos"><i class="menu-i fas fa-briefcase"></i>Cargos</a>
+            </li>
+            <li><a href="https://www.pciconcursos.com.br/concursos/cidades/" class="m_cidades"><i class="menu-i fas fa-city"></i>Cidades</a>
+            </li>
+            <li><a href="https://www.pciconcursos.com.br/vagas/" class="m_vagas"><i class="menu-i fas fa-user-friends"></i>Vagas</a>
+            </li>
+            <li><a href="https://www.pciconcursos.com.br/mapa" class="m_mapa"><i class="menu-i fas fa-map-marked-alt"></i>Mapa</a>
+            </li>
+            <li><a href="https://www.pciconcursos.com.br/simulados/" class="m_simulados"><i
+                            class="menu-i fas fa-tasks"></i>Simulados</a></li>
+            <li><a href="https://www.pciconcursos.com.br/provas/" class="m_provas"><i class="menu-i fas fa-file-alt"></i>Provas</a>
+            </li>
+            <li class="l_aulas"><a href="https://www.pciconcursos.com.br/aulas/" class="m_video"><i
+                            class="menu-i fas fa-graduation-cap"></i>Aulas</a>
+                <!-- <ul>
+                    <li><a href="https://www.pciconcursos.com.br/aulas/lingua-portuguesa" class="m_video"><i class="menu-i fas fa-graduation-cap"></i>Aulas Português</a></li>
+                    <li><a href="https://www.pciconcursos.com.br/aulas/matematica/" class="m_video"><i class="menu-i fas fa-graduation-cap"></i>Aulas Matemática</a></li>
+                    <li><a href="https://www.pciconcursos.com.br/aulas/raciocinio-logico/" class="m_video"><i class="menu-i fas fa-graduation-cap"></i>Aulas Rac. Lógico</a></li>
+                    <li><a href="https://www.pciconcursos.com.br/aulas/informatica/" class="m_video"><i class="menu-i fas fa-graduation-cap"></i>Aulas Informática</a></li>
+                    <li><a href="https://www.pciconcursos.com.br/aulas/direito-constitucional/" class="m_video"><i class="menu-i fas fa-graduation-cap"></i>D. Constitucional</a></li>
+                    <li><a href="https://www.pciconcursos.com.br/aulas/direito-administrativo/" class="m_video"><i class="menu-i fas fa-graduation-cap"></i>D. Administrativo</a></li>
+                    <li><a href="https://www.pciconcursos.com.br/aulas/direito-empresarial/" class="m_video"><i class="menu-i fas fa-graduation-cap"></i>D. Empresarial</a></li>
+                    <li><a href="https://www.pciconcursos.com.br/aulas/direito-eleitoral/" class="m_video"><i class="menu-i fas fa-graduation-cap"></i>D. Eleitoral</a></li>
+                    <li><a href="https://www.pciconcursos.com.br/aulas/direito-tributario/" class="m_video"><i class="menu-i fas fa-graduation-cap"></i>D. Tributário</a></li>
+                    <li><a href="https://www.pciconcursos.com.br/aulas/direito-do-trabalho/" class="m_video"><i class="menu-i fas fa-graduation-cap"></i>D. Trabalho</a></li>
+                    <li><a href="https://www.pciconcursos.com.br/aulas/direito-civil/" class="m_video"><i class="menu-i fas fa-graduation-cap"></i>D. Civil</a></li>
+                    <li><a href="https://www.pciconcursos.com.br/aulas/direito-penal/" class="m_video"><i class="menu-i fas fa-graduation-cap"></i>D. Penal</a></li>
+                    <li><a href="https://www.pciconcursos.com.br/aulas/direito-processual-civil/" class="m_video"><i class="menu-i fas fa-graduation-cap"></i>D. Proc. Civil</a></li>
+                    <li><a href="https://www.pciconcursos.com.br/aulas/direito-processual-penal/" class="m_video"><i class="menu-i fas fa-graduation-cap"></i>D. Proc. Penal</a></li>
+                    <li><a href="https://www.pciconcursos.com.br/aulas/direito-processual-do-trabalho/" class="m_video"><i class="menu-i fas fa-graduation-cap"></i>D. Proc. Trabalho</a></li>
+                    <li><a href="https://www.pciconcursos.com.br/aulas/direitos-humanos/" class="m_video"><i class="menu-i fas fa-graduation-cap"></i>D. Humanos</a></li>
+                    <li><a href="https://www.pciconcursos.com.br/aulas/questoes-comentadas/" class="m_video"><i class="menu-i fas fa-graduation-cap"></i>Q. Comentadas</a></li>
+                    <li><a href="https://www.pciconcursos.com.br/aulas/" class="m_video"><i class="menu-i fas fa-graduation-cap"></i>+ Várias Aulas</a></li>
+                </ul>
+            -->
+            </li>
+            <li><a href="https://www.pciconcursos.com.br/organizadoras/" class="m_organizadoras"><i class="menu-i fas fa-building"></i>Organizadoras</a>
+            </li>
+            <li><a href="https://www.pciconcursos.com.br/colaborar/" class="m_colaborar"><i class="menu-i fas fa-handshake"></i>Colaborar</a>
+            </li>
+            <li><a href="https://www.pciconcursos.com.br/contato/" class="m_contato"><i class="menu-i fas fa-envelope"></i>Contato</a>
+            </li>
+        </ul>
+    </nav>
+    <div id="conteudo">
+        <style>
+#pagina ul li.noticia_desc a { font-weight:bold; color:#205c98; }
+#pagina ul li.noticia_desc a:hover { text-decoration:underline; }
+.ads20 { margin-top:50px; }
+@media screen and (max-width:768px) {
+    #site, #conteudo { width:100%; }
+}       
+</style>
+<div id="pagina">
+    <div class="ads_mobi"><div style="width:320px; height:100px; margin:20px auto 0 auto;"><ins class="adsbygoogle" style="display:inline-block;width:320px;height:100px" data-ad-client="ca-pub-2622407619291980" data-ad-slot="1797634041"></ins><script>(adsbygoogle = window.adsbygoogle || []).push({});</script></div></div>
+<div class="ads10"><div class="ads11"><ins class="adsbygoogle" style="display:inline-block;width:300px;height:250px" data-ad-client="ca-pub-2622407619291980" data-ad-slot="9825760010"></ins><script>(adsbygoogle = window.adsbygoogle || []).push({});</script></div><div class="ads12"><ins class="adsbygoogle" style="display:inline-block;width:300px;height:250px" data-ad-client="ca-pub-2622407619291980" data-ad-slot="9825760010"></ins><script>(adsbygoogle = window.adsbygoogle || []).push({});</script></div></div>
+
+    <h1>Pesquisa por Cargos</h1>
+    <div style="position: relative;">
+        <div style="position: absolute; right:0; top:-45px;"><div class="sharelink"><a href="#" onclick="shareLink('PCI Concursos - Pesquisa por Cargos', '', 'https://www.pciconcursos.com.br/cargos'); return false;" rel="nofollow"><i class="fa-light fa-share-nodes"></i> </a></div></div>
+    </div>
+    <div class="card border mb-4">
+        <div class="card-body shadow-sm p-4" style="background-color:#f7f8fa;">
+            <h5 class="card-title text-center font-weight-bold mb-3 text-pci" style="font-size: 1.1rem;">
+                Pesquise por cargos <small class="d-block text-muted font-weight-normal mt-1" style="font-size: 0.85rem;">
+                    (ex: dentista, psicólogo, médico entre outros)
+                </small>
+            </h5>
+            <form method="post" action="https://www.pciconcursos.com.br/cargos/">
+                <div class="input-group mb-3 mx-auto" style="max-width: 500px;">
+                    <input type="text" name="cargo" class="form-control border-pci" value="" placeholder="Digite o cargo desejado">
+                    <div class="input-group-append">
+                        <button type="submit" name="botao" class="btn btn-pci" style="font-size: 1rem;">
+                            <i class="fas fa-search"></i> Pesquisar
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <h2><i class="fas fa-briefcase mr-3"></i>Principais cargos com vagas em concursos</h2><ul class="link-i">
+<li><a href="https://www.pciconcursos.com.br/cargos/administrador"><i class="fas fa-user-gear"></i>ADMINISTRADOR</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/advogado"><i class="fas fa-scale-balanced"></i>ADVOGADO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/agente-administrativo"><i class="fas fa-briefcase"></i>AGENTE ADMINISTRATIVO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/agente-comunitario-de-saude"><i class="fas fa-house-medical"></i>AGENTE COMUNITÁRIO DE SAÚDE</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/agente-de-combate-a-endemias"><i class="fas fa-mosquito"></i>AGENTE DE COMBATE A ENDEMIAS</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/agente-de-combate-as-endemias"><i class="fas fa-mosquito-net"></i>AGENTE DE COMBATE ÀS ENDEMIAS</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/agente-de-endemias"><i class="fas fa-mosquito"></i>AGENTE DE ENDEMIAS</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/agente-de-servicos-gerais"><i class="fas fa-broom"></i>AGENTE DE SERVIÇOS GERAIS</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/agente-de-transito"><i class="fas fa-traffic-light"></i>AGENTE DE TRÂNSITO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/agente-temporario-ambiental"><i class="fas fa-tree"></i>AGENTE TEMPORÁRIO AMBIENTAL</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/agente-temporario-ambiental-gestao-de-unidade-de-conservacao"><i class="fas fa-seedling"></i>AGENTE TEMPORÁRIO AMBIENTAL - GESTÃO DE UNIDADE DE CONSERVAÇÃO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/almoxarife"><i class="fas fa-boxes-stacked"></i>ALMOXARIFE</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/analista-administrativo"><i class="fas fa-chart-mixed"></i>ANALISTA ADMINISTRATIVO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/analista-de-sistemas"><i class="fas fa-code"></i>ANALISTA DE SISTEMAS</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/arquiteto"><i class="fas fa-compass-drafting"></i>ARQUITETO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/assistente-administrativo"><i class="fas fa-file-pen"></i>ASSISTENTE ADMINISTRATIVO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/assistente-social"><i class="fas fa-hands-holding"></i>ASSISTENTE SOCIAL</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/atendente-de-farmacia"><i class="fas fa-pills"></i>ATENDENTE DE FARMÁCIA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/auxiliar-administrativo"><i class="fas fa-file"></i>AUXILIAR ADMINISTRATIVO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/auxiliar-de-consultorio-dentario"><i class="fas fa-tooth"></i>AUXILIAR DE CONSULTÓRIO DENTÁRIO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/auxiliar-de-cozinha"><i class="fas fa-kitchen-set"></i>AUXILIAR DE COZINHA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/auxiliar-de-creche"><i class="fas fa-children"></i>AUXILIAR DE CRECHE</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/auxiliar-de-desenvolvimento-infantil"><i class="fas fa-child"></i>AUXILIAR DE DESENVOLVIMENTO INFANTIL</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/auxiliar-de-enfermagem"><i class="fas fa-user-nurse"></i>AUXILIAR DE ENFERMAGEM</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/auxiliar-de-farmacia"><i class="fas fa-pills"></i>AUXILIAR DE FARMÁCIA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/auxiliar-de-sala"><i class="fas fa-user-friends"></i>AUXILIAR DE SALA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/auxiliar-de-saude-bucal"><i class="fas fa-pump-medical"></i>AUXILIAR DE SAÚDE BUCAL</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/auxiliar-de-servicos-gerais"><i class="fas fa-broom"></i>AUXILIAR DE SERVIÇOS GERAIS</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/bibliotecario"><i class="fas fa-books"></i>BIBLIOTECÁRIO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/biologo"><i class="fas fa-microscope"></i>BIÓLOGO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/biomedico"><i class="fas fa-vial-virus"></i>BIOMÉDICO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/bioquimico"><i class="fas fa-flask-vial"></i>BIOQUÍMICO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/borracheiro"><i class="fas fa-tire"></i>BORRACHEIRO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/brigadista"><i class="fas fa-fire-extinguisher"></i>BRIGADISTA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/carpinteiro"><i class="fas fa-hammer"></i>CARPINTEIRO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/chefe-de-esquadrao"><i class="fas fa-chess-king"></i>CHEFE DE ESQUADRÃO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/cirurgiao-dentista"><i class="fas fa-tooth"></i>CIRURGIÃO-DENTISTA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/contador"><i class="fas fa-calculator"></i>CONTADOR</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/controlador-interno"><i class="fas fa-shield-check"></i>CONTROLADOR INTERNO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/coordenador-pedagogico"><i class="fas fa-chalkboard-user"></i>COORDENADOR PEDAGÓGICO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/coveiro"><i class="fas fa-tombstone"></i>COVEIRO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/cozinheiro"><i class="fas fa-hat-chef"></i>COZINHEIRO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/cuidador"><i class="fas fa-hands-holding-child"></i>CUIDADOR</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/cuidador-social"><i class="fas fa-hand-holding-heart"></i>CUIDADOR SOCIAL</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/dentista"><i class="fas fa-tooth"></i>DENTISTA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/diretor-de-escola"><i class="fas fa-landmark"></i>DIRETOR DE ESCOLA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/educador-fisico"><i class="fas fa-dumbbell"></i>EDUCADOR FÍSICO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/educador-social"><i class="fas fa-users-viewfinder"></i>EDUCADOR SOCIAL</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/eletricista"><i class="fas fa-bolt"></i>ELETRICISTA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/encanador"><i class="fas fa-faucet"></i>ENCANADOR</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/enfermeiro"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/engenheiro-agronomo"><i class="fas fa-seedling"></i>ENGENHEIRO AGRÔNOMO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/engenheiro-ambiental"><i class="fas fa-leaf"></i>ENGENHEIRO AMBIENTAL</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/engenheiro-civil"><i class="fas fa-helmet-safety"></i>ENGENHEIRO CIVIL</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/engenheiro-de-seguranca-do-trabalho"><i class="fas fa-hard-hat"></i>ENGENHEIRO DE SEGURANÇA DO TRABALHO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/engenheiro-eletricista"><i class="fas fa-plug-circle-bolt"></i>ENGENHEIRO ELETRICISTA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/engenheiro-florestal"><i class="fas fa-tree"></i>ENGENHEIRO FLORESTAL</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/escriturario"><i class="fas fa-pen-nib"></i>ESCRITURÁRIO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/farmaceutico"><i class="fas fa-prescription-bottle-medical"></i>FARMACÊUTICO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/farmaceutico-bioquimico"><i class="fas fa-flask-vial"></i>FARMACÊUTICO-BIOQUÍMICO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/fiscal"><i class="fas fa-clipboard-check"></i>FISCAL</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/fiscal-ambiental"><i class="fas fa-leaf"></i>FISCAL AMBIENTAL</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/fiscal-de-obras"><i class="fas fa-map-location-dot"></i>FISCAL DE OBRAS</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/fiscal-de-obras-e-posturas"><i class="fas fa-map-location-dot"></i>FISCAL DE OBRAS E POSTURAS</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/fiscal-de-tributos"><i class="fas fa-money-check-dollar"></i>FISCAL DE TRIBUTOS</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/fiscal-de-vigilancia-sanitaria"><i class="fas fa-clipboard-check"></i>FISCAL DE VIGILÂNCIA SANITÁRIA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/fiscal-sanitario"><i class="fas fa-hand-holding-droplet"></i>FISCAL SANITÁRIO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/fiscal-tributario"><i class="fas fa-file-invoice-dollar"></i>FISCAL TRIBUTÁRIO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/fisioterapeuta"><i class="fas fa-wheelchair"></i>FISIOTERAPEUTA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/fonoaudiologo"><i class="fas fa-ear"></i>FONOAUDIÓLOGO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/gari"><i class="fas fa-broom"></i>GARI</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/geologo"><i class="fas fa-gem"></i>GEÓLOGO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/guarda-civil-municipal"><i class="fas fa-shield-halved"></i>GUARDA CIVIL MUNICIPAL</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/guarda-municipal"><i class="fas fa-shield-halved"></i>GUARDA MUNICIPAL</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/inspetor-de-alunos"><i class="fas fa-whistle"></i>INSPETOR DE ALUNOS</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/interprete-de-libras"><i class="fas fa-hands-asl-interpreting"></i>INTÉRPRETE DE LIBRAS</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/jardineiro"><i class="fas fa-leaf"></i>JARDINEIRO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/mecanico"><i class="fas fa-wrench"></i>MECÂNICO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/medico"><i class="fas fa-user-md"></i>MÉDICO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/medico-anestesiologia"><i class="fas fa-syringe"></i>MÉDICO - ANESTESIOLOGIA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/medico-cardiologia"><i class="fas fa-heartbeat"></i>MÉDICO - CARDIOLOGIA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/medico-cardiologista"><i class="fas fa-heart-pulse"></i>MÉDICO - CARDIOLOGISTA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/medico-cirurgia-geral"><i class="fas fa-scalpel"></i>MÉDICO - CIRURGIA GERAL</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/medico-clinica-geral"><i class="fas fa-user-md"></i>MÉDICO - CLÍNICA GERAL</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/medico-clinica-medica"><i class="fas fa-user-md"></i>MÉDICO - CLÍNICA MÉDICA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/medico-dermatologia"><i class="fas fa-spa"></i>MÉDICO - DERMATOLOGIA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/medico-endocrinologia"><i class="fas fa-vial"></i>MÉDICO - ENDOCRINOLOGIA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/medico-geriatria"><i class="fas fa-user-md"></i>MÉDICO - GERIATRIA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/medico-ginecologia"><i class="fas fa-user-md"></i>MÉDICO - GINECOLOGIA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/medico-ginecologia-e-obstetricia"><i class="fas fa-stethoscope"></i>MÉDICO - GINECOLOGIA E OBSTETRÍCIA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/medico-infectologia"><i class="fas fa-virus"></i>MÉDICO - INFECTOLOGIA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/medico-infectologista"><i class="fas fa-virus-covid"></i>MÉDICO - INFECTOLOGISTA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/medico-neurologia"><i class="fas fa-brain"></i>MÉDICO - NEUROLOGIA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/medico-neurologista"><i class="fas fa-brain-circuit"></i>MÉDICO - NEUROLOGISTA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/medico-oftalmologia"><i class="fas fa-eye"></i>MÉDICO - OFTALMOLOGIA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/medico-ortopedia"><i class="fas fa-bone"></i>MÉDICO - ORTOPEDIA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/medico-ortopedista"><i class="fas fa-bone"></i>MÉDICO - ORTOPEDISTA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/medico-otorrinolaringologia"><i class="fas fa-ear"></i>MÉDICO - OTORRINOLARINGOLOGIA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/medico-pediatra"><i class="fas fa-baby"></i>MÉDICO - PEDIATRA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/medico-pediatria"><i class="fas fa-baby"></i>MÉDICO - PEDIATRIA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/medico-pneumologia"><i class="fas fa-lungs"></i>MÉDICO - PNEUMOLOGIA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/medico-psiquiatra"><i class="fas fa-brain-circuit"></i>MÉDICO - PSIQUIATRA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/medico-psiquiatria"><i class="fas fa-head-side-medical"></i>MÉDICO - PSIQUIATRIA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/medico-reumatologia"><i class="fas fa-bone"></i>MÉDICO - REUMATOLOGIA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/medico-urologia"><i class="fas fa-user-md"></i>MÉDICO - UROLOGIA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/medico-urologista"><i class="fas fa-kidneys"></i>MÉDICO - UROLOGISTA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/medico-clinico-geral"><i class="fas fa-user-md"></i>MÉDICO CLÍNICO GERAL</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/medico-do-trabalho"><i class="fas fa-user-doctor-hair-long"></i>MÉDICO DO TRABALHO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/medico-plantonista"><i class="fas fa-stethoscope"></i>MÉDICO PLANTONISTA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/medico-veterinario"><i class="fas fa-paw"></i>MÉDICO VETERINÁRIO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/merendeiro"><i class="fas fa-utensils"></i>MERENDEIRO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/monitor"><i class="fas fa-screen-users"></i>MONITOR</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/monitor-de-creche"><i class="fas fa-children"></i>MONITOR DE CRECHE</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/monitor-de-transporte-escolar"><i class="fas fa-bus"></i>MONITOR DE TRANSPORTE ESCOLAR</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/monitor-escolar"><i class="fas fa-screen-users"></i>MONITOR ESCOLAR</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/motorista"><i class="fas fa-steering-wheel"></i>MOTORISTA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/motorista-categoria-d"><i class="fas fa-bus"></i>MOTORISTA CATEGORIA D</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/motorista-de-ambulancia"><i class="fas fa-truck-medical"></i>MOTORISTA DE AMBULÂNCIA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/motorista-de-transporte-escolar"><i class="fas fa-bus"></i>MOTORISTA DE TRANSPORTE ESCOLAR</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/motorista-de-veiculos-pesados"><i class="fas fa-truck"></i>MOTORISTA DE VEÍCULOS PESADOS</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/nutricionista"><i class="fas fa-apple-whole"></i>NUTRICIONISTA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/odontologo"><i class="fas fa-tooth"></i>ODONTÓLOGO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/oficial-administrativo"><i class="fas fa-briefcase"></i>OFICIAL ADMINISTRATIVO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/operador-de-maquina"><i class="fas fa-tractor"></i>OPERADOR DE MÁQUINA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/operador-de-maquinas"><i class="fas fa-tractor"></i>OPERADOR DE MÁQUINAS</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/operador-de-maquinas-pesadas"><i class="fas fa-tractor"></i>OPERADOR DE MÁQUINAS PESADAS</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/operario"><i class="fas fa-helmet-safety"></i>OPERÁRIO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/orientador-educacional"><i class="fas fa-person-chalkboard"></i>ORIENTADOR EDUCACIONAL</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/orientador-social"><i class="fas fa-users-viewfinder"></i>ORIENTADOR SOCIAL</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/pedagogo"><i class="fas fa-graduation-cap"></i>PEDAGOGO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/pedreiro"><i class="fas fa-trowel-bricks"></i>PEDREIRO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/pintor"><i class="fas fa-paint-roller"></i>PINTOR</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/porteiro"><i class="fas fa-door-closed"></i>PORTEIRO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/procurador"><i class="fas fa-briefcase"></i>PROCURADOR</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/procurador-juridico"><i class="fas fa-scale-balanced"></i>PROCURADOR JURÍDICO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor"><i class="fas fa-chalkboard-user"></i>PROFESSOR</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-aee"><i class="fas fa-chalkboard-teacher"></i>PROFESSOR - AEE</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-anos-iniciais"><i class="fas fa-chalkboard-user"></i>PROFESSOR - ANOS INICIAIS</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-arte"><i class="fas fa-palette"></i>PROFESSOR - ARTE</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-artes"><i class="fas fa-palette"></i>PROFESSOR - ARTES</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-atendimento-educacional-especializado"><i class="fas fa-user-graduate"></i>PROFESSOR - ATENDIMENTO EDUCACIONAL ESPECIALIZADO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-biologia"><i class="fas fa-microscope"></i>PROFESSOR - BIOLOGIA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-ciencias"><i class="fas fa-microscope"></i>PROFESSOR - CIÊNCIAS</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-educacao-basica"><i class="fas fa-chalkboard-teacher"></i>PROFESSOR - EDUCAÇÃO BÁSICA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-educacao-especial"><i class="fas fa-universal-access"></i>PROFESSOR - EDUCAÇÃO ESPECIAL</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-educacao-fisica"><i class="fas fa-dumbbell"></i>PROFESSOR - EDUCAÇÃO FÍSICA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-educacao-infantil"><i class="fas fa-child-reaching"></i>PROFESSOR - EDUCAÇÃO INFANTIL</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-ensino-fundamental"><i class="fas fa-school"></i>PROFESSOR - ENSINO FUNDAMENTAL</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-ensino-religioso"><i class="fas fa-praying-hands"></i>PROFESSOR - ENSINO RELIGIOSO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-espanhol"><i class="fas fa-language"></i>PROFESSOR - ESPANHOL</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-filosofia"><i class="fas fa-book-open"></i>PROFESSOR - FILOSOFIA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-fisica"><i class="fas fa-atom"></i>PROFESSOR - FÍSICA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-geografia"><i class="fas fa-earth-americas"></i>PROFESSOR - GEOGRAFIA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-historia"><i class="fas fa-monument"></i>PROFESSOR - HISTÓRIA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-informatica"><i class="fas fa-laptop-code"></i>PROFESSOR - INFORMÁTICA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-ingles"><i class="fas fa-language"></i>PROFESSOR - INGLÊS</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-letras"><i class="fas fa-book-open"></i>PROFESSOR - LETRAS</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-libras"><i class="fas fa-sign-language"></i>PROFESSOR - LIBRAS</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-lingua-inglesa"><i class="fas fa-language"></i>PROFESSOR - LÍNGUA INGLESA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-lingua-portuguesa"><i class="fas fa-language"></i>PROFESSOR - LÍNGUA PORTUGUESA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-matematica"><i class="fas fa-calculator"></i>PROFESSOR - MATEMÁTICA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-musica"><i class="fas fa-music"></i>PROFESSOR - MÚSICA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-pedagogia"><i class="fas fa-chalkboard-teacher"></i>PROFESSOR - PEDAGOGIA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-pedagogo"><i class="fas fa-chalkboard-teacher"></i>PROFESSOR - PEDAGOGO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-portugues"><i class="fas fa-language"></i>PROFESSOR - PORTUGUÊS</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-quimica"><i class="fas fa-flask"></i>PROFESSOR - QUÍMICA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-series-iniciais"><i class="fas fa-chalkboard-teacher"></i>PROFESSOR - SÉRIES INICIAIS</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-de-educacao-basica"><i class="fas fa-chalkboard-teacher"></i>PROFESSOR DE EDUCAÇÃO BÁSICA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-de-educacao-basica-arte"><i class="fas fa-palette"></i>PROFESSOR DE EDUCAÇÃO BÁSICA - ARTE</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-de-educacao-basica-artes"><i class="fas fa-palette"></i>PROFESSOR DE EDUCAÇÃO BÁSICA - ARTES</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-de-educacao-basica-ciencias"><i class="fas fa-atom"></i>PROFESSOR DE EDUCAÇÃO BÁSICA - CIÊNCIAS</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-de-educacao-basica-educacao-fisica"><i class="fas fa-dumbbell"></i>PROFESSOR DE EDUCAÇÃO BÁSICA - EDUCAÇÃO FÍSICA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-de-educacao-basica-geografia"><i class="fas fa-earth-americas"></i>PROFESSOR DE EDUCAÇÃO BÁSICA - GEOGRAFIA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-de-educacao-basica-historia"><i class="fas fa-book-open"></i>PROFESSOR DE EDUCAÇÃO BÁSICA - HISTÓRIA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-de-educacao-basica-ingles"><i class="fas fa-language"></i>PROFESSOR DE EDUCAÇÃO BÁSICA - INGLÊS</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-de-educacao-basica-lingua-portuguesa"><i class="fas fa-book"></i>PROFESSOR DE EDUCAÇÃO BÁSICA - LÍNGUA PORTUGUESA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-de-educacao-basica-matematica"><i class="fas fa-calculator"></i>PROFESSOR DE EDUCAÇÃO BÁSICA - MATEMÁTICA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-de-educacao-especial"><i class="fas fa-hands-asl-interpreting"></i>PROFESSOR DE EDUCAÇÃO ESPECIAL</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-de-educacao-infantil"><i class="fas fa-child"></i>PROFESSOR DE EDUCAÇÃO INFANTIL</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-substituto-administracao"><i class="fas fa-chalkboard-teacher"></i>PROFESSOR SUBSTITUTO - ADMINISTRAÇÃO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-substituto-educacao-fisica"><i class="fas fa-dumbbell"></i>PROFESSOR SUBSTITUTO - EDUCAÇÃO FÍSICA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-substituto-fisica"><i class="fas fa-atom"></i>PROFESSOR SUBSTITUTO - FÍSICA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-substituto-geografia"><i class="fas fa-earth-americas"></i>PROFESSOR SUBSTITUTO - GEOGRAFIA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-substituto-historia"><i class="fas fa-scroll"></i>PROFESSOR SUBSTITUTO - HISTÓRIA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-substituto-informatica"><i class="fas fa-laptop-code"></i>PROFESSOR SUBSTITUTO - INFORMÁTICA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-substituto-lingua-portuguesa"><i class="fas fa-language"></i>PROFESSOR SUBSTITUTO - LÍNGUA PORTUGUESA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-substituto-matematica"><i class="fas fa-abacus"></i>PROFESSOR SUBSTITUTO - MATEMÁTICA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-substituto-quimica"><i class="fas fa-flask"></i>PROFESSOR SUBSTITUTO - QUÍMICA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/professor-substituto-sociologia"><i class="fas fa-people-group"></i>PROFESSOR SUBSTITUTO - SOCIOLOGIA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/profissional-de-apoio-escolar"><i class="fas fa-school"></i>PROFISSIONAL DE APOIO ESCOLAR</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/profissional-de-educacao-fisica"><i class="fas fa-dumbbell"></i>PROFISSIONAL DE EDUCAÇÃO FÍSICA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/psicologo"><i class="fas fa-brain"></i>PSICÓLOGO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/psicologo-educacional"><i class="fas fa-brain"></i>PSICÓLOGO EDUCACIONAL</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/psicopedagogo"><i class="fas fa-brain"></i>PSICOPEDAGOGO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/recepcionista"><i class="fas fa-bell-concierge"></i>RECEPCIONISTA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/secretario-de-escola"><i class="fas fa-file-invoice"></i>SECRETÁRIO DE ESCOLA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/secretario-escolar"><i class="fas fa-folder-tree"></i>SECRETÁRIO ESCOLAR</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/servente"><i class="fas fa-bucket"></i>SERVENTE</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/servicos-gerais"><i class="fas fa-hand-sparkles"></i>SERVIÇOS GERAIS</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/tecnico-administrativo"><i class="fas fa-folder-tree"></i>TÉCNICO ADMINISTRATIVO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/tecnico-agricola"><i class="fas fa-wheat-awn"></i>TÉCNICO AGRÍCOLA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/tecnico-de-contabilidade"><i class="fas fa-file-invoice-dollar"></i>TÉCNICO DE CONTABILIDADE</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/tecnico-de-edificacoes"><i class="fas fa-trowel-bricks"></i>TÉCNICO DE EDIFICAÇÕES</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/tecnico-de-enfermagem"><i class="fas fa-user-nurse"></i>TÉCNICO DE ENFERMAGEM</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/tecnico-de-farmacia"><i class="fas fa-pills"></i>TÉCNICO DE FARMÁCIA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/tecnico-de-informatica"><i class="fas fa-laptop-code"></i>TÉCNICO DE INFORMÁTICA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/tecnico-de-laboratorio"><i class="fas fa-microscope"></i>TÉCNICO DE LABORATÓRIO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/tecnico-de-radiologia"><i class="fas fa-x-ray"></i>TÉCNICO DE RADIOLOGIA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/tecnico-de-saude-bucal"><i class="fas fa-teeth"></i>TÉCNICO DE SAÚDE BUCAL</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/tecnico-de-seguranca-do-trabalho"><i class="fas fa-hard-hat"></i>TÉCNICO DE SEGURANÇA DO TRABALHO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/tecnico-em-enfermagem"><i class="fas fa-user-nurse"></i>TÉCNICO EM ENFERMAGEM</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/tecnico-em-informatica"><i class="fas fa-laptop-code"></i>TÉCNICO EM INFORMÁTICA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/tecnico-em-radiologia"><i class="fas fa-x-ray"></i>TÉCNICO EM RADIOLOGIA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/tecnico-em-saude-bucal"><i class="fas fa-tooth"></i>TÉCNICO EM SAÚDE BUCAL</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/tecnico-em-seguranca-do-trabalho"><i class="fas fa-hard-hat"></i>TÉCNICO EM SEGURANÇA DO TRABALHO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/terapeuta-ocupacional"><i class="fas fa-hand-holding-medical"></i>TERAPEUTA OCUPACIONAL</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/tesoureiro"><i class="fas fa-vault"></i>TESOUREIRO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/trabalhador-bracal"><i class="fas fa-user-gear"></i>TRABALHADOR BRAÇAL</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/tratorista"><i class="fas fa-tractor"></i>TRATORISTA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/veterinario"><i class="fas fa-paw"></i>VETERINÁRIO</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/vigia"><i class="fas fa-eye"></i>VIGIA</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/vigilante"><i class="fas fa-shield-halved"></i>VIGILANTE</a></li>
+<li><a href="https://www.pciconcursos.com.br/cargos/zelador"><i class="fas fa-key"></i>ZELADOR</a></li>
+</ul>
+
+    <div style="padding:10px; margin:0 auto;"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-2622407619291980" data-ad-slot="4406933812" data-ad-format="auto" data-full-width-responsive="true"></ins><script>(adsbygoogle = window.adsbygoogle || []).push({});</script></div>
+
+</div>    </div>
+    <div id="lateral">
+        <div id="lateralnoticias">
+            <ul id="lista_lateral_noticias" class="lateral_social">
+                <li><a href="https://www.pciconcursos.com.br/noticias/tjsp-abre-concursos-para-oficial-de-justica-e-escrevente-tecnico-judiciario"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/eda04dace7a00dc91f73ab602ab07ae1.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>TJSP abre concursos para Oficial de Justiça e Escrevente Técnico Judiciário</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/prefeitura-de-matao-sp-abre-concurso-publico-com-salarios-de-ate-9717"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/c6897a9560abdf447ea970a8668077f0.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>Prefeitura de Matão - SP abre concurso público com salários de até R$ 9.717,96</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/prefeitura-de-matao-sp-abre-concurso-publico-com-salarios-de-ate-17433"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/c6897a9560abdf447ea970a8668077f0.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>Prefeitura de Matão - SP abre concurso público com salários de até R$ 17.433,24</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/prefeitura-de-piracicaba-sp-abre-selecao-para-professores-substitutos"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/5a86827b9039b3ab779762a6f22b5b66.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>Prefeitura de Piracicaba - SP abre seleção para Professores Substitutos</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/prefeitura-de-sao-carlos-sp-abre-concurso-com-salarios-de-ate-9833"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/5071fbfc75da6cb1fbe681ba151a0b81.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>Prefeitura de São Carlos - SP abre concurso com salários de até R$ 9.833,00</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/camara-de-boituva-sp-abre-concursos-com-salarios-de-ate-8595"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/6c5fb490a9a2c6a8533fae94b1056260.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>Câmara de Boituva - SP abre concursos com salários de até R$ 8.595,15</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/setec-campinas-sp-abre-concurso-publico-com-salarios-de-ate-10428"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/0015824285815959b92a34607c2ba88c.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>SETEC Campinas - SP abre concurso público com salários de até R$ 10.428,05</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/prefeitura-de-sao-goncalo-rj-abre-concursos-para-guardas-municipais"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/dbb2a87eae8da19d1d1fa13f4821e4ba.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>Prefeitura de São Gonçalo - RJ abre concursos para Guardas Municipais</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/cremerj-retifica-concurso-com-salarios-de-ate-18000-para-diversos-cargos"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/b1487144ef9b07f92b38edcdc10814c9.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>CREMERJ retifica concurso com salários de até R$ 18.000,00 para diversos cargos</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/prefeitura-de-paraguacu-mg-abre-concurso-publico-com-salarios-de-ate-20128"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/13827fa35802c6059f23529f9d6562aa.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>Prefeitura de Paraguaçu - MG abre concurso público com salários de até R$ 20.128,27</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/prefeitura-de-santa-luzia-mg-abre-concurso-publico-com-salarios-de-ate-8628"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/235304f35049dd093385cd614f9c28c0.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>Prefeitura de Santa Luzia - MG abre concurso público com salários de até R$ 8.628,87</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/hospital-municipal-dr-gil-alves-mg-abre-concurso-com-salarios-de-ate-7950"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/beca403b62bc376e3831605ce9b53744.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>Hospital Municipal Dr. Gil Alves - MG abre concurso com salários de até R$ 7.950,00</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/pmmg-abre-concurso-com-90-vagas-para-o-curso-de-formacao-de-oficiais"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/481ff05e934b984bc49e944876cfa2fb.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>PMMG abre concurso com 90 vagas para o Curso de Formação de Oficiais</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/prefeitura-de-contagem-mg-retifica-edital-de-concurso-publico"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/7de2c0dbeff437f4cd0052b4d16f8acf.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>Prefeitura de Contagem - MG retifica edital de concurso público</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/emater-mg-anuncia-retificacao-de-concurso-publico-com-salarios-de-ate-7321"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/3530c5a26ef24c02aab4a129801f2852.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>EMATER - MG anuncia retificação de concurso público com salários de até R$ 7.321,75</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/prefeitura-de-curitiba-pr-retifica-concursos-publicos-com-vagas-imediatas-e-cadastro-de-reserva"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/7e43baaf8a6451ce7f314f14cb58092f.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>Prefeitura de Curitiba - PR retifica concursos públicos com vagas imediatas e cadastro de reserva</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/prefeitura-de-aparecida-de-goiania-go-abre-concurso-publico-com-vagas-na-area-da-educacao"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/5f668bcb089e211beb1b13d900dedf68.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>Prefeitura de Aparecida de Goiânia - GO abre concurso público com vagas na área da educação</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/prefeitura-de-caldas-novas-go-divulga-retificacao-do-concurso-publico-para-guardas-civis-municipais"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/930a3c671a0af82a2ac1996be81dc3b5.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>Prefeitura de Caldas Novas - GO divulga retificação do concurso público para guardas civis municipais</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/tce-go-retifica-concurso-publico-para-tecnicos-de-controle-externo"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/49d0f07f837fcc4f15672d89520c62f4.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>TCE - GO retifica concurso público para técnicos de controle externo</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/trt-8-pa-ap-publica-edital-de-concurso-para-tecnicos-e-analistas-judiciarios"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/1b097dfab8022f6008c84f88135fc133.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>TRT 8 - PA/AP publica edital de concurso para técnicos e analistas judiciários</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/assembleia-legislativa-do-estado-do-para-retifica-concursos-para-diversos-cargos"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/11e1da7f87a2a7309d59d86ae075212e.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>Assembleia Legislativa do Estado do Pará retifica concursos para diversos cargos</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/prefeitura-de-porto-velho-ro-retifica-concurso-com-vagas-imediatas-e-cadastro-de-reserva"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/d8c77ce59b47897c0fa2e1bf1d81166a.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>Prefeitura de Porto Velho - RO retifica concurso com vagas imediatas e cadastro de reserva</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/ufba-ba-publica-retificacoes-de-concurso-publico-para-tecnicos-administrativos-em-educacao"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/3ec1440543ae4979195a713fa73a71db.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>UFBA - BA publica retificações de concurso público para técnicos-administrativos em educação</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/prefeitura-de-salvador-ba-abre-concurso-publico-para-guardas-civis-municipais"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/3fb650eb91d875acebded88eda16e6eb.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>Prefeitura de Salvador - BA abre concurso público para guardas civis municipais</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/prefeitura-de-ubajara-ce-publica-retificacao-de-concurso-publico"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/f58c4bd8ea3468cc00d5ffaf03a7dbd6.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>Prefeitura de Ubajara - CE publica retificação de concurso público</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/dpe-pb-abre-concurso-publico-com-salarios-de-ate-5197"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/cf2d489a1f98765ab1743a4e020ac5dd.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>DPE - PB abre concurso público com salários de até R$ 5.197,50</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/secretaria-de-defesa-social-pe-retifica-concurso-com-570-vagas-para-bombeiros"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/0c28e0a34e0063d114b5f2dfc14c3705.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>Secretaria de Defesa Social - PE retifica concurso com 570 vagas para Bombeiros</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/pmpe-altera-periodo-de-inscricao-para-concurso-publico-de-soldados-e-oficiais"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/0c28e0a34e0063d114b5f2dfc14c3705.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>PMPE altera período de inscrição para concurso público de soldados e oficiais</a></li>
+            </ul>
+        </div>
+    </div>
+    <div id="footer">
+        <div>
+            <div class="footer-politica-de-privacidade"><a href="https://www.pciconcursos.com.br/politica-de-privacidade">Política de
+                    Privacidade e Cancelamento</a></div>
+            <div class="footer-copyright">2000-2026 PCI Concursos ®</div>
+            <div class="footer-redes-sociais">
+                <a target="_blank" href="https://t.me/pciconcursos" style="background-color:#0088cc;"
+                   title="Telegram"><i class="fas fa-paper-plane" style="font-size:12px;"></i></a>
+                <a target="_blank" href="https://www.facebook.com/pciconcursos" style="background-color:#3b5998;"
+                   title="Facebook"><i class="fab fa-facebook-f" style="font-size:18px;"></i></a>
+                <a target="_blank" href="https://www.linkedin.com/company/pciconcursos/posts/"
+                   style="background-color:#0077B5;" title="Linkedin"><i class="fab fa-linkedin-in"
+                                                                         style="font-size:18px;"></i></a>
+                <a target="_blank" href="https://x.com/pciconcursos" style="background-color:#000000;" title="X"><i
+                            class="fab fa-x-twitter" style="font-size:16px;"></i></a>
+                <a target="_blank" href="https://www.instagram.com/pciconcursos_oficial"
+                   style="background-color:#C13584;" title="Instagram"><i class="fab fa-instagram"
+                                                                          style="font-size:18px; margin-top:1px;"></i></a>
+            </div>
+            <!-- <div class="footer-tel"><a href="https://www.pciconcursos.com.br/contato/">Atendimento /contato</a></div> -->
+            <div id="lgpd" style="display:none;"></div>
+        </div>
+    </div>
+</div>
+<script src="https://www.pciconcursos.com.br/js/jquery.slicknav.min.js"></script>
+<script src="https://www.pciconcursos.com.br/js/js.cookie.min.js"></script>
+<script src="https://www.pciconcursos.com.br/js/site.js?31992378"></script>
+<script src="https://www.pciconcursos.com.br/js/popper.min.js"></script>
+<script src="https://www.pciconcursos.com.br/js/bootstrap.js"></script>
+
+<script>if ('serviceWorker' in navigator && location.hostname === 'www.pciconcursos.com.br') { navigator.serviceWorker.register('/sw.js').catch(() => {}); }</script>
+<script src="https://www.pciconcursos.com.br/js/lazy.js" defer></script>
+<script src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2622407619291980" crossorigin="anonymous" defer></script>
+<script src="https://www.googletagmanager.com/gtag/js?id=G-ELMBY7KMP0" defer></script>
+<script>window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-ELMBY7KMP0');
+</script></body>
+</html>

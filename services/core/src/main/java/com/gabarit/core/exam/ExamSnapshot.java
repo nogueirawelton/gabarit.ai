@@ -20,7 +20,7 @@ public record ExamSnapshot(
 		LocalDate registrationStart,
 		LocalDate registrationEnd,
 		String registrationNote,
-		List<String> positions) {
+		List<Position> positions) {
 
 	public ExamSnapshot {
 		Objects.requireNonNull(source, "source");
@@ -28,6 +28,22 @@ public record ExamSnapshot(
 		Objects.requireNonNull(title, "title");
 		Objects.requireNonNull(url, "url");
 		positions = positions == null ? List.of() : List.copyOf(positions);
+	}
+
+	/**
+	 * Cargo como a fonte escreve, e os cargos do catálogo da fonte (slug) em que ele apareceu.
+	 */
+	public record Position(String name, List<String> catalogSlugs) {
+
+		public Position {
+			Objects.requireNonNull(name, "name");
+			catalogSlugs = catalogSlugs == null ? List.of() : List.copyOf(catalogSlugs);
+		}
+
+		public Position(String name) {
+			this(name, List.of());
+		}
+
 	}
 
 }

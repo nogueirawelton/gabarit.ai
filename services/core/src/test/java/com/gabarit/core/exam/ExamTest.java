@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -17,7 +18,7 @@ class ExamTest {
 	static ExamSnapshot snapshot(String title, String... positions) {
 		return new ExamSnapshot("pciconcursos", "295975", title, "https://example.com/295975", "SP", "SUDESTE",
 				"Médio / Superior", "454 vagas", LocalDate.of(2026, 10, 28), LocalDate.of(2026, 12, 10), null,
-				List.of(positions));
+				Arrays.stream(positions).map(ExamSnapshot.Position::new).toList());
 	}
 
 	static List<String> names(List<ExamPosition> positions) {
@@ -69,6 +70,34 @@ class ExamTest {
 		exam.apply(snapshot("TJ SP", "ESCREVENTE", "OFICIAL"), T2.plusSeconds(60));
 		assertThat(names(exam.getActivePositions())).containsExactly("ESCREVENTE", "OFICIAL");
 		assertThat(exam.getPositions()).hasSize(2);
+	}
+
+	@Test
+	void slugsDoCatalogoAcompanhamOCargoESeAtualizam() {
+		ExamSnapshot v1 = withPositions(new ExamSnapshot.Position("ENFERMEIRO PSF", List.of("enfermeiro")));
+		Exam exam = Exam.create(v1, T1);
+		assertThat(exam.getPositions().getFirst().getCatalogSlugs()).containsExactly("enfermeiro");
+
+		ExamSnapshot v2 = withPositions(
+				new ExamSnapshot.Position("ENFERMEIRO PSF", List.of("enfermeiro", "enfermeiro-psf")));
+		exam.apply(v2, T2);
+
+		assertThat(exam.getPositions()).hasSize(1);
+		assertThat(exam.getPositions().getFirst().getCatalogSlugs()).containsExactly("enfermeiro", "enfermeiro-psf");
+	}
+
+	@Test
+	void nomeRepetidoJuntaOsSlugs() {
+		Exam exam = Exam.create(withPositions(new ExamSnapshot.Position("ENFERMEIRO", List.of("enfermeiro")),
+				new ExamSnapshot.Position("ENFERMEIRO", List.of("enfermeiro-psf"))), T1);
+
+		assertThat(exam.getPositions()).hasSize(1);
+		assertThat(exam.getPositions().getFirst().getCatalogSlugs()).containsExactly("enfermeiro", "enfermeiro-psf");
+	}
+
+	static ExamSnapshot withPositions(ExamSnapshot.Position... positions) {
+		return new ExamSnapshot("pciconcursos", "295975", "TJ SP", "https://example.com/295975", "SP", "SUDESTE",
+				null, null, null, null, null, List.of(positions));
 	}
 
 	@Test

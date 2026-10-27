@@ -12,6 +12,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -37,7 +38,7 @@ class ExamRepositoryTest {
 	static ExamSnapshot snapshot(String externalId, String... positions) {
 		return new ExamSnapshot("pciconcursos", externalId, "Concurso " + externalId,
 				"https://example.com/" + externalId, null, "NACIONAL", null, null, LocalDate.of(2026, 10, 28),
-				LocalDate.of(2026, 12, 10), null, List.of(positions));
+				LocalDate.of(2026, 12, 10), null, Arrays.stream(positions).map(ExamSnapshot.Position::new).toList());
 	}
 
 	@Test
@@ -66,6 +67,23 @@ class ExamRepositoryTest {
 		List<Boolean> active = jdbc.queryForList(
 				"SELECT active FROM exam_position WHERE exam_id = ? ORDER BY name", Boolean.class, exam.getId());
 		assertThat(active).containsExactly(true, false);
+	}
+
+	@Test
+	void slugsDoCatalogoSaoGravadosComoArray() {
+		ExamSnapshot snapshot = new ExamSnapshot("pciconcursos", "9", "Concurso 9", "https://example.com/9", null,
+				null, null, null, null, null, null,
+				List.of(new ExamSnapshot.Position("ENFERMEIRO PSF", List.of("enfermeiro", "enfermeiro-psf"))));
+		repository.save(Exam.create(snapshot, T1));
+		em.flush();
+		em.clear();
+
+		Exam found = repository.findBySourceAndExternalId("pciconcursos", "9").orElseThrow();
+		assertThat(found.getPositions().getFirst().getCatalogSlugs()).containsExactly("enfermeiro", "enfermeiro-psf");
+		// consulta pelo índice GIN: concursos com cargo no catálogo "enfermeiro-psf"
+		Integer count = jdbc.queryForObject(
+				"SELECT count(*) FROM exam_position WHERE catalog_slugs @> ARRAY['enfermeiro-psf']", Integer.class);
+		assertThat(count).isEqualTo(1);
 	}
 
 	@Test

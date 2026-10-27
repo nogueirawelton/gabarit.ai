@@ -4,12 +4,12 @@ Roteiro do serviço, na ordem de implementação. Cada item diz **o que o arquiv
 
 Itens com 🛠️ são infra: peça para o Claude fazer.
 
-**Fluxo do serviço:** recebe `scrape.requested` da fila → busca **todos** os concursos na fonte (cada um já vem com os cargos) → publica um `exam.discovered` por concurso → o serviço `core` persiste.
+**Fluxo do serviço:** recebe `scrape.requested` da fila → coleta o catálogo de cargos e **todos** os concursos abertos da fonte → publica um `position_catalog.discovered` e um `exam.discovered` por concurso → o serviço `core` persiste.
 
 **Concurso e cargos:** um `Exam` tem vários `Position` (1:N). No scraper, o cargo só existe dentro do concurso: não tem ciclo de vida próprio e é publicado junto com ele.
 
 **Decisões que moldaram o desenho:**
-- **Fonte principal: MCP público do PCI Concursos.** Ele entrega concursos abertos com a lista de cargos já estruturada. `listar_concursos` sem filtro omite a maioria dos concursos de professor, então a coleta completa faz `{}` + `{"professores": true}` e junta pelo `id` (cerca de 600 concursos).
+- **Fonte principal: páginas públicas do PCI Concursos (HTML)**, em duas etapas: catálogo de cargos (`/cargos/` + `/vagas/`) e, para cada cargo, `/cargos/<slug>` (id do PCI + nomes crus) e `/vagas/<slug>` (UF, inscrições, vagas). Até 2026-10 era o MCP público do PCI, que passou a cortar em 30 concursos por chamada (ver Fase 8).
 - **Sem PDF no scraper.** Os editais e provas do PCI ficam atrás de captcha (Cloudflare Turnstile), e o projeto **não contorna** essa proteção. O scraper guarda só a URL; os arquivos entram depois, por upload ou pela fonte oficial da banca. Por isso não há MinIO nem `FileStorage` aqui.
 - **Identidade:** concurso = `(source, external_id)`; cargo = nome cru dentro do concurso. Nada de ID gerado no scraper: a mesma coleta tem que produzir a mesma identidade.
 
@@ -52,7 +52,7 @@ Regra da fase: nada aqui importa `httpx`, `aio_pika`, `mcp` ou qualquer coisa de
 
 ---
 
-## Fase 3: fonte PCI via MCP ✅
+## Fase 3: fonte PCI via MCP ✅ (substituída pela Fase 8)
 
 - [x] **`tests/fixtures/pci/*.json`**: respostas reais recortadas (concurso nacional, suspenso sem datas, concurso que só aparece com `professores=true`).
 - [x] **`src/infrastructure/sources/pci_mcp.py`**:
@@ -101,13 +101,34 @@ Regra da fase: nada aqui importa `httpx`, `aio_pika`, `mcp` ou qualquer coisa de
 
 ---
 
+## Fase 8: fonte PCI pelo HTML ✅
+
+Motivo: o MCP do PCI passou a devolver no máximo 30 concursos por chamada, sem paginação (2026-10-27: 56 coletados de ~700).
+
+- [x] **Investigação** (o que cada página traz):
+  - `/cargos/` (223 cargos) e `/vagas/` (200, só os com 6+ concursos) se completam: a união dá ~248;
+  - `/cargos/<slug>`: concursos **abertos** com o **id do PCI** na classe `nNNNNNN` (o mesmo `id` do MCP: identidade não mudou) e os nomes crus dos cargos que batem;
+  - `/vagas/<slug>`: cards com UF, inscrições, vagas e escolaridade, sem id. `div.na`/`div.da` = abertos, `div.ea` = encerrados. Algumas páginas vêm quebradas do site (título sem o cargo);
+  - as duas se ligam pelo link da notícia; sem teto nos abertos (Professor: 293).
+- [x] **`src/infrastructure/sources/pci_html.py`**: parsers puros (`parse_cargos_index`, `parse_vagas_index`, `merge_catalog`, `parse_cargo_page`, `parse_vagas_page`, `parse_registration`, `build_exams`) e o adapter `PciHtmlSource`:
+  - uma requisição por vez, `PCI_REQUEST_DELAY_S` entre elas (padrão 1s), User-Agent identificado; 429/5xx/rede → novas tentativas com backoff e `Retry-After`; 404 → página pulada;
+  - tudo ou nada: se uma página falha de vez, a coleta inteira falha (publicar com cargos faltando inativaria cargos no `core`).
+- [x] **Catálogo de cargos**: `CatalogPosition` (domínio), evento `position_catalog.discovered` (contrato novo) publicado antes dos concursos; cada `Position` leva `catalog_slugs` (em quais cargos do catálogo o nome cru apareceu).
+- [x] **Port** `ExamSource.collect()` → `SourceCollection(exams, catalog)`.
+- [x] Saiu o MCP (`pci_mcp.py`, `mcp` do requirements); cron foi para 2x/dia (~500 requisições por coleta).
+- [x] Testes com páginas reais em `tests/fixtures/pci_html/` e HTTP falso (`httpx.MockTransport`).
+
+> ✋ **Revisão:** implementada pelo Claude. Pontos para ler: `parse_registration` (formatos de data do site) e o "tudo ou nada" do adapter.
+
+---
+
 ## Depois
 
-- ⚠️ **O MCP do PCI limita a 30 concursos por chamada** (visto em 2026-10-27: `meta.total` = 30, `meta.total_encontrado` = 471 na geral e 304 em professores), sem parâmetro de paginação; só filtros `regiao` e `professores`. A coleta hoje traz ~56 de ~700. Caminhos: (1) uma chamada por região × professores (10 chamadas, até 300); (2) ler a listagem HTML pública (`meta.link_lista`); (3) no mínimo, logar aviso quando `total_encontrado > total`, porque hoje o corte é silencioso.
-- **Atraso entre tentativas:** hoje o erro transitório tenta de novo na hora (3x) e vai pra DLQ; com o cron 3x/dia, a próxima coleta cobre a perdida. Vale fazer (filas de espera com TTL por degrau, ex.: 30s/2min/10min, header `x-retry-count`) se a DLQ começar a receber comandos por queda da fonte, ou quando entrarem fontes de bancas.
+- **Cobertura:** concurso cujo nenhum cargo está no catálogo do PCI fica de fora. Medir de vez em quando contra o total do site.
+- **Região de concurso nacional:** o card não diz; hoje `uf` e `region` ficam vazios (o MCP mandava "NACIONAL").
+- **Atraso entre tentativas:** hoje o erro transitório tenta de novo na hora (3x) e vai pra DLQ; com o cron 2x/dia, a próxima coleta cobre a perdida. Vale fazer (filas de espera com TTL por degrau, ex.: 30s/2min/10min, header `x-retry-count`) se a DLQ começar a receber comandos por queda da fonte, ou quando entrarem fontes de bancas.
 - **Documentos:** a página da notícia do PCI (HTML público, `httpx` resolve) traz o título do edital, um ID estável (`data-link`) e o link oficial da banca. Isso vira referência de documento no evento (sem baixar o PDF do PCI).
 - **Fontes das bancas** (FGV, Cebraspe...): uma `ExamSource` por banca, com `httpx` + `selectolax` (`selectolax.lexbor`) quando o HTML vem pronto e Playwright (async) quando a página precisa de JavaScript.
-- **Bom comportamento:** limitar concorrência por domínio, respeitar `robots.txt` e `Retry-After`, User-Agent honesto com contato.
 
 ---
 

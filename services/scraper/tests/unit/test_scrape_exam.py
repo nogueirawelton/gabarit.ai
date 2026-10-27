@@ -5,6 +5,7 @@ import pytest
 
 from src.application.messages import ScrapeRequested
 from src.application.use_cases.scrape_exam import ScrapeExams
+from src.domain.entities.catalog_position import CatalogPosition
 from src.domain.entities.exam import Exam
 from src.domain.entities.position import Position
 from src.domain.errors import SourceUnavailableError, UnknownSourceError
@@ -39,6 +40,31 @@ async def test_publica_um_evento_por_concurso_com_os_cargos() -> None:
     assert [p["name"] for p in first["data"]["positions"]] == ["ANALISTA", "TÉCNICO"]
     # event_id do envelope = message_id usado na publicação
     assert first["event_id"] == str(publisher.published[0][0])
+
+
+async def test_catalogo_sai_antes_dos_concursos_num_evento_so() -> None:
+    catalog = (
+        CatalogPosition(source="fake", slug="analista", name="Analista"),
+        CatalogPosition(source="fake", slug="tecnico", name="Técnico"),
+    )
+    publisher = FakePublisher()
+    use_case = ScrapeExams({"fake": FakeExamSource([make_exam("1")], catalog=catalog)}, publisher)
+
+    await use_case.execute(ScrapeRequested(source="fake"), correlation_id="cmd-1")
+
+    assert [t for _, t, _ in publisher.published] == [
+        "position_catalog.discovered",
+        "exam.discovered",
+    ]
+    event = json.loads(publisher.published[0][2])
+    assert event["correlation_id"] == "cmd-1"
+    assert event["data"] == {
+        "source": "fake",
+        "positions": [
+            {"slug": "analista", "name": "Analista"},
+            {"slug": "tecnico", "name": "Técnico"},
+        ],
+    }
 
 
 async def test_fonte_desconhecida_nao_publica_nada() -> None:

@@ -67,7 +67,22 @@ Regra: um pacote usa o outro pelo serviço público dele (ex.: `ExamService`), n
 
 > ✋ **Revisão:** implementada pelo Claude. Pontos para ler: `ExamDiscoveredListener.handle` (o que vai pra DLQ e o que volta pra fila) e o comentário de concorrência em `ExamService.upsert`.
 >
-> ⚠️ **Achado no ponta a ponta:** o MCP do PCI passou a devolver no máximo 30 concursos por chamada (`meta.total` = 30, `meta.total_encontrado` = 471), sem paginação. A coleta trouxe 56 em vez de ~600. É problema do scraper, não do core: ver "Depois" no GUIA do scraper.
+> ⚠️ **Achado no ponta a ponta:** o MCP do PCI passou a cortar em 30 concursos por chamada; o scraper trocou para o HTML do site (Fase 8 do GUIA do scraper). Identidade e contrato não mudaram.
+
+---
+
+## Fase 2b: catálogo de cargos ✅
+
+O scraper agora publica o catálogo de cargos da fonte (ex.: "Enfermeiro", "Técnico em Contabilidade") e diz em quais cargos do catálogo cada nome cru apareceu.
+
+- [x] **`V2__position_catalog.sql`**: tabela `position_catalog` (`UNIQUE (source, slug)`) e `exam_position.catalog_slugs TEXT[]` com índice GIN (`catalog_slugs @> ARRAY['enfermeiro']`).
+  - **Array e não FK:** catálogo e concursos chegam por filas diferentes, sem ordem garantida entre elas; uma FK faria o concurso falhar se chegasse antes do catálogo.
+- [x] **`CatalogPosition`** + **`CatalogPositionService.sync`**: upsert por `(source, slug)`, evento atrasado ignorado, cargo que some do catálogo fica.
+- [x] **`PositionCatalogDiscoveredListener`** na fila `core.position_catalog_discovered` (infra), mesmas regras de DLQ do listener de concursos.
+- [x] **`ExamPosition.catalogSlugs`** sincronizado no `Exam.apply` (o `catalog_slugs` é opcional no contrato: evento antigo vira lista vazia).
+- [x] Testes: contrato do evento novo, serviço no Postgres real, listener com a topologia real.
+
+> ✋ **Revisão:** implementada pelo Claude.
 
 ---
 

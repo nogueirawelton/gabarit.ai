@@ -11,12 +11,18 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Cargo de um concurso. Só existe dentro do {@link Exam}, que é quem cria, ativa e inativa.
- * Nome cru da fonte: padronizar entre bancas é outra etapa.
+ * Nome cru da fonte; {@code catalogSlugs} liga ao catálogo da fonte ({@link CatalogPosition}).
  */
 @Entity
 @Table(name = "exam_position")
@@ -36,6 +42,11 @@ public class ExamPosition {
 	@Column(nullable = false)
 	private boolean active;
 
+	// text[] no Postgres. Slugs da mesma source do concurso; sem FK de propósito (ver V2)
+	@JdbcTypeCode(SqlTypes.ARRAY)
+	@Column(nullable = false, columnDefinition = "text[]")
+	private List<String> catalogSlugs = new ArrayList<>();
+
 	@Column(nullable = false, updatable = false)
 	private Instant createdAt;
 
@@ -46,14 +57,19 @@ public class ExamPosition {
 		// JPA
 	}
 
-	ExamPosition(Exam exam, String name) {
+	ExamPosition(Exam exam, String name, Collection<String> catalogSlugs) {
 		this.exam = exam;
 		this.name = name;
 		this.active = true;
+		this.catalogSlugs = new ArrayList<>(catalogSlugs);
 	}
 
-	void activate() {
+	void activate(Collection<String> catalogSlugs) {
 		active = true;
+		// só troca se mudou: lista nova sempre marcaria a entidade como alterada
+		if (!this.catalogSlugs.equals(List.copyOf(catalogSlugs))) {
+			this.catalogSlugs = new ArrayList<>(catalogSlugs);
+		}
 	}
 
 	void deactivate() {
@@ -85,6 +101,10 @@ public class ExamPosition {
 
 	public boolean isActive() {
 		return active;
+	}
+
+	public List<String> getCatalogSlugs() {
+		return Collections.unmodifiableList(catalogSlugs);
 	}
 
 	public Instant getCreatedAt() {

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gabarit.ai/contracts/events/position_catalog.discovered.v1.json",
+  "title": "position_catalog.discovered v1",
+  "description": "Catálogo de cargos de uma fonte (ex.: \"Enfermeiro\", \"Técnico em Contabilidade\"), inteiro num evento. Publicado em gabarit.events com routing key position_catalog.discovered, antes dos exam.discovered da mesma coleta. O consumidor faz upsert por (data.source, slug); cargo que some do catálogo não é apagado.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["event_id", "event_type", "version", "occurred_at", "correlation_id", "data"],
+  "properties": {
+    "event_id": { "type": "string", "format": "uuid" },
+    "event_type": { "const": "position_catalog.discovered" },
+    "version": { "const": 1 },
+    "occurred_at": { "type": "string", "format": "date-time", "description": "UTC." },
+    "correlation_id": { "type": ["string", "null"], "description": "message_id do scrape.requested que originou a coleta." },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "positions"],
+      "properties": {
+        "source": { "type": "string", "minLength": 1 },
+        "positions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["slug", "name"],
+            "properties": {
+              "slug": { "type": "string", "minLength": 1, "description": "Identidade do cargo na fonte, ex.: \"tecnico-em-contabilidade\"." },
+              "name": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
+    }
+  }
+}

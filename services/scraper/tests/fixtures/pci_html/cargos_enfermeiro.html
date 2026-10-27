@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="pt-br" itemscope itemtype="https://schema.org/WebPage">
+<head>
+    <meta charset="utf-8">
+    <title>PCI Concursos - Pesquisa por Cargos</title>
+            <meta name="description" content="Concursos Públicos com inscrições abertas e previstas, empregos, estágios, provas, simulados, apostilas preparatórias e videoaulas.">
+                    <meta name="keywords" content="concursos, concurso, concursos publicos, empregos, estagios, curriculo, apostila">
+                        <meta name="robots" content="index,follow,noarchive">
+                <meta name="viewport" content="width=device-width">
+                <meta name="theme-color" content="#205c98">
+        <meta name="msapplication-TileColor" content="#205c98">
+        <meta name="msapplication-TileImage" content="https://www.pciconcursos.com.br/logo.png">
+                <meta itemprop="name" content="PCI Concursos - Pesquisa por Cargos<">
+        <meta itemprop="description" content="Concursos Públicos com inscrições abertas e previstas, empregos, estágios, provas, simulados, apostilas preparatórias e videoaulas.">
+        <meta itemprop="image" content="https://www.pciconcursos.com.br/logo.png">
+                <meta property="og:type" content="webpage">
+        <meta property="og:title" content="PCI Concursos - Pesquisa por Cargos">
+        <meta property="og:site_name" content="PCI Concursos">
+                <meta property="og:description" content="Concursos Públicos com inscrições abertas e previstas, empregos, estágios, provas, simulados, apostilas preparatórias e videoaulas.">
+                    <meta property="fb:app_id" content="211905988988008">
+                <meta property="fb:pages" content="115036158551264">
+        <meta property="og:locale" content="pt_BR">
+        <meta property="og:image" content="https://www.pciconcursos.com.br/logo.png">
+                    <meta property="article:publisher" content="https://www.facebook.com/pciconcursos">
+                <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="#205c98">
+    <meta name="apple-mobile-web-app-title" content="PCI Concursos">
+            <link rel="apple-touch-icon" href="https://www.pciconcursos.com.br/logo.png">
+                <link rel="search" type="application/opensearchdescription+xml" title="PCI Concursos"
+              href="https://www.pciconcursos.com.br/pesquisa.xml">
+                <link rel="manifest" href="https://www.pciconcursos.com.br/manifest.json">
+                <link rel="shortcut icon" href="https://www.pciconcursos.com.br/favicon.ico">
+            <base target="_top">
+<link rel="dns-prefetch" href="https://cdn.pci.app.br">
+<link rel="preconnect" href="https://cdn.pci.app.br">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap">
+<link rel="stylesheet" href="https://www.pciconcursos.com.br/css/bootstrap.css?31992378">
+<link rel="stylesheet" href="https://www.pciconcursos.com.br/css/custom.css?31992378?31992378">
+<link rel="stylesheet" href="https://www.pciconcursos.com.br/css/all.min.css?31992378">
+<link rel="stylesheet" href="https://www.pciconcursos.com.br/css/slicknav.min.css?31992378">
+<link rel="stylesheet" href="https://www.pciconcursos.com.br/css/site.css?31992378?31992378">
+<script src="https://www.pciconcursos.com.br/js/jquery.js"></script>
+</head>
+<body>
+<div id="menu_nav"></div>
+
+<div id="center">
+    <div id="g-login">
+    <div class="header-bar">
+                    <i class="fab fa-google google-icon"></i>
+            <span id="btn-login" class="login-btn">Entrar com Google</span>
+            </div>
+</div>
+<script>
+    // Aguarda DOM carregar
+    document.addEventListener('DOMContentLoaded', function () {
+        // Botão de login
+        const btnLogin = document.getElementById('btn-login');
+        if (btnLogin) {
+            btnLogin.addEventListener('click', function () {
+                fazerLogin();
+            });
+        }
+        // Botão de logout
+        const btnLogout = document.getElementById('btn-logout');
+        if (btnLogout) {
+            btnLogout.addEventListener('click', function () {
+                fazerLogout();
+            });
+        }
+    });
+
+    // Função de login
+    function fazerLogin() {
+        fetch('/google-auth-api?action=getAuthUrl')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Abre popup
+                    window.open(data.authUrl, 'googleLogin', 'width=500,height=600');
+                    // Verifica login a cada 3 segundos
+                    const verificar = setInterval(() => {
+                        fetch('/google-auth-api?action=checkLogin')
+                            .then(r => r.json())
+                            .then(resultado => {
+                                if (resultado.success && resultado.logged_in) {
+                                    clearInterval(verificar);
+                                    window.location.reload();
+                                }
+                            });
+                    }, 3000);
+                    // Para verificação após 5 minutos
+                    setTimeout(() => clearInterval(verificar), 300000);
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+            });
+    }
+
+    // Função de logout
+    function fazerLogout() {
+        fetch('/google-auth-api?action=logout')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.reload();
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+            });
+    }
+</script>    <div id="header">
+        <h1 id="logo"><a href="https://www.pciconcursos.com.br/"><img src="https://cdn.pci.app.br/img/p/pci_logo.png" alt="PCI Concursos"
+                                                       title="PCI Concursos"></a></h1>
+        <nav id="menu-topo">
+            <ul>
+                <li><a href="https://www.pciconcursos.com.br/concursos/">39.241 vagas em concursos</a></li>
+                <li><a href="https://www.pciconcursos.com.br/apostilas/">apostilas</a></li>
+                <li><a href="https://www.pciconcursos.com.br/noticias/">notícias</a></li>
+                <li><a href="https://www.pciconcursos.com.br/provas/">268.785 provas</a></li>
+                <li><a href="https://www.pciconcursos.com.br/contato/">contato</a></li>
+            </ul>
+        </nav>
+    </div>
+
+
+    <nav id="menu">
+        <ul id="menu_lateral">
+            <li class="pginicial"><a href="https://www.pciconcursos.com.br/" class="m_paginainicial"><i class="menu-i fas fa-home"></i>Página
+                    Inicial</a></li>
+            <li><a href="https://www.pciconcursos.com.br/apostilas/" class="m_apostilas"><i
+                            class="menu-i fas fa-book"></i>Apostilas</a></li>
+            <li><a href="https://www.pciconcursos.com.br/noticias/" class="m_noticias"><i class="menu-i fas fa-newspaper"></i>Notícias</a>
+            </li>
+            <li><a href="https://www.pciconcursos.com.br/concursos/" class="m_concursos"><i class="menu-i fa-kit fa-i-br"></i>Concursos</a>
+            </li>
+            <li><a href="https://www.pciconcursos.com.br/concursos/nacional/" class="m_nacional"><i class="menu-i fas fa-flag"></i>Nacional</a>
+            </li>
+            <li><a href="https://www.pciconcursos.com.br/concursos/sudeste/" class="m_sudeste"><i
+                            class="menu-i fa-kit fa-i-sudeste"></i>Sudeste</a></li>
+            <li><a href="https://www.pciconcursos.com.br/concursos/sul/" class="m_sul"><i class="menu-i fa-kit fa-i-sul"></i>Sul</a>
+            </li>
+            <li><a href="https://www.pciconcursos.com.br/concursos/norte/" class="m_norte"><i class="menu-i fa-kit fa-i-norte"></i>Norte</a>
+            </li>
+            <li><a href="https://www.pciconcursos.com.br/concursos/nordeste/" class="m_nordeste"><i
+                            class="menu-i fa-kit fa-i-nordeste"></i>Nordeste</a></li>
+            <li><a href="https://www.pciconcursos.com.br/concursos/centrooeste/" class="m_centrooeste"><i
+                            class="menu-i fa-kit fa-i-centrooeste"></i>Centro-Oeste</a></li>
+            <li><a href="https://www.pciconcursos.com.br/ultimas/" class="m_ultimas"><i class="menu-i fas fa-clock"></i>Últimas</a>
+            </li>
+            <li><a href="https://www.pciconcursos.com.br/mcp-e-gpt" class="m_mcp"><i class="menu-i fas fa-robot"></i>MCP e GPT</a></li>
+            <li><a href="https://www.pciconcursos.com.br/professores/" class="m_professores"><i
+                            class="menu-i fas fa-chalkboard-teacher"></i>Professores</a></li>
+            <!-- <li><a href="https://www.pciconcursos.com.br/previstos/" class="m_previstos"><i class="menu-i fas fa-eye"></i>Previstos</a></li> -->
+            <li><a href="https://www.pciconcursos.com.br/cargos/" class="m_cargos"><i class="menu-i fas fa-briefcase"></i>Cargos</a>
+            </li>
+            <li><a href="https://www.pciconcursos.com.br/concursos/cidades/" class="m_cidades"><i class="menu-i fas fa-city"></i>Cidades</a>
+            </li>
+            <li><a href="https://www.pciconcursos.com.br/vagas/" class="m_vagas"><i class="menu-i fas fa-user-friends"></i>Vagas</a>
+            </li>
+            <li><a href="https://www.pciconcursos.com.br/mapa" class="m_mapa"><i class="menu-i fas fa-map-marked-alt"></i>Mapa</a>
+            </li>
+            <li><a href="https://www.pciconcursos.com.br/simulados/" class="m_simulados"><i
+                            class="menu-i fas fa-tasks"></i>Simulados</a></li>
+            <li><a href="https://www.pciconcursos.com.br/provas/" class="m_provas"><i class="menu-i fas fa-file-alt"></i>Provas</a>
+            </li>
+            <li class="l_aulas"><a href="https://www.pciconcursos.com.br/aulas/" class="m_video"><i
+                            class="menu-i fas fa-graduation-cap"></i>Aulas</a>
+                <!-- <ul>
+                    <li><a href="https://www.pciconcursos.com.br/aulas/lingua-portuguesa" class="m_video"><i class="menu-i fas fa-graduation-cap"></i>Aulas Português</a></li>
+                    <li><a href="https://www.pciconcursos.com.br/aulas/matematica/" class="m_video"><i class="menu-i fas fa-graduation-cap"></i>Aulas Matemática</a></li>
+                    <li><a href="https://www.pciconcursos.com.br/aulas/raciocinio-logico/" class="m_video"><i class="menu-i fas fa-graduation-cap"></i>Aulas Rac. Lógico</a></li>
+                    <li><a href="https://www.pciconcursos.com.br/aulas/informatica/" class="m_video"><i class="menu-i fas fa-graduation-cap"></i>Aulas Informática</a></li>
+                    <li><a href="https://www.pciconcursos.com.br/aulas/direito-constitucional/" class="m_video"><i class="menu-i fas fa-graduation-cap"></i>D. Constitucional</a></li>
+                    <li><a href="https://www.pciconcursos.com.br/aulas/direito-administrativo/" class="m_video"><i class="menu-i fas fa-graduation-cap"></i>D. Administrativo</a></li>
+                    <li><a href="https://www.pciconcursos.com.br/aulas/direito-empresarial/" class="m_video"><i class="menu-i fas fa-graduation-cap"></i>D. Empresarial</a></li>
+                    <li><a href="https://www.pciconcursos.com.br/aulas/direito-eleitoral/" class="m_video"><i class="menu-i fas fa-graduation-cap"></i>D. Eleitoral</a></li>
+                    <li><a href="https://www.pciconcursos.com.br/aulas/direito-tributario/" class="m_video"><i class="menu-i fas fa-graduation-cap"></i>D. Tributário</a></li>
+                    <li><a href="https://www.pciconcursos.com.br/aulas/direito-do-trabalho/" class="m_video"><i class="menu-i fas fa-graduation-cap"></i>D. Trabalho</a></li>
+                    <li><a href="https://www.pciconcursos.com.br/aulas/direito-civil/" class="m_video"><i class="menu-i fas fa-graduation-cap"></i>D. Civil</a></li>
+                    <li><a href="https://www.pciconcursos.com.br/aulas/direito-penal/" class="m_video"><i class="menu-i fas fa-graduation-cap"></i>D. Penal</a></li>
+                    <li><a href="https://www.pciconcursos.com.br/aulas/direito-processual-civil/" class="m_video"><i class="menu-i fas fa-graduation-cap"></i>D. Proc. Civil</a></li>
+                    <li><a href="https://www.pciconcursos.com.br/aulas/direito-processual-penal/" class="m_video"><i class="menu-i fas fa-graduation-cap"></i>D. Proc. Penal</a></li>
+                    <li><a href="https://www.pciconcursos.com.br/aulas/direito-processual-do-trabalho/" class="m_video"><i class="menu-i fas fa-graduation-cap"></i>D. Proc. Trabalho</a></li>
+                    <li><a href="https://www.pciconcursos.com.br/aulas/direitos-humanos/" class="m_video"><i class="menu-i fas fa-graduation-cap"></i>D. Humanos</a></li>
+                    <li><a href="https://www.pciconcursos.com.br/aulas/questoes-comentadas/" class="m_video"><i class="menu-i fas fa-graduation-cap"></i>Q. Comentadas</a></li>
+                    <li><a href="https://www.pciconcursos.com.br/aulas/" class="m_video"><i class="menu-i fas fa-graduation-cap"></i>+ Várias Aulas</a></li>
+                </ul>
+            -->
+            </li>
+            <li><a href="https://www.pciconcursos.com.br/organizadoras/" class="m_organizadoras"><i class="menu-i fas fa-building"></i>Organizadoras</a>
+            </li>
+            <li><a href="https://www.pciconcursos.com.br/colaborar/" class="m_colaborar"><i class="menu-i fas fa-handshake"></i>Colaborar</a>
+            </li>
+            <li><a href="https://www.pciconcursos.com.br/contato/" class="m_contato"><i class="menu-i fas fa-envelope"></i>Contato</a>
+            </li>
+        </ul>
+    </nav>
+    <div id="conteudo">
+        <style>
+#pagina ul li.noticia_desc a { font-weight:bold; color:#205c98; }
+#pagina ul li.noticia_desc a:hover { text-decoration:underline; }
+.ads20 { margin-top:50px; }
+@media screen and (max-width:768px) {
+    #site, #conteudo { width:100%; }
+}       
+</style>
+<div id="pagina">
+    <div class="ads_mobi"><div style="width:320px; height:100px; margin:20px auto 0 auto;"><ins class="adsbygoogle" style="display:inline-block;width:320px;height:100px" data-ad-client="ca-pub-2622407619291980" data-ad-slot="1797634041"></ins><script>(adsbygoogle = window.adsbygoogle || []).push({});</script></div></div>
+<div class="ads10"><div class="ads11"><ins class="adsbygoogle" style="display:inline-block;width:300px;height:250px" data-ad-client="ca-pub-2622407619291980" data-ad-slot="9825760010"></ins><script>(adsbygoogle = window.adsbygoogle || []).push({});</script></div><div class="ads12"><ins class="adsbygoogle" style="display:inline-block;width:300px;height:250px" data-ad-client="ca-pub-2622407619291980" data-ad-slot="9825760010"></ins><script>(adsbygoogle = window.adsbygoogle || []).push({});</script></div></div>
+
+    <h1>Pesquisa por Cargos</h1>
+    <div style="position: relative;">
+        <div style="position: absolute; right:0; top:-45px;"><div class="sharelink"><a href="#" onclick="shareLink('PCI Concursos - Pesquisa por Cargos', '', 'https://www.pciconcursos.com.br/cargos/enfermeiro'); return false;" rel="nofollow"><i class="fa-light fa-share-nodes"></i> </a></div></div>
+    </div>
+    <div class="card border mb-4">
+        <div class="card-body shadow-sm p-4" style="background-color:#f7f8fa;">
+            <h5 class="card-title text-center font-weight-bold mb-3 text-pci" style="font-size: 1.1rem;">
+                Pesquise por cargos <small class="d-block text-muted font-weight-normal mt-1" style="font-size: 0.85rem;">
+                    (ex: dentista, psicólogo, médico entre outros)
+                </small>
+            </h5>
+            <form method="post" action="https://www.pciconcursos.com.br/cargos/">
+                <div class="input-group mb-3 mx-auto" style="max-width: 500px;">
+                    <input type="text" name="cargo" class="form-control border-pci" value="enfermeiro" placeholder="Digite o cargo desejado">
+                    <div class="input-group-append">
+                        <button type="submit" name="botao" class="btn btn-pci" style="font-size: 1rem;">
+                            <i class="fas fa-search"></i> Pesquisar
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    <ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/inb-abre-concurso-publico-para-cadastro-de-reserva-em-diversas-areas-de-atuacao" 
+                    title="INB abre concurso público para cadastro de reserva em diversas áreas de atuação" 
+                    class="noticia_desc n295850">INB - Indústrias Nucleares do Brasil S.A. <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro-do-trabalho" title="Concursos para ENFERMEIRO DO TRABALHO"><i class="fas fa-user-nurse"></i>ENFERMEIRO DO TRABALHO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/marinha-do-brasil-3-distrito-naval-abre-vagas-para-oficiais-temporarios" 
+                    title="Marinha do Brasil - 3º Distrito Naval abre vagas para Oficiais Temporários" 
+                    class="noticia_desc n295344">Marinha do Brasil - Comando do 3º Distrito Naval <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/comando-do-1-distrito-naval-rj-mg-abre-vagas-para-oficiais-temporarios-de-nivel-superior" 
+                    title="Comando do 1º Distrito Naval - RJ/MG abre vagas para oficiais temporários de nível superior" 
+                    class="noticia_desc n295343">Com1ºDN - Comando do 1º Distrito Naval da Marinha do Brasil <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/marinha-do-brasil-7-distrito-naval-edital-de-processo-seletivo-oferece-vagas-de-nivel-superior-para-oficiais-temporarios" 
+                    title="Marinha do Brasil - 7º Distrito Naval: edital de processo seletivo oferece vagas de nível superior para oficiais temporários" 
+                    class="noticia_desc n295347">Marinha do Brasil - Comando do 7º Distrito Naval <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/comando-do-1-distrito-naval-rj-mg-abre-vagas-para-oficiais-temporarios-de-nivel-superior" 
+                    title="Comando do 1º Distrito Naval - RJ/MG abre vagas para oficiais temporários de nível superior" 
+                    class="noticia_desc n295343">Com1ºDN - Comando do 1º Distrito Naval da Marinha do Brasil <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro-centro-cirurgico" title="Concursos para ENFERMEIRO - CENTRO CIRÚRGICO"><i class="fas fa-procedures"></i>ENFERMEIRO - CENTRO CIRÚRGICO</a></li>
+</ul>
+<ul class="link-d"></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro-oncologia" title="Concursos para ENFERMEIRO - ONCOLOGIA"><i class="fas fa-ribbon"></i>ENFERMEIRO - ONCOLOGIA</a></li>
+</ul>
+<ul class="link-d"></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro-neonatologia" title="Concursos para ENFERMEIRO - NEONATOLOGIA"><i class="fas fa-baby"></i>ENFERMEIRO - NEONATOLOGIA</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-birigui-sp-abre-concurso-publico-com-salarios-de-ate-13881" 
+                    title="Prefeitura de Birigui - SP abre concurso público com salários de até R$ 13.881,85" 
+                    class="noticia_desc n296057">Prefeitura de Birigui - SP <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro-esf" title="Concursos para ENFERMEIRO - ESF"><i class="fas fa-user-nurse"></i>ENFERMEIRO - ESF</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-monteiro-lobato-sp-abre-concurso-publico-com-vagas-imediatas-e-cadastro-de-reserva" 
+                    title="Prefeitura de Monteiro Lobato - SP abre concurso público com vagas imediatas e cadastro de reserva" 
+                    class="noticia_desc n296139">Prefeitura de Monteiro Lobato - SP <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-tuiuti-sp-retifica-edital-de-concurso-publico-com-vagas-imediatas-e-cadastro-de-reserva" 
+                    title="Prefeitura de Tuiuti - SP retifica edital de concurso público com vagas imediatas e cadastro de reserva" 
+                    class="noticia_desc n296003">Prefeitura de Tuiuti - SP <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-cunha-sp-abre-concurso-publico-com-salarios-de-ate-9147" 
+                    title="Prefeitura de Cunha - SP abre concurso público com salários de até R$ 9.147,62" 
+                    class="noticia_desc n296148">Prefeitura de Cunha - SP <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-murutinga-do-sul-sp-publica-edital-de-concurso-com-15-vagas-imediatas" 
+                    title="Prefeitura de Murutinga do Sul - SP publica edital de concurso com 15 vagas imediatas" 
+                    class="noticia_desc n295907">Prefeitura de Murutinga do Sul - SP <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-lencois-paulista-sp-abre-concurso-publico-com-salarios-de-ate-5044" 
+                    title="Prefeitura de Lençóis Paulista - SP abre concurso público com salários de até R$ 5.044,35" 
+                    class="noticia_desc n295898">Prefeitura de Lençóis Paulista - SP <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-guaicara-sp-abre-concurso-publico-com-salarios-de-ate-17716" 
+                    title="Prefeitura de Guaiçara - SP abre concurso público com salários de até R$ 17.716,50" 
+                    class="noticia_desc n296117">Prefeitura de Guaiçara - SP <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-piedade-sp-publica-edital-de-concurso-publico-com-salarios-de-ate-17397" 
+                    title="Prefeitura de Piedade - SP publica edital de concurso público com salários de até R$ 17.397,46" 
+                    class="noticia_desc n295773">Prefeitura de Piedade - SP <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro-de-saude-da-familia" title="Concursos para ENFERMEIRO DE SAÚDE DA FAMÍLIA"><i class="fas fa-user-nurse"></i>ENFERMEIRO DE SAÚDE DA FAMÍLIA</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-macedonia-sp-abre-concurso-publico-com-salarios-de-ate-8189" 
+                    title="Prefeitura de Macedônia - SP abre concurso público com salários de até R$ 8.189,58" 
+                    class="noticia_desc n296004">Prefeitura de Macedônia - SP <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-morro-agudo-sp-abre-concurso-com-salarios-de-ate-5815" 
+                    title="Prefeitura de Morro Agudo - SP abre concurso com salários de até R$ 5.815,68" 
+                    class="noticia_desc n295514">Prefeitura de Morro Agudo - SP <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-praia-grande-sp-abre-processo-seletivo-para-residencia-multiprofissional" 
+                    title="Prefeitura de Praia Grande - SP abre processo seletivo para residência multiprofissional" 
+                    class="noticia_desc n295560">Município da Estância Balneária de Praia Grande - SP <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-holambra-sp-abre-concurso-com-salarios-de-ate-8431" 
+                    title="Prefeitura de Holambra - SP abre concurso com salários de até R$ 8.431,01" 
+                    class="noticia_desc n295644">Prefeitura de Holambra - SP <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-taquaritinga-sp-abre-concurso-publico-para-diversos-cargos" 
+                    title="Prefeitura de Taquaritinga - SP abre concurso público para diversos cargos" 
+                    class="noticia_desc n295645">Prefeitura de Taquaritinga - SP <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-jaborandi-sp-abre-concurso-publico-com-salarios-de-ate-5325" 
+                    title="Prefeitura de Jaborandi - SP abre concurso público com salários de até R$ 5.325,60" 
+                    class="noticia_desc n295703">Prefeitura de Jaborandi - SP <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-embauba-sp-abre-concurso-publico-com-salarios-de-ate-5600" 
+                    title="Prefeitura de Embaúba - SP abre concurso público com salários de até R$ 5.600,00" 
+                    class="noticia_desc n295881">Prefeitura de Embaúba - SP <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-paulo-de-faria-sp-abre-concurso-publico-com-salarios-de-ate-8632" 
+                    title="Prefeitura de Paulo de Faria - SP abre concurso público com salários de até R$ 8.632,29" 
+                    class="noticia_desc n296034">Prefeitura de Paulo de Faria - SP <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-taquaritinga-sp-abre-concurso-publico-para-diversos-cargos" 
+                    title="Prefeitura de Taquaritinga - SP abre concurso público para diversos cargos" 
+                    class="noticia_desc n295645">Prefeitura de Taquaritinga - SP <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro-socorrista" title="Concursos para ENFERMEIRO SOCORRISTA"><i class="fas fa-ambulance"></i>ENFERMEIRO SOCORRISTA</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-carapicuiba-sp-abre-novos-concursos-para-cadastro-de-reserva-em-diversas-areas" 
+                    title="Prefeitura de Carapicuíba - SP abre novos concursos para cadastro de reserva em diversas áreas" 
+                    class="noticia_desc n295464">Prefeitura do Município de Carapicuíba - SP <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-sao-carlos-sp-abre-concurso-com-salarios-de-ate-9833" 
+                    title="Prefeitura de São Carlos - SP abre concurso com salários de até R$ 9.833,00" 
+                    class="noticia_desc n295364">Prefeitura de São Carlos - SP <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-guarulhos-sp-abre-vagas-para-programas-de-residencia-multiprofissional-em-saude" 
+                    title="Prefeitura de Guarulhos - SP abre vagas para Programas de Residência Multiprofissional em Saúde" 
+                    class="noticia_desc n295453">Prefeitura de Guarulhos - SP <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro-saude-mental" title="Concursos para ENFERMEIRO - SAÚDE MENTAL"><i class="fas fa-user-nurse"></i>ENFERMEIRO - SAÚDE MENTAL</a></li>
+</ul>
+<ul class="link-d"></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro-atencao-basica-saude-da-familia" title="Concursos para ENFERMEIRO - ATENÇÃO BÁSICA/SAÚDE DA FAMÍLIA"><i class="fas fa-user-nurse"></i>ENFERMEIRO - ATENÇÃO BÁSICA/SAÚDE DA FAMÍLIA</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/uerj-abre-processo-seletivo-para-cadastro-de-reserva-em-projetos-da-saude" 
+                    title="UERJ abre processo seletivo para cadastro de reserva em projetos da saúde" 
+                    class="noticia_desc n296010">UERJ - Universidade do Estado do Rio de Janeiro - RJ <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro-auditor" title="Concursos para ENFERMEIRO AUDITOR"><i class="fas fa-clipboard-check"></i>ENFERMEIRO AUDITOR</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/riosaude-rj-abre-processo-seletivo-para-vagas-de-enfermeiros-na-area-de-oncologia" 
+                    title="RioSaúde - RJ abre processo seletivo para vagas de enfermeiros na área de oncologia" 
+                    class="noticia_desc n296131">RioSaúde - Empresa Pública de Saúde do Rio de Janeiro S/A - RJ <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro-oncologia-30h" title="Concursos para ENFERMEIRO - ONCOLOGIA 30H"><i class="fas fa-ribbon"></i>ENFERMEIRO - ONCOLOGIA 30H</a></li>
+</ul>
+<ul class="link-d"></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro-oncologia-40h" title="Concursos para ENFERMEIRO - ONCOLOGIA 40H"><i class="fas fa-ribbon"></i>ENFERMEIRO - ONCOLOGIA 40H</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-santana-dos-montes-mg-abre-concurso-publico-com-salarios-de-ate-20418" 
+                    title="Prefeitura de Santana dos Montes - MG abre concurso público com salários de até R$ 20.418,44" 
+                    class="noticia_desc n296027">Prefeitura de Santana dos Montes - MG <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-santa-rita-de-jacutinga-mg-abre-concurso-publico-com-salarios-de-ate-10207" 
+                    title="Prefeitura de Santa Rita de Jacutinga - MG abre concurso público com salários de até R$ 10.207,61" 
+                    class="noticia_desc n296091">Prefeitura de Santa Rita de Jacutinga - MG <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro-para-ambulancia" title="Concursos para ENFERMEIRO PARA AMBULÂNCIA"><i class="fas fa-ambulance"></i>ENFERMEIRO PARA AMBULÂNCIA</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-paraguacu-mg-abre-concurso-publico-com-salarios-de-ate-20128" 
+                    title="Prefeitura de Paraguaçu - MG abre concurso público com salários de até R$ 20.128,27" 
+                    class="noticia_desc n295750">Prefeitura de Paraguaçu - MG <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-lagoa-santa-mg-abre-concurso-publico-com-salarios-de-ate-8860" 
+                    title="Prefeitura de Lagoa Santa - MG abre concurso público com salários de até R$ 8.860,79" 
+                    class="noticia_desc n295586">Prefeitura de Lagoa Santa - MG <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-santa-luzia-mg-abre-concurso-publico-com-salarios-de-ate-8628" 
+                    title="Prefeitura de Santa Luzia - MG abre concurso público com salários de até R$ 8.628,87" 
+                    class="noticia_desc n295546">Prefeitura de Santa Luzia - MG <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-luislandia-mg-abre-concurso-publico-com-vagas-em-diversas-areas" 
+                    title="Prefeitura de Luislândia - MG abre concurso público com vagas em diversas áreas" 
+                    class="noticia_desc n295601">Prefeitura de Luislândia - MG <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-patis-mg-abre-concurso-publico-com-salarios-de-ate-13500" 
+                    title="Prefeitura de Patis - MG abre concurso público com salários de até R$ 13.500,00" 
+                    class="noticia_desc n295448">Prefeitura de Patis - MG <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/hospital-municipal-dr-gil-alves-mg-abre-concurso-com-salarios-de-ate-7950" 
+                    title="Hospital Municipal Dr. Gil Alves - MG abre concurso com salários de até R$ 7.950,00" 
+                    class="noticia_desc n295252">Hospital Municipal Dr. Gil Alves - MG <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-alvinopolis-mg-publica-edital-de-concurso-publico-com-salarios-de-ate-17954" 
+                    title="Prefeitura de Alvinópolis - MG publica edital de concurso público com salários de até R$ 17.954,23" 
+                    class="noticia_desc n295065">Prefeitura de Alvinópolis - MG <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-sao-tomas-de-aquino-mg-abre-processo-seletivo-com-salarios-de-ate-4978" 
+                    title="Prefeitura de São Tomás de Aquino - MG abre processo seletivo com salários de até R$ 4.978,60" 
+                    class="noticia_desc n296133">Prefeitura de São Tomás de Aquino - MG <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-antonio-prado-de-minas-mg-abre-concurso-publico-para-diversos-cargos" 
+                    title="Prefeitura de Antônio Prado de Minas - MG abre concurso público para diversos cargos" 
+                    class="noticia_desc n294645">Prefeitura de Antônio Prado de Minas - MG <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-sao-vicente-de-minas-mg-retifica-edital-de-concurso-publico" 
+                    title="Prefeitura de São Vicente de Minas - MG retifica edital de concurso público" 
+                    class="noticia_desc n294173">Prefeitura de São Vicente de Minas - MG <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-piracema-mg-abre-concurso-e-processo-seletivo-com-diversas-vagas" 
+                    title="Prefeitura de Piracema - MG abre concurso e processo seletivo com diversas vagas" 
+                    class="noticia_desc n294590">Prefeitura de Piracema - MG <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-baldim-mg-abre-concurso-publico-para-profissionais-de-saude" 
+                    title="Prefeitura de Baldim - MG abre concurso público para profissionais de saúde" 
+                    class="noticia_desc n294369">Prefeitura de Baldim - MG <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-sao-joao-del-rei-mg-abre-concurso-publico-com-salarios-de-ate-15164" 
+                    title="Prefeitura de São João del-Rei - MG abre concurso público com salários de até R$ 15.164,56" 
+                    class="noticia_desc n294432">Prefeitura de São João del-Rei - MG <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro-12-36-saude-mental" title="Concursos para ENFERMEIRO 12/36 - SAÚDE MENTAL"><i class="fas fa-staff-snake"></i>ENFERMEIRO 12/36 - SAÚDE MENTAL</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-santana-de-pirapama-mg-abre-concurso-com-salarios-de-ate-6221" 
+                    title="Prefeitura de Santana de Pirapama - MG abre concurso com salários de até R$ 6.221,41" 
+                    class="noticia_desc n294305">Prefeitura de Santana de Pirapama - MG <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-onca-de-pitangui-mg-abre-processo-seletivo-com-salarios-de-ate-14829" 
+                    title="Prefeitura de Onça de Pitangui - MG abre processo seletivo com salários de até R$ 14.829,31" 
+                    class="noticia_desc n296079">Prefeitura de Onça de Pitangui - MG <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro-coordenador" title="Concursos para ENFERMEIRO - COORDENADOR"><i class="fas fa-user-nurse"></i>ENFERMEIRO - COORDENADOR</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-confins-mg-abre-processo-seletivo-com-salarios-de-ate-23298" 
+                    title="Prefeitura de Confins - MG abre processo seletivo com salários de até R$ 23.298,67" 
+                    class="noticia_desc n295984">Prefeitura de Confins - MG <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro-estomaterapeuta" title="Concursos para ENFERMEIRO ESTOMATERAPEUTA"><i class="fas fa-user-nurse"></i>ENFERMEIRO ESTOMATERAPEUTA</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/santa-casa-de-misericordia-de-belo-horizonte-mg-abre-selecoes-para-residencia-medica-e-multiprofissional" 
+                    title="Santa Casa de Misericórdia de Belo Horizonte - MG abre seleções para residência médica e multiprofissional" 
+                    class="noticia_desc n295271">Santa Casa BH - Santa Casa de Misericórdia de Belo Horizonte - MG <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-belo-vale-mg-abre-concurso-publico-com-diversas-vagas-e-salarios-de-ate-8000" 
+                    title="Prefeitura de Belo Vale - MG abre concurso público com diversas vagas e salários de até R$ 8.000,00" 
+                    class="noticia_desc n294060">Prefeitura de Belo Vale - MG <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-lagoa-da-prata-mg-altera-periodo-de-inscricoes-do-concurso-publico-com-salarios-de-ate-21-mil" 
+                    title="Prefeitura de Lagoa da Prata - MG altera período de inscrições do concurso público com salários de até R$ 21 mil" 
+                    class="noticia_desc n288428">Prefeitura de Lagoa da Prata - MG <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-braunas-mg-abre-processo-seletivo-com-salarios-de-ate-22090" 
+                    title="Prefeitura de Braúnas - MG abre processo seletivo com salários de até R$ 22.090,10" 
+                    class="noticia_desc n295970">Prefeitura de Braúnas - MG <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-olimpio-noronha-mg-abre-processo-seletivo-para-profissionais-de-nivel-superior" 
+                    title="Prefeitura de Olímpio Noronha - MG abre processo seletivo para profissionais de nível superior" 
+                    class="noticia_desc n296020">Prefeitura de Olímpio Noronha - MG <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-pedro-teixeira-mg-publica-edital-retificado-de-concurso-publico" 
+                    title="Prefeitura de Pedro Teixeira - MG publica edital retificado de concurso público" 
+                    class="noticia_desc n294117">Prefeitura de Pedro Teixeira - MG <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro-fumal" title="Concursos para ENFERMEIRO FUMAL"><i class="fas fa-staff-snake"></i>ENFERMEIRO FUMAL</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-dores-do-rio-preto-es-abre-selecao-com-salarios-de-ate-17087" 
+                    title="Prefeitura de Dores do Rio Preto - ES abre seleção com salários de até R$ 17.087,37" 
+                    class="noticia_desc n296030">Prefeitura de Dores do Rio Preto - ES <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-iuna-e-santa-casa-es-abrem-processo-seletivo-para-diversos-cargos" 
+                    title="Prefeitura de Iúna e Santa Casa - ES abrem processo seletivo para diversos cargos" 
+                    class="noticia_desc n295868">Prefeitura de Iúna e Santa Casa de Iúna - ES <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro-obstetra" title="Concursos para ENFERMEIRO OBSTETRA"><i class="fas fa-person-breastfeeding"></i>ENFERMEIRO OBSTETRA</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-santa-maria-de-jetiba-es-abre-processo-seletivo-para-formacao-de-cadastro-de-reserva" 
+                    title="Prefeitura de Santa Maria de Jetibá - ES abre processo seletivo para formação de cadastro de reserva" 
+                    class="noticia_desc n295666">Prefeitura de Santa Maria de Jetibá - ES <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro-40h" title="Concursos para ENFERMEIRO 40H"><i class="fas fa-user-nurse"></i>ENFERMEIRO 40H</a></li>
+</ul>
+<ul class="link-d"></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro-20h" title="Concursos para ENFERMEIRO 20H"><i class="fas fa-user-nurse"></i>ENFERMEIRO 20H</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/unioeste-pr-abre-processo-seletivo-para-agentes-universitarios-no-huop" 
+                    title="UNIOESTE - PR abre processo seletivo para agentes universitários no HUOP" 
+                    class="noticia_desc n295614">UNIOESTE - Universidade Estadual do Oeste do Paraná - PR <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-quedas-do-iguacu-pr-abre-concurso-publico-com-salarios-de-ate-11998" 
+                    title="Prefeitura de Quedas do Iguaçu - PR abre concurso público com salários de até R$ 11.998,88" 
+                    class="noticia_desc n296056">Prefeitura de Quedas do Iguaçu - PR <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-guamiranga-pr-abre-dois-novos-concursos-publicos-para-diversas-areas" 
+                    title="Prefeitura de Guamiranga - PR abre dois novos concursos públicos para diversas áreas" 
+                    class="noticia_desc n296124">Prefeitura de Guamiranga - PR <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-florestopolis-pr-abre-concurso-publico-com-salarios-de-ate-15389" 
+                    title="Prefeitura de Florestópolis - PR abre concurso público com salários de até R$ 15.389,87" 
+                    class="noticia_desc n295941">Prefeitura de Florestópolis - PR <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-francisco-beltrao-pr-abre-processo-seletivo-para-diversos-cargos" 
+                    title="Prefeitura de Francisco Beltrão - PR abre processo seletivo para diversos cargos" 
+                    class="noticia_desc n296098">Prefeitura de Francisco Beltrão - PR <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/camara-e-municipio-de-siqueira-campos-pr-retificam-concursos-publicos" 
+                    title="Câmara e Município de Siqueira Campos - PR retificam concursos públicos" 
+                    class="noticia_desc n295274">Prefeitura e Câmara de Siqueira Campos - PR <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-ipe-rs-abre-concurso-publico-com-salarios-de-ate-20745" 
+                    title="Prefeitura de Ipê - RS abre concurso público com salários de até R$ 20.745,08" 
+                    class="noticia_desc n295943">Prefeitura de Ipê - RS <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-ijui-rs-abre-concurso-publico-com-salarios-de-ate-21312" 
+                    title="Prefeitura de Ijuí - RS abre concurso público com salários de até R$ 21.312,22" 
+                    class="noticia_desc n296125">Prefeitura de Ijuí - RS <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro-plantonista" title="Concursos para ENFERMEIRO PLANTONISTA"><i class="fas fa-user-nurse"></i>ENFERMEIRO PLANTONISTA</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-tio-hugo-rs-abre-concurso-com-vagas-imediatas-e-cadastro-de-reserva" 
+                    title="Prefeitura de Tio Hugo - RS abre concurso com vagas imediatas e cadastro de reserva" 
+                    class="noticia_desc n295788">Prefeitura de Tio Hugo - RS <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-montenegro-rs-abre-concurso-publico-com-salarios-de-ate-9848" 
+                    title="Prefeitura de Montenegro - RS abre concurso público com salários de até R$ 9.848,34" 
+                    class="noticia_desc n295923">Prefeitura de Montenegro - RS <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-nova-boa-vista-rs-abre-concurso-publico-com-salarios-de-ate-12039" 
+                    title="Prefeitura de Nova Boa Vista - RS abre concurso público com salários de até R$ 12.039,12" 
+                    class="noticia_desc n295888">Prefeitura de Nova Boa Vista - RS <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-marata-rs-abre-concurso-publico-com-salarios-de-ate-10165" 
+                    title="Prefeitura de Maratá - RS abre concurso público com salários de até R$ 10.165,00" 
+                    class="noticia_desc n295759">Prefeitura de Maratá - RS <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro-instrutor-supervisor" title="Concursos para ENFERMEIRO INSTRUTOR/ SUPERVISOR"><i class="fas fa-user-nurse"></i>ENFERMEIRO INSTRUTOR/ SUPERVISOR</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-itapuca-rs-abre-concurso-publico-com-salarios-de-ate-9495" 
+                    title="Prefeitura de Itapuca - RS abre concurso público com salários de até R$ 9.495,82" 
+                    class="noticia_desc n295862">Prefeitura de Itapuca - RS <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-vicente-dutra-rs-abre-concurso-publico-com-salarios-de-ate-9089" 
+                    title="Prefeitura de Vicente Dutra - RS abre concurso público com salários de até R$ 9.089,82" 
+                    class="noticia_desc n295676">Prefeitura de Vicente Dutra - RS <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro-padrao" title="Concursos para ENFERMEIRO PADRÃO"><i class="fas fa-stethoscope"></i>ENFERMEIRO PADRÃO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-barao-de-cotegipe-rs-altera-periodo-de-inscricoes-para-concurso-publico" 
+                    title="Prefeitura de Barão de Cotegipe - RS altera período de inscrições para concurso público" 
+                    class="noticia_desc n294989">Prefeitura de Barão de Cotegipe - RS <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-santa-terezinha-do-progresso-sc-abre-concurso-com-salarios-de-ate-10000" 
+                    title="Prefeitura de Santa Terezinha do Progresso - SC abre concurso com salários de até R$ 10.000,00" 
+                    class="noticia_desc n296113">Prefeitura de Santa Terezinha do Progresso - SC <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-e-fundacao-cultural-de-navegantes-sc-abrem-selecoes-com-salarios-de-ate-19199" 
+                    title="Prefeitura e Fundação Cultural de Navegantes - SC abrem seleções com salários de até R$ 19.199,16" 
+                    class="noticia_desc n296143">Prefeitura e Fundação Cultural de Navegantes - SC <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-luiz-alves-sc-abre-concurso-publico-com-salarios-de-ate-8889" 
+                    title="Prefeitura de Luiz Alves - SC abre concurso público com salários de até R$ 8.889,30" 
+                    class="noticia_desc n296083">Prefeitura de Luiz Alves - SC <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-ipora-do-oeste-sc-abre-concurso-publico-e-processos-seletivos-com-salarios-de-ate-19265" 
+                    title="Prefeitura de Iporã do Oeste - SC abre concurso público e processos seletivos com salários de até R$ 19.265,80" 
+                    class="noticia_desc n295936">Prefeitura de Iporã do Oeste - SC <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-lages-sc-abre-selecao-para-diversos-cargos-na-secretaria-da-saude" 
+                    title="Prefeitura de Lages - SC abre seleção para diversos cargos na Secretaria da Saúde" 
+                    class="noticia_desc n296039">Prefeitura de Lages - Secretaria da Saúde - SC <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro-especialista-em-saude-mental" title="Concursos para ENFERMEIRO ESPECIALISTA EM SAÚDE MENTAL"><i class="fas fa-head-side-virus"></i>ENFERMEIRO ESPECIALISTA EM SAÚDE MENTAL</a></li>
+</ul>
+<ul class="link-d"></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro-de-programas-da-saude" title="Concursos para ENFERMEIRO DE PROGRAMAS DA SAÚDE"><i class="fas fa-user-nurse"></i>ENFERMEIRO DE PROGRAMAS DA SAÚDE</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-ilhota-sc-publica-edital-de-concurso-publico-com-salarios-de-ate-21113" 
+                    title="Prefeitura de Ilhota - SC publica edital de concurso público com salários de até R$ 21.113,16" 
+                    class="noticia_desc n295909">Prefeitura de Ilhota - SC <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-urussanga-sc-abre-processo-seletivo-com-salarios-de-ate-23930" 
+                    title="Prefeitura de Urussanga - SC abre processo seletivo com salários de até R$ 23.930,19" 
+                    class="noticia_desc n295775">Prefeitura de Urussanga - SC <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/municipio-de-sao-joao-batista-sc-abre-processos-seletivos-para-diversos-cargos" 
+                    title="Município de São João Batista - SC abre processos seletivos para diversos cargos" 
+                    class="noticia_desc n295786">Prefeitura de São João Batista - SC <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro-esf" title="Concursos para ENFERMEIRO - ESF"><i class="fas fa-user-nurse"></i>ENFERMEIRO - ESF</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-aguas-mornas-sc-abre-concurso-e-processo-seletivo-com-salarios-de-ate-10109" 
+                    title="Prefeitura de Águas Mornas - SC abre concurso e processo seletivo com salários de até R$ 10.109,68" 
+                    class="noticia_desc n295567">Prefeitura de Águas Mornas - SC <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-descanso-sc-abre-processos-seletivos-com-salarios-de-ate-21965" 
+                    title="Prefeitura de Descanso - SC abre processos seletivos com salários de até R$ 21.965,25" 
+                    class="noticia_desc n295573">Prefeitura de Descanso - SC <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-serra-alta-sc-retifica-concurso-com-salarios-de-ate-9903" 
+                    title="Prefeitura de Serra Alta - SC retifica concurso com salários de até R$ 9.903,40" 
+                    class="noticia_desc n295580">Prefeitura de Serra Alta - SC <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-sao-domingos-sc-abre-concurso-publico-com-salarios-de-ate-7949" 
+                    title="Prefeitura de São Domingos - SC abre concurso público com salários de até R$ 7.949,24" 
+                    class="noticia_desc n295372">Prefeitura de São Domingos - SC <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-e-camara-de-benedito-novo-sc-abrem-concursos-e-processos-seletivos-com-diversas-vagas" 
+                    title="Prefeitura e Câmara de Benedito Novo - SC abrem concursos e processos seletivos com diversas vagas" 
+                    class="noticia_desc n295470">Prefeitura e Câmara de Benedito Novo - SC <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-lontras-sc-abre-processo-seletivo-com-salarios-de-ate-8105" 
+                    title="Prefeitura de Lontras - SC abre processo seletivo com salários de até R$ 8.105,36" 
+                    class="noticia_desc n295679">Prefeitura de Lontras - SC <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro-40h" title="Concursos para ENFERMEIRO 40H"><i class="fas fa-user-nurse"></i>ENFERMEIRO 40H</a></li>
+</ul>
+<ul class="link-d"></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro-20h" title="Concursos para ENFERMEIRO 20H"><i class="fas fa-user-nurse"></i>ENFERMEIRO 20H</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/igesdf-df-abre-processos-seletivos-com-salarios-de-ate-4894" 
+                    title="IGESDF - DF abre processos seletivos com salários de até R$ 4.894,57" 
+                    class="noticia_desc n295972">IGESDF - Instituto de Gestão Estratégica de Saúde do Distrito Federal - DF <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro-regulador" title="Concursos para ENFERMEIRO REGULADOR"><i class="fas fa-user-nurse"></i>ENFERMEIRO REGULADOR</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-uirapuru-go-abre-concurso-publico-com-salarios-de-ate-4428" 
+                    title="Prefeitura de Uirapuru - GO abre concurso público com salários de até R$ 4.428,13" 
+                    class="noticia_desc n295277">Prefeitura de Uirapuru - GO <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-aral-moreira-ms-abre-concurso-publico-para-diversos-niveis-de-escolaridade" 
+                    title="Prefeitura de Aral Moreira - MS abre concurso público para diversos níveis de escolaridade" 
+                    class="noticia_desc n296054">Prefeitura de Aral Moreira - MS <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro-40h" title="Concursos para ENFERMEIRO 40H"><i class="fas fa-user-nurse"></i>ENFERMEIRO 40H</a></li>
+</ul>
+<ul class="link-d"></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro-44h" title="Concursos para ENFERMEIRO 44H"><i class="fas fa-user-nurse"></i>ENFERMEIRO 44H</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-novo-sao-joaquim-mt-abre-concurso-com-salarios-de-ate-11979" 
+                    title="Prefeitura de Novo São Joaquim - MT abre concurso com salários de até R$ 11.979,03" 
+                    class="noticia_desc n296145">Prefeitura de Novo São Joaquim - MT <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-pontes-e-lacerda-mt-abre-processo-seletivo-com-salarios-de-ate-11308" 
+                    title="Prefeitura de Pontes e Lacerda - MT abre processo seletivo com salários de até R$ 11.308,36" 
+                    class="noticia_desc n296182">Prefeitura de Pontes e Lacerda - MT <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro-zona-rural" title="Concursos para ENFERMEIRO ZONA RURAL"><i class="fas fa-user-nurse"></i>ENFERMEIRO ZONA RURAL</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-novo-horizonte-do-norte-mt-abre-processo-seletivo-com-vagas-imediatas-e-cadastro-de-reserva" 
+                    title="Prefeitura de Novo Horizonte do Norte - MT abre processo seletivo com vagas imediatas e cadastro de reserva" 
+                    class="noticia_desc n296017">Prefeitura de Novo Horizonte do Norte - MT <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/ifap-abre-concurso-para-cargos-de-tecnico-administrativo-em-educacao" 
+                    title="IFAP abre concurso para cargos de Técnico-Administrativo em Educação" 
+                    class="noticia_desc n295013">IFAP - Instituto Federal de Educação, Ciência e Tecnologia do Amapá - AP <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-bujaru-pa-abre-concurso-publico-com-salarios-de-ate-4543" 
+                    title="Prefeitura de Bujaru - PA abre concurso público com salários de até R$ 4.543,83" 
+                    class="noticia_desc n295635">Prefeitura de Bujaru - PA <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/seplad-e-fhcgv-pa-prorrogam-inscricoes-para-concurso-publico" 
+                    title="SEPLAD e FHCGV - PA prorrogam inscrições para concurso público" 
+                    class="noticia_desc n295204">FHCGV - Fundação Pública Estadual Hospital de Clínicas Gaspar Vianna - PA <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro-nefrologia" title="Concursos para ENFERMEIRO - NEFROLOGIA"><i class="fas fa-user-nurse"></i>ENFERMEIRO - NEFROLOGIA</a></li>
+</ul>
+<ul class="link-d"></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro-cardiologia" title="Concursos para ENFERMEIRO - CARDIOLOGIA"><i class="fas fa-user-md"></i>ENFERMEIRO - CARDIOLOGIA</a></li>
+</ul>
+<ul class="link-d"></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro-psiquiatria" title="Concursos para ENFERMEIRO - PSIQUIATRIA"><i class="fas fa-user-nurse"></i>ENFERMEIRO - PSIQUIATRIA</a></li>
+</ul>
+<ul class="link-d"></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro-uti-pediatrica" title="Concursos para ENFERMEIRO - UTI PEDIÁTRICA"><i class="fas fa-user-nurse"></i>ENFERMEIRO - UTI PEDIÁTRICA</a></li>
+</ul>
+<ul class="link-d"></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro-uti-adulto" title="Concursos para ENFERMEIRO - UTI ADULTO"><i class="fas fa-user-nurse"></i>ENFERMEIRO - UTI ADULTO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-porto-velho-ro-retifica-concurso-com-vagas-imediatas-e-cadastro-de-reserva" 
+                    title="Prefeitura de Porto Velho - RO retifica concurso com vagas imediatas e cadastro de reserva" 
+                    class="noticia_desc n295553">Prefeitura de Porto Velho - RO <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro-do-trabalho" title="Concursos para ENFERMEIRO DO TRABALHO"><i class="fas fa-user-nurse"></i>ENFERMEIRO DO TRABALHO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-cha-preta-al-abre-concursos-com-salarios-de-ate-7256" 
+                    title="Prefeitura de Chã Preta - AL abre concursos com salários de até R$ 7.256,60" 
+                    class="noticia_desc n295505">Prefeitura de Chã Preta - AL <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro-psf" title="Concursos para ENFERMEIRO PSF"><i class="fas fa-house-medical-flag"></i>ENFERMEIRO PSF</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-estrela-de-alagoas-al-abre-selecao-para-a-secretaria-de-saude" 
+                    title="Prefeitura de Estrela de Alagoas - AL abre seleção para a Secretaria de Saúde" 
+                    class="noticia_desc n296096">Prefeitura de Estrela de Alagoas - AL <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro-assistencial" title="Concursos para ENFERMEIRO ASSISTENCIAL"><i class="fas fa-staff-snake"></i>ENFERMEIRO ASSISTENCIAL</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-catu-ba-prorroga-inscricoes-do-concurso-publico-para-diversos-cargos" 
+                    title="Prefeitura de Catu - BA prorroga inscrições do concurso público para diversos cargos" 
+                    class="noticia_desc n295299">Prefeitura de Catu - BA <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-firmino-alves-ba-abre-concurso-publico-com-salarios-de-ate-4867" 
+                    title="Prefeitura de Firmino Alves - BA abre concurso público com salários de até R$ 4.867,77" 
+                    class="noticia_desc n295863">Prefeitura de Firmino Alves - BA <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/ufba-ba-publica-retificacoes-de-concurso-publico-para-tecnicos-administrativos-em-educacao" 
+                    title="UFBA - BA publica retificações de concurso público para técnicos-administrativos em educação" 
+                    class="noticia_desc n295460">UFBA - Universidade Federal da Bahia - BA <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-quixada-ce-abre-processo-seletivo-com-vagas-imediatas-e-cadastro-de-reserva" 
+                    title="Prefeitura de Quixadá - CE abre processo seletivo com vagas imediatas e cadastro de reserva" 
+                    class="noticia_desc n296160">Prefeitura de Quixadá - CE <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro-plantonista" title="Concursos para ENFERMEIRO PLANTONISTA"><i class="fas fa-user-nurse"></i>ENFERMEIRO PLANTONISTA</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-groairas-ce-reabre-inscricoes-para-concursos-publicos" 
+                    title="Prefeitura de Groaíras - CE reabre inscrições para concursos públicos" 
+                    class="noticia_desc n294606">Prefeitura de Groaíras - CE <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-jaguaribe-ce-reabre-inscricoes-para-concursos-publicos" 
+                    title="Prefeitura de Jaguaribe - CE reabre inscrições para concursos públicos" 
+                    class="noticia_desc n294981">Prefeitura de Jaguaribe - CE <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-poranga-ce-reabre-inscricoes-para-concursos-publicos" 
+                    title="Prefeitura de Poranga - CE reabre inscrições para concursos públicos" 
+                    class="noticia_desc n295057">Prefeitura de Poranga - CE <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-itarema-ce-abre-concurso-publico-com-salarios-de-ate-5622" 
+                    title="Prefeitura de Itarema - CE abre concurso público com salários de até R$ 5.622,00" 
+                    class="noticia_desc n295492">Prefeitura de Itarema - CE <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-ribeiraozinho-do-maranhao-ma-publica-editais-de-concurso-e-processo-seletivo" 
+                    title="Prefeitura de Ribeirãozinho do Maranhão - MA publica editais de concurso e processo seletivo" 
+                    class="noticia_desc n295908">Prefeitura de Ribeirãozinho do Maranhão - MA <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-serra-grande-pb-abre-concurso-publico-com-vagas-para-diversos-cargos" 
+                    title="Prefeitura de Serra Grande - PB abre concurso público com vagas para diversos cargos" 
+                    class="noticia_desc n296050">Prefeitura de Serra Grande - PB <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-itapororoca-pb-abre-concurso-com-salarios-de-ate-10000" 
+                    title="Prefeitura de Itapororoca - PB abre concurso com salários de até R$ 10.000,00" 
+                    class="noticia_desc n295961">Prefeitura de Itapororoca - PB <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-conceicao-pb-reabre-inscricoes-para-concurso-publico" 
+                    title="Prefeitura de Conceição - PB reabre inscrições para concurso público" 
+                    class="noticia_desc n293620">Prefeitura de Conceição - PB <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-sao-jose-do-sabugi-pb-abre-concurso-para-diversos-cargos" 
+                    title="Prefeitura de São José do Sabugi - PB abre concurso para diversos cargos" 
+                    class="noticia_desc n295638">Prefeitura de São José do Sabugi - PB <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-ferreiros-pe-abre-concurso-publico-com-vagas-para-diversas-areas" 
+                    title="Prefeitura de Ferreiros - PE abre concurso público com vagas para diversas áreas" 
+                    class="noticia_desc n295840">Prefeitura de Ferreiros - PE <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro-plantonista" title="Concursos para ENFERMEIRO PLANTONISTA"><i class="fas fa-user-nurse"></i>ENFERMEIRO PLANTONISTA</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-monsenhor-gil-pi-abre-concurso-publico-com-salarios-de-ate-8000" 
+                    title="Prefeitura de Monsenhor Gil - PI abre concurso público com salários de até R$ 8.000,00" 
+                    class="noticia_desc n296019">Prefeitura de Monsenhor Gil - PI <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-cristalandia-do-piaui-pi-abre-concurso-publico-para-diversos-cargos" 
+                    title="Prefeitura de Cristalândia do Piauí - PI abre concurso público para diversos cargos" 
+                    class="noticia_desc n296038">Prefeitura de Cristalândia do Piauí - PI <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-francisco-macedo-pi-abre-concurso-publico-com-vagas-imediatas-e-cadastro-de-reserva" 
+                    title="Prefeitura de Francisco Macedo - PI abre concurso público com vagas imediatas e cadastro de reserva" 
+                    class="noticia_desc n295854">Prefeitura de Francisco Macedo - PI <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-sao-joao-do-piaui-pi-abre-processos-seletivos-com-salarios-de-ate-16800" 
+                    title="Prefeitura de São João do Piauí - PI abre processos seletivos com salários de até R$ 16.800,00" 
+                    class="noticia_desc n296070">Prefeitura de São João do Piauí - PI <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro-plantonista" title="Concursos para ENFERMEIRO PLANTONISTA"><i class="fas fa-user-nurse"></i>ENFERMEIRO PLANTONISTA</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-sao-joao-da-varjota-pi-abre-concurso-publico-para-diversos-cargos" 
+                    title="Prefeitura de São João da Varjota - PI abre concurso público para diversos cargos" 
+                    class="noticia_desc n295593">Prefeitura de São João da Varjota - PI <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-marcelino-vieira-rn-abre-processo-seletivo-com-salarios-de-ate-13266" 
+                    title="Prefeitura de Marcelino Vieira - RN abre processo seletivo com salários de até R$ 13.266,00" 
+                    class="noticia_desc n295870">Prefeitura de Marcelino Vieira - RN <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+<ul class="link-d"><li style="margin-left:10px; margin-top: 20px;"><a 
+                    href="https://www.pciconcursos.com.br/noticias/prefeitura-de-jucurutu-rn-publica-edital-de-concurso-com-salarios-de-ate-4867" 
+                    title="Prefeitura de Jucurutu - RN publica edital de concurso com salários de até R$ 4.867,69" 
+                    class="noticia_desc n295414">Prefeitura de Jucurutu - RN <small><i class="fa-solid fa-external-link-square" style="margin-left:4px;"></i></small></a></li></ul><ul class="link-i"><li style="margin-left:42px;"><a href="https://www.pciconcursos.com.br/concursos/vagas/enfermeiro" title="Concursos para ENFERMEIRO"><i class="fas fa-staff-snake"></i>ENFERMEIRO</a></li>
+</ul>
+
+    
+    <div style="padding:10px; margin:0 auto;"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-2622407619291980" data-ad-slot="4406933812" data-ad-format="auto" data-full-width-responsive="true"></ins><script>(adsbygoogle = window.adsbygoogle || []).push({});</script></div>
+
+</div>    </div>
+    <div id="lateral">
+        <div id="lateralnoticias">
+            <ul id="lista_lateral_noticias" class="lateral_social">
+                <li><a href="https://www.pciconcursos.com.br/noticias/tjsp-abre-concursos-para-oficial-de-justica-e-escrevente-tecnico-judiciario"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/eda04dace7a00dc91f73ab602ab07ae1.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>TJSP abre concursos para Oficial de Justiça e Escrevente Técnico Judiciário</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/prefeitura-de-matao-sp-abre-concurso-publico-com-salarios-de-ate-9717"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/c6897a9560abdf447ea970a8668077f0.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>Prefeitura de Matão - SP abre concurso público com salários de até R$ 9.717,96</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/prefeitura-de-matao-sp-abre-concurso-publico-com-salarios-de-ate-17433"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/c6897a9560abdf447ea970a8668077f0.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>Prefeitura de Matão - SP abre concurso público com salários de até R$ 17.433,24</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/prefeitura-de-piracicaba-sp-abre-selecao-para-professores-substitutos"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/5a86827b9039b3ab779762a6f22b5b66.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>Prefeitura de Piracicaba - SP abre seleção para Professores Substitutos</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/prefeitura-de-sao-carlos-sp-abre-concurso-com-salarios-de-ate-9833"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/5071fbfc75da6cb1fbe681ba151a0b81.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>Prefeitura de São Carlos - SP abre concurso com salários de até R$ 9.833,00</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/camara-de-boituva-sp-abre-concursos-com-salarios-de-ate-8595"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/6c5fb490a9a2c6a8533fae94b1056260.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>Câmara de Boituva - SP abre concursos com salários de até R$ 8.595,15</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/setec-campinas-sp-abre-concurso-publico-com-salarios-de-ate-10428"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/0015824285815959b92a34607c2ba88c.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>SETEC Campinas - SP abre concurso público com salários de até R$ 10.428,05</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/prefeitura-de-sao-goncalo-rj-abre-concursos-para-guardas-municipais"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/dbb2a87eae8da19d1d1fa13f4821e4ba.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>Prefeitura de São Gonçalo - RJ abre concursos para Guardas Municipais</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/cremerj-retifica-concurso-com-salarios-de-ate-18000-para-diversos-cargos"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/b1487144ef9b07f92b38edcdc10814c9.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>CREMERJ retifica concurso com salários de até R$ 18.000,00 para diversos cargos</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/prefeitura-de-paraguacu-mg-abre-concurso-publico-com-salarios-de-ate-20128"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/13827fa35802c6059f23529f9d6562aa.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>Prefeitura de Paraguaçu - MG abre concurso público com salários de até R$ 20.128,27</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/prefeitura-de-santa-luzia-mg-abre-concurso-publico-com-salarios-de-ate-8628"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/235304f35049dd093385cd614f9c28c0.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>Prefeitura de Santa Luzia - MG abre concurso público com salários de até R$ 8.628,87</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/hospital-municipal-dr-gil-alves-mg-abre-concurso-com-salarios-de-ate-7950"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/beca403b62bc376e3831605ce9b53744.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>Hospital Municipal Dr. Gil Alves - MG abre concurso com salários de até R$ 7.950,00</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/pmmg-abre-concurso-com-90-vagas-para-o-curso-de-formacao-de-oficiais"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/481ff05e934b984bc49e944876cfa2fb.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>PMMG abre concurso com 90 vagas para o Curso de Formação de Oficiais</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/prefeitura-de-contagem-mg-retifica-edital-de-concurso-publico"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/7de2c0dbeff437f4cd0052b4d16f8acf.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>Prefeitura de Contagem - MG retifica edital de concurso público</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/emater-mg-anuncia-retificacao-de-concurso-publico-com-salarios-de-ate-7321"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/3530c5a26ef24c02aab4a129801f2852.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>EMATER - MG anuncia retificação de concurso público com salários de até R$ 7.321,75</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/prefeitura-de-curitiba-pr-retifica-concursos-publicos-com-vagas-imediatas-e-cadastro-de-reserva"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/7e43baaf8a6451ce7f314f14cb58092f.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>Prefeitura de Curitiba - PR retifica concursos públicos com vagas imediatas e cadastro de reserva</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/prefeitura-de-aparecida-de-goiania-go-abre-concurso-publico-com-vagas-na-area-da-educacao"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/5f668bcb089e211beb1b13d900dedf68.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>Prefeitura de Aparecida de Goiânia - GO abre concurso público com vagas na área da educação</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/prefeitura-de-caldas-novas-go-divulga-retificacao-do-concurso-publico-para-guardas-civis-municipais"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/930a3c671a0af82a2ac1996be81dc3b5.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>Prefeitura de Caldas Novas - GO divulga retificação do concurso público para guardas civis municipais</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/tce-go-retifica-concurso-publico-para-tecnicos-de-controle-externo"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/49d0f07f837fcc4f15672d89520c62f4.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>TCE - GO retifica concurso público para técnicos de controle externo</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/trt-8-pa-ap-publica-edital-de-concurso-para-tecnicos-e-analistas-judiciarios"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/1b097dfab8022f6008c84f88135fc133.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>TRT 8 - PA/AP publica edital de concurso para técnicos e analistas judiciários</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/assembleia-legislativa-do-estado-do-para-retifica-concursos-para-diversos-cargos"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/11e1da7f87a2a7309d59d86ae075212e.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>Assembleia Legislativa do Estado do Pará retifica concursos para diversos cargos</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/prefeitura-de-porto-velho-ro-retifica-concurso-com-vagas-imediatas-e-cadastro-de-reserva"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/d8c77ce59b47897c0fa2e1bf1d81166a.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>Prefeitura de Porto Velho - RO retifica concurso com vagas imediatas e cadastro de reserva</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/ufba-ba-publica-retificacoes-de-concurso-publico-para-tecnicos-administrativos-em-educacao"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/3ec1440543ae4979195a713fa73a71db.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>UFBA - BA publica retificações de concurso público para técnicos-administrativos em educação</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/prefeitura-de-salvador-ba-abre-concurso-publico-para-guardas-civis-municipais"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/3fb650eb91d875acebded88eda16e6eb.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>Prefeitura de Salvador - BA abre concurso público para guardas civis municipais</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/prefeitura-de-ubajara-ce-publica-retificacao-de-concurso-publico"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/f58c4bd8ea3468cc00d5ffaf03a7dbd6.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>Prefeitura de Ubajara - CE publica retificação de concurso público</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/dpe-pb-abre-concurso-publico-com-salarios-de-ate-5197"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/cf2d489a1f98765ab1743a4e020ac5dd.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>DPE - PB abre concurso público com salários de até R$ 5.197,50</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/secretaria-de-defesa-social-pe-retifica-concurso-com-570-vagas-para-bombeiros"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/0c28e0a34e0063d114b5f2dfc14c3705.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>Secretaria de Defesa Social - PE retifica concurso com 570 vagas para Bombeiros</a></li>
+<li><a href="https://www.pciconcursos.com.br/noticias/pmpe-altera-periodo-de-inscricao-para-concurso-publico-de-soldados-e-oficiais"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAADUlEQVQImWP4//8/AwAI/AL+hc2rNAAAAABJRU5ErkJggg=="  data-src="https://cdn.pci.app.br/img/c/0c28e0a34e0063d114b5f2dfc14c3705.png" style="height:35px; width:auto; max-width:60px;" class="lazyload"><br>PMPE altera período de inscrição para concurso público de soldados e oficiais</a></li>
+            </ul>
+        </div>
+    </div>
+    <div id="footer">
+        <div>
+            <div class="footer-politica-de-privacidade"><a href="https://www.pciconcursos.com.br/politica-de-privacidade">Política de
+                    Privacidade e Cancelamento</a></div>
+            <div class="footer-copyright">2000-2026 PCI Concursos ®</div>
+            <div class="footer-redes-sociais">
+                <a target="_blank" href="https://t.me/pciconcursos" style="background-color:#0088cc;"
+                   title="Telegram"><i class="fas fa-paper-plane" style="font-size:12px;"></i></a>
+                <a target="_blank" href="https://www.facebook.com/pciconcursos" style="background-color:#3b5998;"
+                   title="Facebook"><i class="fab fa-facebook-f" style="font-size:18px;"></i></a>
+                <a target="_blank" href="https://www.linkedin.com/company/pciconcursos/posts/"
+                   style="background-color:#0077B5;" title="Linkedin"><i class="fab fa-linkedin-in"
+                                                                         style="font-size:18px;"></i></a>
+                <a target="_blank" href="https://x.com/pciconcursos" style="background-color:#000000;" title="X"><i
+                            class="fab fa-x-twitter" style="font-size:16px;"></i></a>
+                <a target="_blank" href="https://www.instagram.com/pciconcursos_oficial"
+                   style="background-color:#C13584;" title="Instagram"><i class="fab fa-instagram"
+                                                                          style="font-size:18px; margin-top:1px;"></i></a>
+            </div>
+            <!-- <div class="footer-tel"><a href="https://www.pciconcursos.com.br/contato/">Atendimento /contato</a></div> -->
+            <div id="lgpd" style="display:none;"></div>
+        </div>
+    </div>
+</div>
+<script src="https://www.pciconcursos.com.br/js/jquery.slicknav.min.js"></script>
+<script src="https://www.pciconcursos.com.br/js/js.cookie.min.js"></script>
+<script src="https://www.pciconcursos.com.br/js/site.js?31992378"></script>
+<script src="https://www.pciconcursos.com.br/js/popper.min.js"></script>
+<script src="https://www.pciconcursos.com.br/js/bootstrap.js"></script>
+<link rel="stylesheet" href="https://www.pciconcursos.com.br/icons?s=noticias&h=e544c2e38071ea46a2651e51394a09b5&n=295850:295344:295343:295347:295343:296057:296139:296003:296148:295907:295898:296117:295773:296004:295514:295560:295644:295645:295703:295881:296034:295645:295464:295364:295453:296010:296131:296027:296091:295750:295586:295546:295601:295448:295252:295065:296133:294645:294173:294590:294369:294432:294305:296079:295984:295271:294060:288428:295970:296020:294117:296030:295868:295666:295614:296056:296124:295941:296098:295274:295943:296125:295788:295923:295888:295759:295862:295676:294989:296113:296143:296083:295936:296039:295909:295775:295786:295567:295573:295580:295372:295470:295679:295972:295277:296054:296145:296182:296017:295013:295635:295204:295553:295505:296096:295299:295863:295460:296160:294606">
+<link rel="stylesheet" href="https://www.pciconcursos.com.br/icons?s=noticias&h=2fe416e0782b2d84ae5260254587c1b9&n=294981:295057:295492:295908:296050:295961:293620:295638:295840:296019:296038:295854:296070:295593:295870:295414">
+
+<script>if ('serviceWorker' in navigator && location.hostname === 'www.pciconcursos.com.br') { navigator.serviceWorker.register('/sw.js').catch(() => {}); }</script>
+<script src="https://www.pciconcursos.com.br/js/lazy.js" defer></script>
+<script src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2622407619291980" crossorigin="anonymous" defer></script>
+<script src="https://www.googletagmanager.com/gtag/js?id=G-ELMBY7KMP0" defer></script>
+<script>window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-ELMBY7KMP0');
+</script></body>
+</html>
