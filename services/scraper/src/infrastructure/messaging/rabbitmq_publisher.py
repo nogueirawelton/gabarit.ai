@@ -16,7 +16,7 @@ class RabbitMQPublisher:
         cls, connection: AbstractRobustConnection, exchange_name: str
     ) -> "RabbitMQPublisher":
         # canal próprio, com publisher confirms: o publish só retorna após o ack do broker
-        channel = await connection.channel(publisher_confirms=True)
+        channel = await connection.channel(publisher_confirms=True, on_return_raises=True)
         exchange = await channel.declare_exchange(
             exchange_name, aio_pika.ExchangeType.TOPIC, durable=True
         )
