@@ -9,6 +9,22 @@ services:
       - "${RABBITMQ_PORT:-5672}:5672"
       - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
 
+  core:
+    build:
+      target: dev
+    image: gabarit/core:dev
+    ports:
+      - "${CORE_PORT:-8080}:8080"
+    volumes:
+      # só fonte e pom (somente leitura); target/ fica dentro do container, sem arquivo de root no host
+      - ./services/core/src:/app/src:ro
+      - ./services/core/pom.xml:/app/pom.xml:ro
+      # schemas compartilhados, usados nos testes de contrato
+      - ./contracts:/contracts:ro
+      # cache do Maven: não baixa tudo de novo a cada container
+      - core_m2:/root/.m2
+    restart: "no"
+
   scraper:
     build:
       target: dev
@@ -18,3 +34,6 @@ services:
       # schemas compartilhados, usados nos testes de contrato
       - ./contracts:/contracts:ro
     restart: "no"
+
+volumes:
+  core_m2:

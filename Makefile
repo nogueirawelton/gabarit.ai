@@ -7,8 +7,9 @@ PYTHON_SERVICES = scraper extraction
 DIR_web = web
 svc_dir = $(or $(DIR_$(1)),services/$(1))
 
-# Python roda no container de dev (deps e /contracts já montados); --no-deps: unitários não usam broker
-TEST_core       = cd services/core && ./mvnw -q test
+# Rodam no container de dev; --no-deps: não precisam da stack.
+# Python: deps e /contracts já montados. core: Testcontainers sobe postgres/rabbitmq próprios via socket do Docker
+TEST_core       = docker compose run --rm --no-deps -v /var/run/docker.sock:/var/run/docker.sock core ./mvnw -q -B test
 TEST_scraper    = docker compose run --rm --no-deps scraper pytest
 TEST_extraction = docker compose run --rm --no-deps extraction pytest
 TEST_web        = cd web && npm test

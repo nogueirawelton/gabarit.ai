@@ -71,6 +71,43 @@ services:
         condition: service_completed_successfully
     restart: unless-stopped
 
+  core:
+    build:
+      context: ./services/core
+      target: prod
+    image: gabarit/core
+    container_name: gabarit_core
+    # só o que o core usa (sem env_file): RABBITMQ_PORT do .env é a porta do host, não da rede interna
+    environment:
+      DB_HOST: postgres
+      CORE_DB_PASSWORD: ${CORE_DB_PASSWORD:?defina CORE_DB_PASSWORD no .env}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      RABBITMQ_VHOST: ${RABBITMQ_VHOST:-/}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      # a fila core.exam_discovered é declarada pela infra, não pelo core
+      rabbitmq-init:
+        condition: service_completed_successfully
+    healthcheck:
+      # a imagem JRE não tem curl/wget: HTTP na mão via /dev/tcp do bash
+      test:
+        - CMD
+        - bash
+        - -c
+        - >-
+          exec 3<>/dev/tcp/127.0.0.1/8080
+          && printf 'GET /actuator/health/readiness HTTP/1.0\r\nHost: localhost\r\n\r\n' >&3
+          && grep -q '"status":"UP"' <&3
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 60s
+    restart: unless-stopped
+
   # cron que só publica comandos (infra/scheduler/crontab); disparo manual: make scrape
   scheduler:
     build:

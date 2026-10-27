@@ -1,0 +1,37 @@
+# Tudo que muda por ambiente vem de variável. Os defaults servem para rodar pela IDE, no host,
+# contra o postgres/rabbitmq do compose (portas publicadas pelo docker-compose.override.yml).
+spring:
+  application:
+    name: core
+  threads:
+    virtual:
+      enabled: true
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:core}
+    username: ${DB_USER:core}
+    password: ${CORE_DB_PASSWORD}
+
+  jpa:
+    # schema é das migrations (Flyway); o Hibernate só confere se as entidades batem
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER}
+    password: ${RABBITMQ_PASSWORD}
+    virtual-host: ${RABBITMQ_VHOST:/}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      # /actuator/health/liveness e /readiness (usado no healthcheck do container)
+      probes:
+        enabled: true

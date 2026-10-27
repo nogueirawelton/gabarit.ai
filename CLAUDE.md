@@ -35,7 +35,7 @@ Boas práticas esperadas:
 
 **gabarit-ai** — plataforma de estudo para concursos: coleta editais/provas (scraping), extrai conteúdo, monta planos de estudo e notifica o usuário. Arquitetura de microsserviços orientada a mensagens.
 
-> Os serviços estão sendo criados um a um: hoje só o `scraper` existe (roteiro em `services/scraper/GUIA.md`). Confira o estado atual antes de assumir que algo existe.
+> Os serviços estão sendo criados um a um: hoje existem o `scraper` e o `core` (roteiro de cada um no `GUIA.md` do serviço). Confira o estado atual antes de assumir que algo existe.
 
 ### Serviços planejados (ver `Makefile`)
 | Serviço | Stack | Papel |

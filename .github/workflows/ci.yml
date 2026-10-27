@@ -50,6 +50,24 @@ jobs:
       - name: pytest
         run: uv run --no-sync pytest
 
+  core:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: services/core
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+
+      # testes de integração sobem postgres/rabbitmq com Testcontainers (Docker do runner)
+      - name: mvn verify
+        run: ./mvnw -B verify
+
   infra:
     runs-on: ubuntu-24.04
     steps:
