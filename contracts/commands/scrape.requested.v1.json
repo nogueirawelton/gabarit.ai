@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gabarit.ai/contracts/commands/scrape.requested.v1.json",
+  "title": "scrape.requested v1",
+  "description": "Pede ao scraper uma coleta completa de uma fonte. Publicado em gabarit.commands com routing key scrape.requested.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["source"],
+  "properties": {
+    "source": {
+      "description": "Nome da fonte registrada no scraper.",
+      "type": "string",
+      "enum": ["pciconcursos"]
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "recommendations": [
+    "editorconfig.editorconfig",
+
+    "ms-python.python",
+    "ms-python.debugpy",
+    "detachhead.basedpyright",
+    "charliermarsh.ruff",
+
+    "redhat.java",
+    "vscjava.vscode-java-debug",
+    "vscjava.vscode-maven",
+    "vscjava.vscode-java-test",
+
+    "ms-azuretools.vscode-docker",
+    "redhat.vscode-yaml",
+    "mtxr.sqltools",
+    "mtxr.sqltools-driver-pg",
+    "ms-vscode.makefile-tools",
+
+    "esbenp.prettier-vscode",
+    "biomejs.biome",
+    "eamodio.gitlens",
+    "irongeek.vscode-env",
+    "usernamehw.errorlens"
+  ],
+  // basedpyright substitui o Pylance; os dois juntos duplicam diagnósticos
+  "unwantedRecommendations": ["ms-python.vscode-pylance"]
+}

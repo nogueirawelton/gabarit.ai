@@ -1,0 +1,15 @@
+# Core & Async
+pydantic
+pydantic-settings
+httpx
+aio-pika
+
+# Fontes
+# versão fixa: o SDK 2.x mudou a API em relação ao 1.x
+mcp==2.3.0
+
+# Infra & Utils
+python-dotenv
+selectolax
+# versão fixa: define o Chromium da imagem (PLAYWRIGHT_VERSION no Dockerfile)
+playwright==1.63.0

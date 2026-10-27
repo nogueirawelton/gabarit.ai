@@ -1,0 +1,7 @@
+# Só entra na imagem de dev (as deps de prod já vêm do estágio builder)
+watchfiles
+pytest
+pytest-asyncio
+ruff
+# valida os eventos gerados contra os schemas em contracts/
+jsonschema

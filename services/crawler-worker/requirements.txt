@@ -1,9 +1,0 @@
-# Core & Async
-pydantic
-httpx
-asyncpg
-aio-pika
-
-# Infra & Utils
-python-dotenv
-selectolax
