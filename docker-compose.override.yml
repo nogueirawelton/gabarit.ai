@@ -21,6 +21,8 @@ services:
       - ./services/core/pom.xml:/app/pom.xml:ro
       # schemas compartilhados, usados nos testes de contrato
       - ./contracts:/contracts:ro
+      # topologia real do RabbitMQ, importada no Testcontainers
+      - ./infra/rabbitmq/definitions.json:/infra/rabbitmq/definitions.json:ro
       # cache do Maven: não baixa tudo de novo a cada container
       - core_m2:/root/.m2
     restart: "no"

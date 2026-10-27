@@ -103,6 +103,7 @@ Regra da fase: nada aqui importa `httpx`, `aio_pika`, `mcp` ou qualquer coisa de
 
 ## Depois
 
+- ⚠️ **O MCP do PCI limita a 30 concursos por chamada** (visto em 2026-10-27: `meta.total` = 30, `meta.total_encontrado` = 471 na geral e 304 em professores), sem parâmetro de paginação; só filtros `regiao` e `professores`. A coleta hoje traz ~56 de ~700. Caminhos: (1) uma chamada por região × professores (10 chamadas, até 300); (2) ler a listagem HTML pública (`meta.link_lista`); (3) no mínimo, logar aviso quando `total_encontrado > total`, porque hoje o corte é silencioso.
 - **Atraso entre tentativas:** hoje o erro transitório tenta de novo na hora (3x) e vai pra DLQ; com o cron 3x/dia, a próxima coleta cobre a perdida. Vale fazer (filas de espera com TTL por degrau, ex.: 30s/2min/10min, header `x-retry-count`) se a DLQ começar a receber comandos por queda da fonte, ou quando entrarem fontes de bancas.
 - **Documentos:** a página da notícia do PCI (HTML público, `httpx` resolve) traz o título do edital, um ID estável (`data-link`) e o link oficial da banca. Isso vira referência de documento no evento (sem baixar o PDF do PCI).
 - **Fontes das bancas** (FGV, Cebraspe...): uma `ExamSource` por banca, com `httpx` + `selectolax` (`selectolax.lexbor`) quando o HTML vem pronto e Playwright (async) quando a página precisa de JavaScript.

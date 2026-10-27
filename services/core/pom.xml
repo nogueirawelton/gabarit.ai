@@ -101,6 +101,18 @@
 			<artifactId>testcontainers-rabbitmq</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>org.awaitility</groupId>
+			<artifactId>awaitility</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<!-- valida mensagens contra os schemas em contracts/ (Jackson 3, o mesmo do Boot 4) -->
+		<dependency>
+			<groupId>com.networknt</groupId>
+			<artifactId>json-schema-validator</artifactId>
+			<version>3.0.8</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 
 	<build>

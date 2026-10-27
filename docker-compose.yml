@@ -12,7 +12,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      test: ["CMD-SHELL", 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
       interval: 5s
       timeout: 5s
       retries: 10
@@ -79,6 +79,8 @@ services:
     container_name: gabarit_core
     # só o que o core usa (sem env_file): RABBITMQ_PORT do .env é a porta do host, não da rede interna
     environment:
+      # log em JSON (com o MDC) no container; pela IDE continua texto
+      LOGGING_STRUCTURED_FORMAT_CONSOLE: ecs
       DB_HOST: postgres
       CORE_DB_PASSWORD: ${CORE_DB_PASSWORD:?defina CORE_DB_PASSWORD no .env}
       RABBITMQ_HOST: rabbitmq

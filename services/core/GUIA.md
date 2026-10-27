@@ -53,23 +53,21 @@ Regra: um pacote usa o outro pelo serviço público dele (ex.: `ExamService`), n
 
 ---
 
-## Fase 2: consumir `exam.discovered`
+## Fase 2: consumir `exam.discovered` ✅
 
-- [ ] **DTO do evento** (`record`) espelhando `contracts/events/exam.discovered.v1.json`: envelope (`event_id`, `event_type`, `version`, `occurred_at`, `correlation_id`) + `data`.
-  - `occurred_at` → `Instant`; datas de inscrição → `LocalDate`; `positions` → lista de `record` com `name`.
-  - **Pesquisar:** *Jackson 3 no Spring Boot 4 (pacote `tools.jackson`)*, *JacksonJsonMessageConverter do Spring AMQP*, *Java records com Jackson*.
-- [ ] **Teste de contrato:** um JSON de exemplo valida contra o schema em `contracts/` e desserializa no DTO (no container de dev, `contracts/` é montado em `/contracts`; no host, suba diretórios até achar).
-  - **Pesquisar:** *networknt json-schema-validator draft 2020-12*.
-- [ ] **`ExamDiscoveredListener`** com `@RabbitListener(queues = "core.exam_discovered")`.
-  - **Não declare a fila no código** (`@Bean Queue`): ela é da infra (`infra/rabbitmq/definitions.json`). Declarar com argumento diferente derruba o listener com `PRECONDITION_FAILED`.
-  - `version` diferente de 1 ou payload inválido → `AmqpRejectAndDontRequeueException` (vai direto pra DLQ).
-  - Erro transitório (banco fora) → deixe a exceção subir: volta pra fila e, após 3 entregas, vai pra DLQ (`x-delivery-limit`).
-- [ ] **`ExamService.upsert(snapshot, occurredAt)`** com `@Transactional`: busca por `(source, externalId)`; não existe → `Exam.create` + `save`; existe → `exam.apply` (a regra de evento atrasado e a sincronização dos cargos já estão na entidade).
-  - o listener traduz o DTO do evento para `ExamSnapshot` e chama o serviço.
-  - **Pesquisar:** *event-carried state transfer*, *idempotent consumer*, *INSERT ... ON CONFLICT vs buscar-e-salvar*, *@Transactional em método chamado da mesma classe (self-invocation)*.
-- [ ] **Teste de integração** (Testcontainers): publica no `gabarit.events` → o concurso aparece no banco; publicar o mesmo evento de novo não duplica; evento mais antigo não sobrescreve.
-  - O RabbitMQ do Testcontainers vem vazio: o teste precisa criar a topologia (importe o `definitions.json` ou declare no setup do teste).
-- **Pronto quando:** `make up` + `make scrape` → os ~600 concursos estão no banco, a fila `core.exam_discovered` esvazia e rodar `make scrape` de novo não duplica nada.
+- [x] **`ExamDiscoveredEvent`** (`record`, Jackson 3 com `@JsonNaming` snake_case): espelha o contrato; campo extra é ignorado (leitor tolerante).
+- [x] **`MessagingConfig`** (`shared/`): `JacksonJsonMessageConverter` com o `JsonMapper` do Boot. Nenhuma fila declarada no código.
+- [x] **`ExamDiscoveredListener`** em `core.exam_discovered`:
+  - JSON quebrado, evento fora do contrato (Bean Validation), `event_type`/`version` desconhecidos ou dados inválidos → DLQ direto;
+  - qualquer outro erro sobe → volta pra fila → DLQ após 3 entregas;
+  - `event_id` e `correlation_id` no MDC (aparecem no log JSON do container).
+- [x] **`ExamService.upsert`** (`@Transactional`): busca pela identidade → `create` ou `apply`. Devolve `CREATED`/`UPDATED`/`IGNORED`.
+- [x] **Testes:** contrato (exemplo valida contra o schema com `format` como regra, e desserializa no DTO) e integração com Testcontainers usando a **topologia real** (`definitions.json` importado no RabbitMQ do teste): evento vira concurso, reentrega não duplica, evento atrasado não sobrescreve, versão desconhecida e JSON quebrado vão pra DLQ.
+- [x] **Ponta a ponta:** `make scrape` → todos os eventos viram concursos, fila esvazia, DLQ vazia; rodar de novo não duplica.
+
+> ✋ **Revisão:** implementada pelo Claude. Pontos para ler: `ExamDiscoveredListener.handle` (o que vai pra DLQ e o que volta pra fila) e o comentário de concorrência em `ExamService.upsert`.
+>
+> ⚠️ **Achado no ponta a ponta:** o MCP do PCI passou a devolver no máximo 30 concursos por chamada (`meta.total` = 30, `meta.total_encontrado` = 471), sem paginação. A coleta trouxe 56 em vez de ~600. É problema do scraper, não do core: ver "Depois" no GUIA do scraper.
 
 ---
 
