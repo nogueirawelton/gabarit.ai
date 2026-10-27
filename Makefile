@@ -1,18 +1,17 @@
 .PHONY: help up down restart logs ps test lock scrape reset
 
-SERVICES = core scraper extraction notification web
+SERVICES = core scraper extraction web
 
-PYTHON_SERVICES = scraper extraction notification
+PYTHON_SERVICES = scraper extraction
 
 DIR_web = web
 svc_dir = $(or $(DIR_$(1)),services/$(1))
 
 # Python roda no container de dev (deps e /contracts já montados); --no-deps: unitários não usam broker
-TEST_core         = cd services/core && ./mvnw -q test
-TEST_scraper      = docker compose run --rm --no-deps scraper pytest
-TEST_extraction   = docker compose run --rm --no-deps extraction pytest
-TEST_notification = docker compose run --rm --no-deps notification pytest
-TEST_web          = cd web && npm test
+TEST_core       = cd services/core && ./mvnw -q test
+TEST_scraper    = docker compose run --rm --no-deps scraper pytest
+TEST_extraction = docker compose run --rm --no-deps extraction pytest
+TEST_web        = cd web && npm test
 
 help:            ## lista os comandos disponíveis
 	@grep -E "^[a-zA-Z_-]+:.*##" $(MAKEFILE_LIST) | awk -F ":.*## " "{printf \"  %-10s %s\\n\", \$$1, \$$2}"

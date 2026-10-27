@@ -40,10 +40,9 @@ Boas práticas esperadas:
 ### Serviços planejados (ver `Makefile`)
 | Serviço | Stack | Papel |
 |---|---|---|
-| `services/core` | Java (Maven wrapper) | núcleo do domínio: concursos e planos de estudo (monólito modular) |
+| `services/core` | Java (Maven wrapper) | todo o backend: API do web, concursos, planos de estudo, usuários, notificações |
 | `services/scraper` | Python | coleta de concursos/provas |
 | `services/extraction` | Python | extração de conteúdo dos documentos |
-| `services/notification` | Python | notificações |
 | `web` | Node (npm) | frontend |
 
 ### Infraestrutura de apoio
@@ -56,7 +55,7 @@ Boas práticas esperadas:
 
 ### Decisões de arquitetura
 - **Cada serviço é dono dos próprios dados.** O `scraper` não acessa banco: ele publica eventos no RabbitMQ, e o serviço dono do domínio (`core`) persiste. Nenhum serviço escreve nas tabelas de outro.
-- **`core` é um monólito modular.** Concursos (`exam`) e planos de estudo (`plan`) são módulos do mesmo serviço Java, cada um no próprio schema do Postgres; um módulo usa o outro só pela interface pública dele, nunca pelos repositórios.
+- **`core` concentra todo o backend**, num banco só. Fora dele ficam apenas os workers Python (`scraper`, `extraction`), ligados por fila. Notificação (e-mail etc.) é job assíncrono dentro do `core`, não um serviço.
 
 ### Convenções
 - Serviços Python seguem **arquitetura hexagonal**: `src/domain` (entidades e ports), `src/application/use_cases`, `src/infrastructure` (adapters, factories, logging). Async (`asyncio`, `aio-pika`, `asyncpg`, `httpx`), validação com `pydantic`.
