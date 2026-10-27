@@ -6,7 +6,7 @@
   ],
   "queues": [
     {
-      "name": "exam.exam_discovered",
+      "name": "core.exam_discovered",
       "vhost": "/",
       "durable": true,
       "auto_delete": false,
@@ -14,11 +14,11 @@
         "x-queue-type": "quorum",
         "x-delivery-limit": 3,
         "x-dead-letter-exchange": "gabarit.dlx",
-        "x-dead-letter-routing-key": "exam.exam_discovered"
+        "x-dead-letter-routing-key": "core.exam_discovered"
       }
     },
     {
-      "name": "exam.exam_discovered.dlq",
+      "name": "core.exam_discovered.dlq",
       "vhost": "/",
       "durable": true,
       "auto_delete": false,
@@ -26,7 +26,7 @@
     }
   ],
   "bindings": [
-    { "source": "gabarit.events", "vhost": "/", "destination": "exam.exam_discovered", "destination_type": "queue", "routing_key": "exam.discovered", "arguments": {} },
-    { "source": "gabarit.dlx", "vhost": "/", "destination": "exam.exam_discovered.dlq", "destination_type": "queue", "routing_key": "exam.exam_discovered", "arguments": {} }
+    { "source": "gabarit.events", "vhost": "/", "destination": "core.exam_discovered", "destination_type": "queue", "routing_key": "exam.discovered", "arguments": {} },
+    { "source": "gabarit.dlx", "vhost": "/", "destination": "core.exam_discovered.dlq", "destination_type": "queue", "routing_key": "core.exam_discovered", "arguments": {} }
   ]
 }

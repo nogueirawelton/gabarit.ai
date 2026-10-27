@@ -1,6 +1,6 @@
 .PHONY: help up down restart logs ps test lock scrape reset
 
-SERVICES = exam plan scraper extraction notification web
+SERVICES = core scraper extraction notification web
 
 PYTHON_SERVICES = scraper extraction notification
 
@@ -8,8 +8,7 @@ DIR_web = web
 svc_dir = $(or $(DIR_$(1)),services/$(1))
 
 # Python roda no container de dev (deps e /contracts já montados); --no-deps: unitários não usam broker
-TEST_exam         = cd services/exam && ./mvnw -q test
-TEST_plan         = cd services/plan && ./mvnw -q test
+TEST_core         = cd services/core && ./mvnw -q test
 TEST_scraper      = docker compose run --rm --no-deps scraper pytest
 TEST_extraction   = docker compose run --rm --no-deps extraction pytest
 TEST_notification = docker compose run --rm --no-deps notification pytest
@@ -24,10 +23,10 @@ up:              ## sobe a stack (rebuild das imagens)
 down:            ## derruba a stack, mantendo os dados
 	docker compose down
 
-restart:         ## reinicia um serviço: make restart s=exam
+restart:         ## reinicia um serviço: make restart s=core
 	docker compose restart $(s)
 
-logs:            ## segue logs (todos ou um): make logs s=exam
+logs:            ## segue logs (todos ou um): make logs s=core
 	docker compose logs -f $(s)
 
 ps:              ## status dos containers

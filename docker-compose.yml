@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
       POSTGRES_DB: ${POSTGRES_DB:-postgres}
       # lido pelos scripts em infra/postgres/init (só no primeiro boot, com volume vazio)
-      EXAM_DB_PASSWORD: ${EXAM_DB_PASSWORD:?defina EXAM_DB_PASSWORD no .env}
+      CORE_DB_PASSWORD: ${CORE_DB_PASSWORD:?defina CORE_DB_PASSWORD no .env}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro

@@ -62,7 +62,7 @@ jobs:
         env:
           POSTGRES_USER: ci
           POSTGRES_PASSWORD: ci
-          EXAM_DB_PASSWORD: ci
+          CORE_DB_PASSWORD: ci
           RABBITMQ_USER: ci
           RABBITMQ_PASSWORD: ci
         run: |
