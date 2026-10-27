@@ -39,7 +39,7 @@ class ExamData(BaseModel):
 class ExamDiscovered(BaseModel):
     """Evento de saída (contracts/events/exam.discovered.v1.json).
 
-    O concurso vai inteiro, com os cargos dentro: o `exam` faz upsert por (source, external_id).
+    O concurso vai inteiro, com os cargos dentro: o `core` faz upsert por (source, external_id).
     """
 
     model_config = ConfigDict(frozen=True)
