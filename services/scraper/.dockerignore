@@ -1,0 +1,16 @@
+# Só o necessário vai para o build context
+.git
+.venv
+venv
+__pycache__
+*.py[cod]
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.coverage
+htmlcov
+.env
+.env.*
+tests
+Dockerfile
+.dockerignore

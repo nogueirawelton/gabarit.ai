@@ -1,3 +1,53 @@
-.env*
-.idea
+# ---------- Segredos / ambiente ----------
+.env
+.env.*
 !.env.example
+*.pem
+*.key
+
+# ---------- Editores / SO ----------
+.idea/
+*.iml
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+*.swp
+.DS_Store
+Thumbs.db
+
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# ---------- Java (Maven) ----------
+target/
+.mvn/wrapper/maven-wrapper.jar
+hs_err_pid*
+
+# ---------- Node / web ----------
+node_modules/
+dist/
+build/
+.next/
+coverage/
+npm-debug.log*
+.npm/
+
+# ---------- Infra ----------
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+*.log

@@ -1,0 +1,11 @@
+{
+  // Cada serviço Python é uma raiz de import: `from src...` resolve a partir da pasta do serviço,
+  // igual ao container (WORKDIR /app + python -m src.main)
+  "typeCheckingMode": "standard",
+  "executionEnvironments": [
+    {
+      "root": "services/scraper",
+      "pythonVersion": "3.13"
+    }
+  ]
+}

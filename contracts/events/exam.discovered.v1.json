@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gabarit.ai/contracts/events/exam.discovered.v1.json",
+  "title": "exam.discovered v1",
+  "description": "Um concurso encontrado por uma fonte, com todos os cargos. Publicado em gabarit.events com routing key exam.discovered. O consumidor faz upsert por (data.source, data.external_id): o mesmo concurso chega de novo a cada coleta.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["event_id", "event_type", "version", "occurred_at", "correlation_id", "data"],
+  "properties": {
+    "event_id": { "type": "string", "format": "uuid", "description": "Único por evento; use para descartar entrega duplicada." },
+    "event_type": { "const": "exam.discovered" },
+    "version": { "const": 1 },
+    "occurred_at": { "type": "string", "format": "date-time", "description": "UTC." },
+    "correlation_id": { "type": ["string", "null"], "description": "message_id do scrape.requested que originou a coleta." },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source", "external_id", "title", "url", "uf", "region", "education_level",
+        "openings", "registration_start", "registration_end", "registration_note", "positions"
+      ],
+      "properties": {
+        "source": { "type": "string", "minLength": 1 },
+        "external_id": { "type": "string", "minLength": 1, "description": "ID do concurso na fonte." },
+        "title": { "type": "string", "minLength": 1 },
+        "url": { "type": "string", "minLength": 1, "description": "Página do concurso na fonte." },
+        "uf": { "type": ["string", "null"], "description": "null em concursos nacionais." },
+        "region": { "type": ["string", "null"] },
+        "education_level": { "type": ["string", "null"], "description": "Texto da fonte, ex.: \"Médio / Superior\"." },
+        "openings": { "type": ["string", "null"], "description": "Texto cru da fonte, ex.: \"454 vagas até R$ 8.628,87\"." },
+        "registration_start": { "type": ["string", "null"], "format": "date" },
+        "registration_end": { "type": ["string", "null"], "format": "date" },
+        "registration_note": { "type": ["string", "null"], "description": "Situação das inscrições como a fonte escreve, ex.: \"Suspenso\", \"Prorrogado\"." },
+        "positions": {
+          "type": "array",
+          "description": "Todos os cargos do concurso. Nome cru da fonte, sem normalizar; único dentro do concurso.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name"],
+            "properties": { "name": { "type": "string", "minLength": 1 } }
+          }
+        }
+      }
+    }
+  }
+}

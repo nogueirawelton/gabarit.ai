@@ -1,0 +1,134 @@
+{
+  "meta": {
+    "total": 481,
+    "timestamp": 1792905253,
+    "data_atual": "2026-10-25",
+    "filtros": {
+      "regiao": "",
+      "professores": false
+    }
+  },
+  "data": [
+    {
+      "id": 295975,
+      "titulo": "TJSP - Tribunal de Justiça do Estado de São Paulo",
+      "cargos_resumo": "Oficial de Justiça, Escrevente Técnico Judiciário",
+      "cargos": [
+        "ESCREVENTE TÉCNICO JUDICIÁRIO",
+        "OFICIAL DE JUSTIÇA"
+      ],
+      "vagas_salario": "132 vagas até R$ 9.856,95",
+      "formacao": "Médio / Superior",
+      "regiao": "SUDESTE",
+      "uf": "SP",
+      "datas": {
+        "inicio": "2026-10-28",
+        "fim": "2026-12-10",
+        "texto": "",
+        "aberto": true,
+        "dias_restantes": 46
+      },
+      "noticia": {
+        "id": 295975,
+        "titulo": "TJSP abre concursos para Oficial de Justiça e Escrevente Técnico Judiciário",
+        "link": "https://www.pciconcursos.com.br/noticias/tjsp-abre-concursos-para-oficial-de-justica-e-escrevente-tecnico-judiciario",
+        "imagem": "https://cdn.pci.app.br/img/i/eda04dace7a00dc91f73ab602ab07ae1.png"
+      },
+      "apostila": null
+    },
+    {
+      "id": 295622,
+      "titulo": "Câmara dos Deputados",
+      "cargos_resumo": "Analista Legislativo, Engenheiro, Museólogo",
+      "cargos": [
+        "ANALISTA LEGISLATIVO - ARQUIVOLOGIA",
+        "ANALISTA LEGISLATIVO - BIBLIOTECONOMIA",
+        "ANALISTA LEGISLATIVO - DIVULGAÇÃO INSTITUCIONAL",
+        "ANALISTA LEGISLATIVO - ENGENHARIA CIVIL",
+        "ANALISTA LEGISLATIVO - ENGENHARIA ELÉTRICA",
+        "ANALISTA LEGISLATIVO - ENGENHARIA ELETRÔNICA/TELECOMUNICAÇÕES",
+        "ANALISTA LEGISLATIVO - ENGENHARIA MECÂNICA",
+        "ANALISTA LEGISLATIVO - JORNALISMO",
+        "ANALISTA LEGISLATIVO - MUSEÓLOGO",
+        "ANALISTA LEGISLATIVO - REGISTRO E REDAÇÃO",
+        "ANALISTA LEGISLATIVO - RELAÇÕES PÚBLICAS"
+      ],
+      "vagas_salario": "184 vagas até R$ 32.070,88",
+      "formacao": "Superior",
+      "regiao": "NACIONAL",
+      "uf": null,
+      "datas": {
+        "inicio": "2026-10-15",
+        "fim": "2026-11-17",
+        "texto": "",
+        "aberto": true,
+        "dias_restantes": 23
+      },
+      "noticia": {
+        "id": 295622,
+        "titulo": "Câmara dos Deputados - DF retifica concurso público para analistas legislativos",
+        "link": "https://www.pciconcursos.com.br/noticias/camara-dos-deputados-df-retifica-concurso-publico-para-analistas-legislativos",
+        "imagem": "https://cdn.pci.app.br/img/i/34b53b78b299df3380c95ab103751fa1.png"
+      },
+      "apostila": null
+    },
+    {
+      "id": 295398,
+      "titulo": "Prefeitura de Piracicaba",
+      "cargos_resumo": "Professor Substituto de Educação Infantil, Professor Substituto de Ensino Fundamental",
+      "cargos": [
+        "PROFESSOR SUBSTITUTO - EDUCAÇÃO INFANTIL",
+        "PROFESSOR SUBSTITUTO - ENSINO FUNDAMENTAL"
+      ],
+      "vagas_salario": "120 vagas até R$ 4.090,34",
+      "formacao": "Superior",
+      "regiao": "SUDESTE",
+      "uf": "SP",
+      "datas": {
+        "inicio": "2026-09-29",
+        "fim": "2026-11-03",
+        "texto": "",
+        "aberto": true,
+        "dias_restantes": 9
+      },
+      "noticia": {
+        "id": 295398,
+        "titulo": "Prefeitura de Piracicaba - SP abre seleção para Professores Substitutos",
+        "link": "https://www.pciconcursos.com.br/noticias/prefeitura-de-piracicaba-sp-abre-selecao-para-professores-substitutos",
+        "imagem": "https://cdn.pci.app.br/img/i/5a86827b9039b3ab779762a6f22b5b66.png"
+      },
+      "apostila": {
+        "colecao_id": 17739,
+        "produto_id": 69044,
+        "link": "https://www.pciconcursos.com.br/pedido/compra?item=69044"
+      }
+    },
+    {
+      "id": 294131,
+      "titulo": "Prefeitura de Berizal",
+      "cargos_resumo": "Agente Comunitário de Saúde",
+      "cargos": [
+        "AGENTE COMUNITÁRIO DE SAÚDE"
+      ],
+      "vagas_salario": "11 vagas até R$ 3.242,00",
+      "formacao": "Ensino Médio",
+      "regiao": "SUDESTE",
+      "uf": "MG",
+      "datas": {
+        "inicio": null,
+        "fim": null,
+        "texto": "Suspenso",
+        "aberto": false,
+        "dias_restantes": null
+      },
+      "noticia": {
+        "id": 294131,
+        "titulo": "Prefeitura de Berizal - MG suspende processo seletivo para agentes comunitários de saúde",
+        "link": "https://www.pciconcursos.com.br/noticias/prefeitura-de-berizal-mg-suspende-processo-seletivo-para-agentes-comunitarios-de-saude",
+        "imagem": "https://cdn.pci.app.br/img/i/40b43e63fcde21e25324b76b6ea2db71.png"
+      },
+      "apostila": null
+    }
+  ],
+  "errors": []
+}
