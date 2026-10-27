@@ -1,0 +1,75 @@
+name: ci
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scraper:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: services/scraper
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.13.6"
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      # requirements*.txt mudou sem `make lock`? Falha aqui, antes de testar com versões erradas
+      - name: lock em dia
+        run: |
+          uv pip compile requirements.txt -o requirements.lock --python-version 3.13 --python-platform linux -q
+          uv pip compile requirements-dev.txt -c requirements.lock -o requirements-dev.lock --python-version 3.13 --python-platform linux -q
+          git diff --exit-code -- requirements.lock requirements-dev.lock
+
+      - name: instala dependências
+        run: |
+          uv venv
+          uv pip install --no-deps -r requirements.lock -r requirements-dev.lock
+
+      - name: ruff
+        run: |
+          uv run --no-sync ruff check .
+          uv run --no-sync ruff format --check .
+
+      # contracts/ fica na raiz do repo: o teste de contrato acha subindo os diretórios
+      - name: pytest
+        run: uv run --no-sync pytest
+
+  infra:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: definitions do RabbitMQ é JSON válido
+        run: python3 -m json.tool infra/rabbitmq/definitions.json > /dev/null
+
+      - name: docker compose config
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          EXAM_DB_PASSWORD: ci
+          RABBITMQ_USER: ci
+          RABBITMQ_PASSWORD: ci
+        run: |
+          docker compose -f docker-compose.yml config -q
+          docker compose config -q
+
+      - name: crontab do agendador é válido
+        run: |
+          docker build -q -t scheduler-ci infra/scheduler
+          docker run --rm scheduler-ci supercronic -test /etc/crontab

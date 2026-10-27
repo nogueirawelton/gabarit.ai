@@ -1,5 +1,9 @@
 # Desenvolvimento: carregado automaticamente pelo `docker compose`
 services:
+  postgres:
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+
   rabbitmq:
     ports:
       - "${RABBITMQ_PORT:-5672}:5672"

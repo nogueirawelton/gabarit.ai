@@ -90,7 +90,7 @@ Regra da fase: nada aqui importa `httpx`, `aio_pika`, `mcp` ou qualquer coisa de
 - [x] `make up` sobe RabbitMQ + scraper do zero.
 - [x] Publicar `{"source":"pciconcursos"}` no exchange `gabarit.commands` com routing key `scrape.requested` (management em `http://localhost:15672`, usuário/senha no `.env`).
 - [x] Os `exam.discovered` chegam numa fila de teste ligada a `gabarit.events` e batem com o schema.
-- [ ] `make test s=scraper` passa. Hoje o target roda `pytest` no host e só funciona com o `.venv` ativado; o que funciona é `docker compose exec scraper pytest`. 🛠️ ajustar o Makefile.
+- [x] `make test s=scraper` passa (roda no container de dev, com `/contracts` montado).
 
 ---
 
@@ -106,9 +106,9 @@ Hoje o erro transitório volta pra fila na hora: as 3 reentregas acontecem em mi
 
 ---
 
-## Fase 8: agendamento (próximo)
+## Fase 8: agendamento ✅
 
-- [ ] 🛠️ **Quem dispara o `scrape.requested`** algumas vezes por dia. Um cron que só publica a mensagem, fora do scraper: o scraper continua só reagindo a comandos, e outros serviços podem ganhar jobs no mesmo agendador.
+- [x] 🛠️ **Quem dispara o `scrape.requested`** (`infra/scheduler`: supercronic + `publish`; manual: `make scrape`) algumas vezes por dia. Um cron que só publica a mensagem, fora do scraper: o scraper continua só reagindo a comandos, e outros serviços podem ganhar jobs no mesmo agendador.
   - **Pronto quando:** a coleta roda sozinha no horário, cada disparo leva um `message_id` próprio, e dá para disparar à mão com o mesmo comando.
 
 ---

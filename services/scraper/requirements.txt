@@ -1,3 +1,5 @@
+# Dependências diretas. A imagem instala o requirements.lock (versões fixas, gerado com `make lock`).
+# Mudou algo aqui? Rode `make lock` e commite os dois arquivos.
 # Core & Async
 pydantic
 pydantic-settings
