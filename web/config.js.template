@@ -1,0 +1,7 @@
+// Gerado no boot do container (docker-entrypoint.d/40-gabarit-config.sh). Não edite.
+window.__GABARIT_CONFIG__ = {
+  keycloakUrl: "${KEYCLOAK_URL}",
+  keycloakRealm: "${KEYCLOAK_REALM}",
+  keycloakClientId: "${KEYCLOAK_CLIENT_ID}",
+  apiUrl: "${API_URL}",
+};
