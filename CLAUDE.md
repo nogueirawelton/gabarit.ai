@@ -27,7 +27,7 @@ Boas práticas esperadas:
 - Imagens com tag fixa (nada de `latest` implícito), builds multi-stage (`dev`/`prod`), usuário não-root.
 - `healthcheck` + `depends_on: condition: service_healthy`; volumes nomeados para dados.
 - Segredos só via `.env` ou secret manager, nunca commitados.
-- Ambientes separados: `docker-compose.yml` é a base (sem portas expostas, sem bind mounts); `docker-compose.override.yml` é o de desenvolvimento (portas, bind mount do código, hot reload).
+- Ambientes separados, um arquivo completo cada (sem override): `docker-compose.yml` é o de desenvolvimento (padrão do `docker compose`/`make`: portas, bind mount do código, hot reload, alvos `dev`); `docker-compose.prod.yml` é o de produção no Coolify (sem portas, sem `container_name`, sem bind mounts, sem rede declarada, alvos `prod`). Mudou um serviço? Ajuste os dois.
 - Infra declarativa e reproduzível: subir do zero com `make up` tem que funcionar.
 - Ações destrutivas ou externas (`docker compose down -v`, `make reset`, `docker volume rm`, `prune`, `terraform apply/destroy`, deploy, push de imagem) **só com confirmação explícita**.
 

@@ -104,9 +104,13 @@ jobs:
           KEYCLOAK_ADMIN_PASSWORD: ci
           RABBITMQ_USER: ci
           RABBITMQ_PASSWORD: ci
+          KEYCLOAK_URL: https://auth.example.com
+          WEB_URL: https://app.example.com
+          API_URL: https://api.example.com
         run: |
           docker compose -f docker-compose.yml config -q
-          docker compose config -q
+          # exclude_from_hc é chave do Coolify (o docker compose não conhece): valida sem ela
+          sed '/exclude_from_hc/d' docker-compose.prod.yml | docker compose -f - config -q
 
       - name: crontab do agendador é válido
         run: |

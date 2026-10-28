@@ -20,7 +20,7 @@ Regra: um pacote usa o outro pelo serviço público dele (ex.: `ExamService`), n
 
 **Como rodar:**
 - `make up`: stack inteira, `core` em `http://localhost:8080` (dev: `make restart s=core` recompila).
-- **Ciclo rápido:** rode `CoreApplication` pela IDE no host com `CORE_DB_PASSWORD`, `RABBITMQ_USER` e `RABBITMQ_PASSWORD` no ambiente; os defaults do `application.yml` apontam para `localhost` (portas publicadas pelo override).
+- **Ciclo rápido:** rode `CoreApplication` pela IDE no host com `CORE_DB_PASSWORD`, `RABBITMQ_USER` e `RABBITMQ_PASSWORD` no ambiente; os defaults do `application.yml` apontam para `localhost` (portas publicadas pelo docker-compose.yml de dev).
 - Sem stack nenhuma: `TestCoreApplication` (src/test) sobe Postgres e RabbitMQ com Testcontainers.
 - `make test s=core`: testes no container, com Testcontainers.
 

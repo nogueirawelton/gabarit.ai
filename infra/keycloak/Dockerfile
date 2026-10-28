@@ -2,7 +2,8 @@
 
 # Keycloak com o tema e o realm do gabarit.ai.
 # prod: build otimizado (`kc.sh build` com as opções de build fixadas aqui) e `start --optimized`.
-# dev (docker-compose.override.yml): `start-dev`, com o tema montado do host e sem cache.
+# dev (docker-compose.yml): `start-dev`, com o tema montado do host e sem cache.
+# prod (docker-compose.prod.yml): esta imagem como está.
 ARG KEYCLOAK_IMAGE=quay.io/keycloak/keycloak:26.8.0
 
 FROM ${KEYCLOAK_IMAGE} AS builder

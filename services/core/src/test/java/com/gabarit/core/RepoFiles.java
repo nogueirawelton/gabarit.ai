@@ -6,7 +6,7 @@ import java.nio.file.Path;
 /**
  * Acha arquivos da raiz do repo (contracts/, infra/) subindo a partir do diretório atual.
  * No host/CI: services/core → ../../. No container de dev: montados em /contracts e /infra
- * (docker-compose.override.yml), que é o que sobra subindo de /app.
+ * (docker-compose.yml de dev), que é o que sobra subindo de /app.
  */
 public final class RepoFiles {
 

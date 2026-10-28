@@ -1,5 +1,5 @@
 # Tudo que muda por ambiente vem de variável. Os defaults servem para rodar pela IDE, no host,
-# contra o postgres/rabbitmq do compose (portas publicadas pelo docker-compose.override.yml).
+# contra o postgres/rabbitmq do compose (portas publicadas pelo docker-compose.yml de dev).
 spring:
   application:
     name: core
