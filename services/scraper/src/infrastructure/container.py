@@ -18,10 +18,10 @@ def build_sources(settings: Settings) -> dict[str, ExamSource]:
     sources: list[ExamSource] = [
         PciHtmlSource(
             settings.pci_base_url,
-            user_agent=settings.pci_user_agent,
-            timeout_s=settings.pci_timeout_s,
-            delay_s=settings.pci_request_delay_s,
-            max_retries=settings.pci_max_retries,
+            user_agent=settings.scraper_user_agent,
+            timeout_s=settings.scraper_timeout_s,
+            delay_s=settings.scraper_request_delay_s,
+            max_retries=settings.scraper_max_retries,
         ),
     ]
     return {s.name: s for s in sources}

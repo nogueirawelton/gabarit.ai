@@ -111,7 +111,7 @@ Motivo: o MCP do PCI passou a devolver no máximo 30 concursos por chamada, sem 
   - `/vagas/<slug>`: cards com UF, inscrições, vagas e escolaridade, sem id. `div.na`/`div.da` = abertos, `div.ea` = encerrados. Algumas páginas vêm quebradas do site (título sem o cargo);
   - as duas se ligam pelo link da notícia; sem teto nos abertos (Professor: 293).
 - [x] **`src/infrastructure/sources/pci_html.py`**: parsers puros (`parse_cargos_index`, `parse_vagas_index`, `merge_catalog`, `parse_cargo_page`, `parse_vagas_page`, `parse_registration`, `build_exams`) e o adapter `PciHtmlSource`:
-  - uma requisição por vez, `PCI_REQUEST_DELAY_S` entre elas (padrão 1s), User-Agent identificado; 429/5xx/rede → novas tentativas com backoff e `Retry-After`; 404 → página pulada;
+  - uma requisição por vez, `SCRAPER_REQUEST_DELAY_S` entre elas (vale para qualquer fonte) (padrão 1s), User-Agent identificado; 429/5xx/rede → novas tentativas com backoff e `Retry-After`; 404 → página pulada;
   - tudo ou nada: se uma página falha de vez, a coleta inteira falha (publicar com cargos faltando inativaria cargos no `core`).
 - [x] **Catálogo de cargos**: `CatalogPosition` (domínio), evento `position_catalog.discovered` (contrato novo) publicado antes dos concursos; cada `Position` leva `catalog_slugs` (em quais cargos do catálogo o nome cru apareceu).
 - [x] **Port** `ExamSource.collect()` → `SourceCollection(exams, catalog)`.

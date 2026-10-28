@@ -24,13 +24,19 @@ class Settings(BaseSettings):
     prefetch: int = 1
     max_deliveries: int = 3
 
-    pci_base_url: str = "https://www.pciconcursos.com.br"
+    # comportamento HTTP do scraper, igual para qualquer fonte coletada
+    # pausa entre requisições (uma por vez). A coleta do PCI faz ~500 requisições (~10 min com 1s)
+    scraper_request_delay_s: float = 1.0
     # identifica o robô e dá um contato para o site (boa prática de scraping)
-    pci_user_agent: str = "gabarit-ai-scraper/0.1 (+https://github.com/nogueirawelton/gabarit.ai)"
-    pci_timeout_s: float = 30.0
-    # uma requisição por vez, com essa pausa: a coleta completa faz ~500 requisições (~10 min)
-    pci_request_delay_s: float = 1.0
-    pci_max_retries: int = 3
+    scraper_user_agent: str = (
+        "gabarit-ai-scraper/0.1 (+https://github.com/nogueirawelton/gabarit.ai)"
+    )
+    scraper_timeout_s: float = 30.0
+    # novas tentativas em erro transitório (rede, 429, 5xx)
+    scraper_max_retries: int = 3
+
+    # fontes
+    pci_base_url: str = "https://www.pciconcursos.com.br"
 
     @property
     def rabbitmq_url(self) -> str:
