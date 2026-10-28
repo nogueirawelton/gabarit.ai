@@ -1,0 +1,37 @@
+@import "tailwindcss";
+
+/* Mesmas cores e tipografia do tema de login do Keycloak (infra/keycloak/themes/gabarit). */
+/* espaço que o dock do celular ocupa embaixo: 0,75rem do chão + 4,375rem de dock + barra de gestos */
+/* variável comum, não do @theme: no namespace --spacing-* o Tailwind geraria pb-dock/bottom-dock
+   próprios por cima destes */
+:root {
+  --dock-space: calc(5.125rem + env(safe-area-inset-bottom));
+}
+
+@utility pb-dock {
+  padding-bottom: calc(var(--dock-space) + 1.5rem);
+}
+
+@utility bottom-dock {
+  bottom: calc(var(--dock-space) + 0.5rem);
+}
+
+@theme {
+  --font-sans:
+    "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, sans-serif;
+}
+
+@layer base {
+  html {
+    color-scheme: light dark;
+  }
+
+  button {
+    @apply cursor-pointer;
+  }
+
+  body {
+    @apply bg-[#f6f7fb] text-[15px] text-[#0b1020] antialiased dark:bg-[#0a0d16] dark:text-[#e8eaf1];
+  }
+}

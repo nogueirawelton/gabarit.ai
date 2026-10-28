@@ -3,5 +3,6 @@
 # Formato: minuto hora dia mês dia-da-semana comando
 CRON_TZ=America/Sao_Paulo
 
-# Coleta do PCI Concursos às 6h, 12h e 18h (horário de Brasília)
-0 6,12,18 * * * publish gabarit.commands scrape.requested '{"source":"pciconcursos"}'
+# Coleta do PCI Concursos às 6h e 18h (horário de Brasília). Cada coleta faz ~500 requisições
+# ao site (~10 min, uma por vez): 2x/dia basta para edital de concurso
+0 6,18 * * * publish gabarit.commands scrape.requested '{"source":"pciconcursos"}'

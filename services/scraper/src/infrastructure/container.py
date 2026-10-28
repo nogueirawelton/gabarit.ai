@@ -10,13 +10,19 @@ from src.config import Settings
 from src.domain.ports.exam_source import ExamSource
 from src.infrastructure.messaging.rabbitmq_consumer import RabbitMQConsumer
 from src.infrastructure.messaging.rabbitmq_publisher import RabbitMQPublisher
-from src.infrastructure.sources.pci_mcp import PciMcpSource
+from src.infrastructure.sources.pci_html import PciHtmlSource
 
 
 def build_sources(settings: Settings) -> dict[str, ExamSource]:
     # fonte nova = uma entrada nova aqui
     sources: list[ExamSource] = [
-        PciMcpSource(settings.pci_mcp_url, timeout_s=settings.pci_mcp_timeout_s),
+        PciHtmlSource(
+            settings.pci_base_url,
+            user_agent=settings.scraper_user_agent,
+            timeout_s=settings.scraper_timeout_s,
+            delay_s=settings.scraper_request_delay_s,
+            max_retries=settings.scraper_max_retries,
+        ),
     ]
     return {s.name: s for s in sources}
 

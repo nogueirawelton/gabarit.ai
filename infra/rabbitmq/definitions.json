@@ -22,11 +22,36 @@
       "vhost": "/",
       "durable": true,
       "auto_delete": false,
-      "arguments": { "x-queue-type": "quorum" }
+      "arguments": {
+        "x-queue-type": "quorum"
+      }
+    },
+    {
+      "name": "core.position_catalog_discovered",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-queue-type": "quorum",
+        "x-delivery-limit": 3,
+        "x-dead-letter-exchange": "gabarit.dlx",
+        "x-dead-letter-routing-key": "core.position_catalog_discovered"
+      }
+    },
+    {
+      "name": "core.position_catalog_discovered.dlq",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-queue-type": "quorum"
+      }
     }
   ],
   "bindings": [
     { "source": "gabarit.events", "vhost": "/", "destination": "core.exam_discovered", "destination_type": "queue", "routing_key": "exam.discovered", "arguments": {} },
-    { "source": "gabarit.dlx", "vhost": "/", "destination": "core.exam_discovered.dlq", "destination_type": "queue", "routing_key": "core.exam_discovered", "arguments": {} }
+    { "source": "gabarit.dlx", "vhost": "/", "destination": "core.exam_discovered.dlq", "destination_type": "queue", "routing_key": "core.exam_discovered", "arguments": {} },
+    { "source": "gabarit.events", "vhost": "/", "destination": "core.position_catalog_discovered", "destination_type": "queue", "routing_key": "position_catalog.discovered", "arguments": {} },
+    { "source": "gabarit.dlx", "vhost": "/", "destination": "core.position_catalog_discovered.dlq", "destination_type": "queue", "routing_key": "core.position_catalog_discovered", "arguments": {} }
   ]
 }

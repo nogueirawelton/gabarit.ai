@@ -1,0 +1,710 @@
+/* Tema de login do gabarit.ai. Mesmas cores e tipografia do web (web/src/index.css). */
+
+/* Inter servida pelo próprio tema (sem Google Fonts na página de login). Licença: fonts/LICENSE-Inter.txt */
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("../fonts/inter-latin-ext-wght-normal.woff2") format("woff2-variations");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("../fonts/inter-latin-wght-normal.woff2") format("woff2-variations");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  --gb-bg: #f6f7fb;
+  --gb-surface: #ffffff;
+  --gb-text: #0b1020;
+  --gb-muted: #5b6475;
+  --gb-border: #e3e6ee;
+  --gb-input: #ffffff;
+  --gb-primary: #4f46e5;
+  --gb-primary-hover: #4338ca;
+  --gb-primary-text: #ffffff;
+  --gb-ring: rgba(79, 70, 229, 0.22);
+  --gb-danger: #dc2626;
+  --gb-danger-bg: #fef2f2;
+  --gb-success: #15803d;
+  --gb-success-bg: #f0fdf4;
+  --gb-warning: #b45309;
+  --gb-warning-bg: #fffbeb;
+  --gb-info: #1d4ed8;
+  --gb-info-bg: #eff6ff;
+  --gb-radius: 12px;
+  --gb-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 12px 32px -12px rgba(16, 24, 40, 0.12);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --gb-bg: #0a0d16;
+    --gb-surface: #111522;
+    --gb-text: #e8eaf1;
+    --gb-muted: #9aa3b6;
+    --gb-border: #242a3b;
+    --gb-input: #0d111c;
+    --gb-primary: #6366f1;
+    --gb-primary-hover: #7c7ff5;
+    --gb-ring: rgba(99, 102, 241, 0.35);
+    --gb-danger: #f87171;
+    --gb-danger-bg: rgba(248, 113, 113, 0.1);
+    --gb-success: #4ade80;
+    --gb-success-bg: rgba(74, 222, 128, 0.1);
+    --gb-warning: #fbbf24;
+    --gb-warning-bg: rgba(251, 191, 36, 0.1);
+    --gb-info: #93c5fd;
+    --gb-info-bg: rgba(147, 197, 253, 0.1);
+    --gb-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 16px 40px -16px rgba(0, 0, 0, 0.6);
+    color-scheme: dark;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body.gb {
+  font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--gb-text);
+  background: var(--gb-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--gb-primary);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* ---------- layout ---------- */
+
+.gb-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+.gb-brand {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 48px 56px;
+  color: #eef0ff;
+  background: radial-gradient(120% 90% at 0% 0%, #4f46e5 0%, #3730a3 45%, #1e1b4b 100%);
+}
+
+.gb-brand-glow {
+  position: absolute;
+  inset: auto -20% -35% auto;
+  width: 520px;
+  height: 520px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(167, 139, 250, 0.45) 0%, rgba(167, 139, 250, 0) 70%);
+  pointer-events: none;
+}
+
+.gb-brand-copy {
+  position: relative;
+  max-width: 440px;
+}
+
+.gb-brand-copy h2 {
+  margin: 0 0 16px;
+  font-size: 34px;
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.gb-brand-copy p {
+  margin: 0 0 28px;
+  font-size: 16px;
+  color: rgba(238, 240, 255, 0.78);
+}
+
+.gb-brand-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 12px;
+}
+
+.gb-brand-list li {
+  position: relative;
+  padding-left: 30px;
+  color: rgba(238, 240, 255, 0.92);
+}
+
+.gb-brand-list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.14)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M6 10.5l2.6 2.6L14.5 7' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+    center / 20px no-repeat;
+}
+
+.gb-brand-footer {
+  position: relative;
+  margin: 0;
+  font-size: 13px;
+  color: rgba(238, 240, 255, 0.6);
+}
+
+.gb-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 40px 24px;
+}
+
+.gb-card {
+  width: 100%;
+  max-width: 400px;
+}
+
+.gb-footer {
+  display: flex;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--gb-muted);
+}
+
+/* ---------- marca ---------- */
+
+.gb-logo {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.gb-logo-mark img {
+  display: block;
+  width: 32px;
+  height: 32px;
+}
+
+.gb-logo-word {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.gb-logo-word span {
+  color: var(--gb-primary);
+}
+
+.gb-logo--light .gb-logo-word span {
+  color: #c4b5fd;
+}
+
+.gb-logo--mobile {
+  display: none;
+  margin-bottom: 28px;
+}
+
+/* ---------- cabeçalho do card ---------- */
+
+.gb-card-header {
+  margin-bottom: 24px;
+}
+
+.gb-card-header h1 {
+  margin: 0;
+  font-size: 26px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.gb-required-note {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--gb-muted);
+}
+
+.required {
+  color: var(--gb-danger);
+}
+
+.gb-username {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--gb-border);
+  border-radius: var(--gb-radius);
+  background: var(--gb-surface);
+  font-weight: 500;
+}
+
+/* ---------- formulário ---------- */
+
+.gb-form,
+#kc-form-login,
+#kc-register-form,
+#kc-reset-password-form,
+#kc-passwd-update-form {
+  display: grid;
+  gap: 18px;
+}
+
+.gb-field {
+  display: grid;
+  gap: 6px;
+}
+
+.gb-label {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.gb-input {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  font: inherit;
+  color: var(--gb-text);
+  background: var(--gb-input);
+  border: 1px solid var(--gb-border);
+  border-radius: 10px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.gb-input::placeholder {
+  color: var(--gb-muted);
+}
+
+.gb-input:focus {
+  border-color: var(--gb-primary);
+  box-shadow: 0 0 0 4px var(--gb-ring);
+}
+
+.gb-input[aria-invalid="true"] {
+  border-color: var(--gb-danger);
+}
+
+.gb-input-group {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.gb-input-group .gb-input {
+  padding-right: 46px;
+}
+
+.gb-eye {
+  position: absolute;
+  right: 4px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  color: var(--gb-muted);
+  background: none;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.gb-eye:hover {
+  color: var(--gb-text);
+}
+
+.gb-eye:focus-visible {
+  outline: 2px solid var(--gb-primary);
+}
+
+.gb-error {
+  font-size: 13px;
+  color: var(--gb-danger);
+}
+
+.gb-help {
+  font-size: 13px;
+  color: var(--gb-muted);
+}
+
+/* "Manter conectado" e "Esqueci a senha" na mesma linha */
+.gb-settings {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.gb-settings .checkbox label,
+.gb-check-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--gb-muted);
+  cursor: pointer;
+}
+
+.gb-settings input[type="checkbox"],
+.gb-checkbox {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--gb-primary);
+}
+
+/* ---------- botões ---------- */
+
+.gb-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 18px;
+  font: inherit;
+  font-weight: 600;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s, box-shadow 0.15s;
+  text-decoration: none;
+}
+
+.gb-btn:hover {
+  text-decoration: none;
+}
+
+.gb-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--gb-ring);
+}
+
+.gb-btn--primary {
+  color: var(--gb-primary-text);
+  background: var(--gb-primary);
+}
+
+.gb-btn--primary:hover {
+  background: var(--gb-primary-hover);
+}
+
+.gb-btn--primary:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+
+.gb-btn--secondary {
+  color: var(--gb-text);
+  background: var(--gb-surface);
+  border-color: var(--gb-border);
+}
+
+.gb-btn--secondary:hover {
+  border-color: var(--gb-muted);
+}
+
+.gb-btn--block {
+  width: 100%;
+}
+
+.gb-btn--disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+#kc-form-buttons {
+  margin-top: 4px;
+}
+
+
+/* cadastro e "esqueci a senha": o Keycloak põe "voltar para o login" antes do botão; aqui ele vai
+   para baixo do botão, centralizado */
+.gb-field:has(> #kc-form-buttons) {
+  display: flex;
+  flex-direction: column-reverse;
+  /* em algumas páginas o grupo também é .gb-settings (linha, centralizada): aqui o botão ocupa a largura */
+  align-items: stretch;
+  gap: 16px;
+}
+
+#kc-form-options {
+  font-size: 14px;
+  text-align: center;
+}
+
+/* ---------- mensagens ---------- */
+
+.gb-alert {
+  margin-bottom: 20px;
+  padding: 12px 14px;
+  font-size: 14px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+}
+
+.gb-alert--error {
+  color: var(--gb-danger);
+  background: var(--gb-danger-bg);
+  border-color: color-mix(in srgb, var(--gb-danger) 25%, transparent);
+}
+
+.gb-alert--success {
+  color: var(--gb-success);
+  background: var(--gb-success-bg);
+  border-color: color-mix(in srgb, var(--gb-success) 25%, transparent);
+}
+
+.gb-alert--warning {
+  color: var(--gb-warning);
+  background: var(--gb-warning-bg);
+  border-color: color-mix(in srgb, var(--gb-warning) 25%, transparent);
+}
+
+.gb-alert--info {
+  color: var(--gb-info);
+  background: var(--gb-info-bg);
+  border-color: color-mix(in srgb, var(--gb-info) 25%, transparent);
+}
+
+/* telas que repetem no aviso amarelo o que o texto da página já diz */
+[data-page-id="login-login-verify-email"] .gb-alert--warning,
+[data-page-id="login-login-update-password"] .gb-alert--warning {
+  display: none;
+}
+
+/* ---------- rodapé do card ---------- */
+
+.gb-info {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--gb-border);
+  text-align: center;
+  font-size: 14px;
+  color: var(--gb-muted);
+}
+
+.gb-inline-form {
+  margin-top: 16px;
+  font-size: 14px;
+  text-align: center;
+}
+
+.gb-social {
+  margin-top: 24px;
+}
+
+.gb-social hr {
+  border: 0;
+  border-top: 1px solid var(--gb-border);
+  margin: 0 0 16px;
+}
+
+.gb-social h2 {
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gb-muted);
+  text-align: center;
+}
+
+.gb-social-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gb-social-list--grid {
+  grid-template-columns: 1fr 1fr;
+}
+
+/* ---------- ícones (máscara SVG: herdam a cor do texto) ---------- */
+
+.gb-icon {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  background-color: currentColor;
+  -webkit-mask: var(--gb-icon) center / contain no-repeat;
+  mask: var(--gb-icon) center / contain no-repeat;
+}
+
+.gb-icon--eye {
+  --gb-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3C/svg%3E");
+}
+
+.gb-icon--eye-off {
+  --gb-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10.6 5.1A10.6 10.6 0 0 1 12 5c6.5 0 10 7 10 7a17.7 17.7 0 0 1-2.9 3.9M6.6 6.6A17.5 17.5 0 0 0 2 12s3.5 7 10 7a9.7 9.7 0 0 0 5.4-1.6'/%3E%3Cpath d='M9.9 9.9a3 3 0 0 0 4.2 4.2'/%3E%3Cpath d='M2 2l20 20'/%3E%3C/svg%3E");
+}
+
+.gb-icon--restart {
+  --gb-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 12a9 9 0 1 0 3-6.7L3 8'/%3E%3Cpath d='M3 3v5h5'/%3E%3C/svg%3E");
+}
+
+/* ---------- ação pedida pelo app (ex.: trocar senha): visual de página do app ---------- */
+/* espelha o web: cabeçalho de 64px, container de 72rem (max-w-6xl), título de 30px, cartão */
+
+.gb-app {
+  min-height: 100vh;
+}
+
+.gb-app-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: color-mix(in srgb, var(--gb-surface) 85%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--gb-border);
+}
+
+.gb-app-header-inner {
+  display: flex;
+  align-items: center;
+  max-width: 72rem;
+  height: 64px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.gb-app-header .gb-logo:hover {
+  text-decoration: none;
+}
+
+.gb-app-header .gb-logo-word {
+  color: var(--gb-text);
+}
+
+.gb-app-main {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 48px 16px 64px;
+}
+
+.gb-app-crumb {
+  display: inline-block;
+  margin-bottom: 12px;
+  font-size: 14px;
+  color: var(--gb-muted);
+}
+
+.gb-app-title {
+  margin: 0;
+  font-size: 30px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.gb-app-subtitle {
+  margin: 8px 0 0;
+  color: var(--gb-muted);
+}
+
+.gb-app-card {
+  margin-top: 32px;
+  padding: 32px;
+  background: var(--gb-surface);
+  border: 1px solid var(--gb-border);
+  border-radius: 16px;
+}
+
+/* formulário com largura de leitura, alinhado à esquerda como no perfil */
+.gb-app-card form {
+  max-width: 28rem;
+}
+
+/* opções (ex.: "sair dos outros dispositivos") acima dos botões, e botões lado a lado */
+.gb-app .gb-field:has(> #kc-form-buttons) {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.gb-app #kc-form-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.gb-app #kc-form-buttons .gb-btn {
+  width: auto;
+  height: 40px;
+  font-size: 14px;
+}
+
+.gb-app #kc-form-options {
+  text-align: left;
+  font-size: 14px;
+}
+
+.gb-app #kc-form-options label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--gb-muted);
+}
+
+/* ---------- celular: uma coluna, sem o painel da marca ---------- */
+
+@media (max-width: 900px) {
+  .gb-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .gb-brand {
+    display: none;
+  }
+
+  .gb-logo--mobile {
+    display: inline-flex;
+  }
+
+  .gb-panel {
+    justify-content: flex-start;
+    padding: 40px 16px;
+  }
+
+  .gb-app-main {
+    padding-top: 40px;
+  }
+
+  .gb-app-card {
+    padding: 24px;
+  }
+}

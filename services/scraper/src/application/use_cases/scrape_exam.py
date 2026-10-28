@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Mapping
 
-from src.application.messages import ExamDiscovered, ScrapeRequested
+from src.application.messages import ExamDiscovered, PositionCatalogDiscovered, ScrapeRequested
 from src.domain.errors import UnknownSourceError
 from src.domain.ports.event_publisher import EventPublisher
 from src.domain.ports.exam_source import ExamSource
@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 class ScrapeExams:
-    """Coleta todos os concursos de uma fonte e publica um exam.discovered por concurso."""
+    """Coleta tudo de uma fonte e publica o catálogo de cargos e um exam.discovered por concurso."""
 
     def __init__(self, sources: Mapping[str, ExamSource], publisher: EventPublisher) -> None:
         self._sources = sources
@@ -22,10 +22,27 @@ class ScrapeExams:
             raise UnknownSourceError(f"fonte desconhecida: {command.source!r}")
 
         # Busca tudo antes de publicar: se a fonte falha no meio, nada sai
-        exams = await source.fetch_exams()
-        logger.info("concursos coletados", extra={"source": source.name, "count": len(exams)})
+        collection = await source.collect()
+        logger.info(
+            "coleta concluída",
+            extra={
+                "source": source.name,
+                "count": len(collection.exams),
+                "catalog": len(collection.catalog),
+            },
+        )
 
-        for exam in exams:
+        if collection.catalog:
+            catalog = PositionCatalogDiscovered.from_catalog(
+                source.name, collection.catalog, correlation_id=correlation_id
+            )
+            await self._publisher.publish(
+                event_id=catalog.event_id,
+                event_type=catalog.event_type,
+                body=catalog.model_dump_json().encode(),
+            )
+
+        for exam in collection.exams:
             event = ExamDiscovered.from_exam(exam, correlation_id=correlation_id)
             await self._publisher.publish(
                 event_id=event.event_id,
@@ -33,5 +50,7 @@ class ScrapeExams:
                 body=event.model_dump_json().encode(),
             )
 
-        logger.info("eventos publicados", extra={"source": source.name, "count": len(exams)})
-        return len(exams)
+        logger.info(
+            "eventos publicados", extra={"source": source.name, "count": len(collection.exams)}
+        )
+        return len(collection.exams)

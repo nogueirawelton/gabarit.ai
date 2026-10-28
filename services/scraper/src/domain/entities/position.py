@@ -8,3 +8,5 @@ class Position(BaseModel):
 
     # Nome como a fonte escreve, sem normalizar: padronizar entre bancas é papel do `core`
     name: str = Field(min_length=1)
+    # Cargos do catálogo da fonte (CatalogPosition.slug) em que este nome apareceu
+    catalog_slugs: tuple[str, ...] = ()

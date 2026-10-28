@@ -50,6 +50,42 @@ jobs:
       - name: pytest
         run: uv run --no-sync pytest
 
+  core:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: services/core
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+
+      # testes de integração sobem postgres/rabbitmq com Testcontainers (Docker do runner)
+      - name: mvn verify
+        run: ./mvnw -B verify
+
+  web:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - run: npm ci --no-audit --no-fund
+      # typecheck + bundle
+      - run: npm run build
+
   infra:
     runs-on: ubuntu-24.04
     steps:
@@ -63,11 +99,18 @@ jobs:
           POSTGRES_USER: ci
           POSTGRES_PASSWORD: ci
           CORE_DB_PASSWORD: ci
+          KEYCLOAK_DB_PASSWORD: ci
+          KEYCLOAK_ADMIN_USER: ci
+          KEYCLOAK_ADMIN_PASSWORD: ci
           RABBITMQ_USER: ci
           RABBITMQ_PASSWORD: ci
+          KEYCLOAK_URL: https://auth.example.com
+          WEB_URL: https://app.example.com
+          API_URL: https://api.example.com
         run: |
           docker compose -f docker-compose.yml config -q
-          docker compose config -q
+          # exclude_from_hc é chave do Coolify (o docker compose não conhece): valida sem ela
+          sed '/exclude_from_hc/d' docker-compose.prod.yml | docker compose -f - config -q
 
       - name: crontab do agendador é válido
         run: |

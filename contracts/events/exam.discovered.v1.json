@@ -38,7 +38,15 @@
             "type": "object",
             "additionalProperties": false,
             "required": ["name"],
-            "properties": { "name": { "type": "string", "minLength": 1 } }
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "catalog_slugs": {
+                "type": "array",
+                "description": "Opcional (adicionado sem mudar a versão). Cargos do catálogo da fonte (position_catalog.discovered) em que este nome apareceu.",
+                "items": { "type": "string", "minLength": 1 },
+                "uniqueItems": true
+              }
+            }
           }
         }
       }

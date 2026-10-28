@@ -1,0 +1,82 @@
+{
+  "realm": "gabarit",
+  "displayName": "gabarit.ai",
+  "enabled": true,
+  "sslRequired": "external",
+
+  "registrationAllowed": true,
+  "registrationEmailAsUsername": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "rememberMe": true,
+  "verifyEmail": true,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "passwordPolicy": "length(8) and notEmail",
+
+  "loginTheme": "gabarit",
+  "emailTheme": "gabarit",
+
+  "smtpServer": {
+    "host": "${SMTP_HOST}",
+    "port": "${SMTP_PORT}",
+    "from": "${SMTP_FROM}",
+    "fromDisplayName": "gabarit.ai",
+    "auth": "${SMTP_AUTH}",
+    "user": "${SMTP_USER}",
+    "password": "${SMTP_PASSWORD}",
+    "starttls": "${SMTP_STARTTLS}",
+    "ssl": "${SMTP_SSL}"
+  },
+  "internationalizationEnabled": true,
+  "supportedLocales": ["pt-BR"],
+  "defaultLocale": "pt-BR",
+
+  "accessTokenLifespan": 300,
+  "actionTokenGeneratedByUserLifespan": 1800,
+  "attributes": {
+    "actionTokenGeneratedByUserLifespan.verify-email": "86400"
+  },
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "ssoSessionIdleTimeoutRememberMe": 2592000,
+  "ssoSessionMaxLifespanRememberMe": 2592000,
+
+  "clients": [
+    {
+      "clientId": "web",
+      "name": "gabarit.ai (web)",
+      "description": "SPA: Authorization Code + PKCE, sem segredo (cliente público)",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "frontchannelLogout": true,
+      "rootUrl": "${WEB_URL}",
+      "baseUrl": "/",
+      "redirectUris": ["${WEB_URL}/*"],
+      "webOrigins": ["${WEB_URL}"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "${WEB_URL}/*"
+      },
+      "protocolMappers": [
+        {
+          "name": "audience-core",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "core",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+# Só o necessário vai para o build context
+target
+.mvn/wrapper/maven-wrapper.jar
+.idea
+*.iml
+.vscode
+.env
+.env.*
+Dockerfile
+.dockerignore

@@ -1,6 +1,5 @@
 #!/bin/bash
-# Banco e usuário do serviço `core` (Java: concursos + planos de estudo).
-# Cada módulo do core fica no próprio schema (exam, plan), criado pelas migrations do serviço.
+# Banco e usuário do serviço `core` (Java: todo o backend). Tabelas criadas pelas migrations do serviço.
 # Só roda com o volume vazio: o entrypoint do Postgres ignora /docker-entrypoint-initdb.d
 # quando os dados já existem. Mudou algo aqui? Aplique à mão ou recrie o volume (make reset).
 set -euo pipefail

@@ -1,0 +1,208 @@
+# Produção (Coolify, build pack "Docker Compose", arquivo: docker-compose.prod.yml).
+#
+# - Sem portas publicadas: o proxy do Coolify chega nos serviços pela rede do recurso.
+#   Domínios (aba de cada serviço no Coolify, com a porta interna no fim):
+#     web      https://app.<domínio>:8080
+#     keycloak https://auth.<domínio>:8080
+#     core     https://api.<domínio>:8080
+#   Os outros serviços são internos (sem domínio).
+# - Sem container_name: o Coolify prefixa os nomes.
+# - Rede: a da Destination do Coolify (personal_gabarit-ai_network), que já existe no servidor
+#   (external). Todos os serviços entram nela e se acham pelo nome (postgres, rabbitmq, keycloak...).
+# - Sem bind mount: tudo que vem do repositório está dentro das imagens.
+# - Variáveis: as do .env.example, cadastradas na aba Environment Variables do recurso.
+#   WEB_URL e SMTP_* são lidos pelo realm só no primeiro deploy (banco vazio).
+services:
+  postgres:
+    build:
+      context: ./infra/postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?defina POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+      # lido pelos scripts de init da imagem (só no primeiro boot, com volume vazio)
+      CORE_DB_PASSWORD: ${CORE_DB_PASSWORD:?defina CORE_DB_PASSWORD}
+      KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?defina KEYCLOAK_DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:3.13.7-management
+    # tudo como rabbitmq (inclusive o healthcheck): rodando como root, o healthcheck cria o
+    # .erlang.cookie antes do servidor e ele não sobe mais (eacces) num volume novo
+    user: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:?defina RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?defina RABBITMQ_PASSWORD}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_port_connectivity"]
+      interval: 10s
+      timeout: 10s
+      retries: 6
+      start_period: 20s
+    restart: unless-stopped
+
+  # one-shot: importa exchanges e filas antes de qualquer publisher subir. Termina depois disso:
+  # exclude_from_hc (chave do Coolify) evita que o recurso apareça como "não saudável"
+  rabbitmq-init:
+    build:
+      context: ./infra/rabbitmq
+    exclude_from_hc: true
+    environment:
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: "no"
+
+  scraper:
+    build:
+      context: ./services/scraper
+      target: prod
+    shm_size: 1gb
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      RABBITMQ_VHOST: ${RABBITMQ_VHOST:-/}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      PCI_BASE_URL: ${PCI_BASE_URL:-https://www.pciconcursos.com.br}
+      SCRAPER_REQUEST_DELAY_S: ${SCRAPER_REQUEST_DELAY_S:-1.0}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      rabbitmq-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  keycloak:
+    build:
+      context: ./infra/keycloak
+    # comando padrão da imagem: start --optimized --import-realm
+    environment:
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?defina KEYCLOAK_DB_PASSWORD}
+      # admin do console, criado só no primeiro boot (banco vazio). Depois: crie um admin
+      # permanente no realm master e apague este
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER:?defina KEYCLOAK_ADMIN_USER}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?defina KEYCLOAK_ADMIN_PASSWORD}
+      # URL pública (issuer dos tokens), ex.: https://auth.<domínio>
+      KC_HOSTNAME: ${KEYCLOAK_URL:?defina KEYCLOAK_URL}
+      # TLS fica no proxy do Coolify, na frente
+      KC_HTTP_ENABLED: "true"
+      KC_PROXY_HEADERS: xforwarded
+      # lidos pelo realm só no primeiro import; depois, mude pelo admin
+      WEB_URL: ${WEB_URL:?defina WEB_URL}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_FROM: ${SMTP_FROM:-no-reply@gabarit.ai}
+      SMTP_AUTH: ${SMTP_AUTH:-true}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
+      SMTP_SSL: ${SMTP_SSL:-false}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      # a imagem não tem curl/wget: HTTP na mão via /dev/tcp na porta de gerenciamento (9000)
+      test:
+        - CMD
+        - bash
+        - -c
+        - >-
+          exec 3<>/dev/tcp/127.0.0.1/9000
+          && printf 'GET /health/ready HTTP/1.0\r\nHost: localhost\r\n\r\n' >&3
+          && grep -q '"status": "UP"' <&3
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 90s
+    restart: unless-stopped
+
+  core:
+    build:
+      context: ./services/core
+      target: prod
+    environment:
+      LOGGING_STRUCTURED_FORMAT_CONSOLE: ecs
+      DB_HOST: postgres
+      CORE_DB_PASSWORD: ${CORE_DB_PASSWORD:?defina CORE_DB_PASSWORD}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      RABBITMQ_VHOST: ${RABBITMQ_VHOST:-/}
+      # iss dos tokens = URL pública; chaves pela rede interna
+      KEYCLOAK_URL: ${KEYCLOAK_URL:?defina KEYCLOAK_URL}
+      KEYCLOAK_INTERNAL_URL: http://keycloak:8080
+      # origem liberada no CORS
+      WEB_URL: ${WEB_URL:?defina WEB_URL}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD
+        - bash
+        - -c
+        - >-
+          exec 3<>/dev/tcp/127.0.0.1/8080
+          && printf 'GET /actuator/health/readiness HTTP/1.0\r\nHost: localhost\r\n\r\n' >&3
+          && grep -q '"status":"UP"' <&3
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 60s
+    restart: unless-stopped
+
+  # cron que só publica comandos (infra/scheduler/crontab)
+  scheduler:
+    build:
+      context: ./infra/scheduler
+    environment:
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      RABBITMQ_VHOST: ${RABBITMQ_VHOST:-/}
+    depends_on:
+      rabbitmq-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./web
+      target: prod
+    # viram o config.js no boot (URLs públicas: quem usa é o navegador)
+    environment:
+      KEYCLOAK_URL: ${KEYCLOAK_URL:?defina KEYCLOAK_URL}
+      API_URL: ${API_URL:?defina API_URL}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
+
+networks:
+  default:
+    name: personal_gabarit-ai_network
+    external: true

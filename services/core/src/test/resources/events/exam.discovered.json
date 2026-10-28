@@ -1,0 +1,24 @@
+{
+  "event_id": "3f6c1c2e-8a4b-4f7e-9b1d-2c5a7e9f0a11",
+  "event_type": "exam.discovered",
+  "version": 1,
+  "occurred_at": "2026-10-27T14:22:00.216338Z",
+  "correlation_id": "eed88739-2c9a-4e1e-9a47-98785717fdb6",
+  "data": {
+    "source": "pciconcursos",
+    "external_id": "295975",
+    "title": "TJ SP - Tribunal de Justiça do Estado de São Paulo",
+    "url": "https://www.pciconcursos.com.br/noticias/tj-sp-abre-concurso",
+    "uf": "SP",
+    "region": "SUDESTE",
+    "education_level": "Médio / Superior",
+    "openings": "454 vagas até R$ 8.628,87",
+    "registration_start": "2026-10-28",
+    "registration_end": "2026-12-10",
+    "registration_note": null,
+    "positions": [
+      { "name": "ESCREVENTE TÉCNICO JUDICIÁRIO", "catalog_slugs": ["escrevente", "tecnico-judiciario"] },
+      { "name": "OFICIAL DE JUSTIÇA", "catalog_slugs": ["oficial-de-justica"] }
+    ]
+  }
+}

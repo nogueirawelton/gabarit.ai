@@ -1,18 +1,24 @@
+# Desenvolvimento (padrão do `docker compose` e do `make`): portas no host, código montado com
+# hot reload, alvos `dev`. Produção (Coolify) é o docker-compose.prod.yml.
 services:
   postgres:
-    image: pgvector/pgvector:0.8.0-pg16
+    build:
+      context: ./infra/postgres
+    image: gabarit/postgres
     container_name: gabarit_postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER:?defina POSTGRES_USER no .env}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
       POSTGRES_DB: ${POSTGRES_DB:-postgres}
-      # lido pelos scripts em infra/postgres/init (só no primeiro boot, com volume vazio)
+      # lido pelos scripts de init da imagem (só no primeiro boot, com volume vazio)
       CORE_DB_PASSWORD: ${CORE_DB_PASSWORD:?defina CORE_DB_PASSWORD no .env}
+      KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?defina KEYCLOAK_DB_PASSWORD no .env}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      test: ["CMD-SHELL", 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
       interval: 5s
       timeout: 5s
       retries: 10
@@ -22,9 +28,15 @@ services:
   rabbitmq:
     image: rabbitmq:3.13.7-management
     container_name: gabarit_rabbitmq
+    # tudo como rabbitmq (inclusive o healthcheck): rodando como root, o healthcheck cria o
+    # .erlang.cookie antes do servidor e ele não sobe mais (eacces) num volume novo
+    user: rabbitmq
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:?defina RABBITMQ_USER no .env}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?defina RABBITMQ_PASSWORD no .env}
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
@@ -38,15 +50,13 @@ services:
   # one-shot: garante exchanges e filas dos consumidores antes de qualquer publisher subir,
   # senão evento publicado sem fila ligada é descartado pelo broker
   rabbitmq-init:
-    image: rabbitmq:3.13.7-management
+    build:
+      context: ./infra/rabbitmq
+    image: gabarit/rabbitmq-init
     container_name: gabarit_rabbitmq_init
-    entrypoint: ["/init.sh"]
     environment:
       RABBITMQ_USER: ${RABBITMQ_USER}
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
-    volumes:
-      - ./infra/rabbitmq/init.sh:/init.sh:ro
-      - ./infra/rabbitmq/definitions.json:/definitions.json:ro
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -55,8 +65,8 @@ services:
   scraper:
     build:
       context: ./services/scraper
-      target: prod
-    image: gabarit/scraper
+      target: dev
+    image: gabarit/scraper:dev
     container_name: gabarit_scraper
     shm_size: 1gb
     env_file:
@@ -64,12 +74,128 @@ services:
         required: false
     environment:
       RABBITMQ_HOST: rabbitmq
+      # o RABBITMQ_PORT do .env é a porta publicada no host; dentro da rede é sempre 5672
+      RABBITMQ_PORT: "5672"
+    volumes:
+      - ./services/scraper:/app
+      # schemas compartilhados, usados nos testes de contrato
+      - ./contracts:/contracts:ro
     depends_on:
       rabbitmq:
         condition: service_healthy
       rabbitmq-init:
         condition: service_completed_successfully
+    restart: "no"
+
+  keycloak:
+    build:
+      context: ./infra/keycloak
+    image: gabarit/keycloak
+    container_name: gabarit_keycloak
+    # sem build otimizado, tema montado do host e sem cache (edite o CSS e recarregue a página)
+    command: ["start-dev", "--import-realm"]
+    environment:
+      # start-dev refaz o build no boot: as opções de build (fixas no Dockerfile) vão de novo aqui
+      KC_DB: postgres
+      KC_HEALTH_ENABLED: "true"
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?defina KEYCLOAK_DB_PASSWORD no .env}
+      # admin do console, criado só no primeiro boot (banco vazio)
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER:?defina KEYCLOAK_ADMIN_USER no .env}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?defina KEYCLOAK_ADMIN_PASSWORD no .env}
+      # URL pública (é o issuer dos tokens): o navegador e o core precisam ver a mesma
+      KC_HOSTNAME: ${KEYCLOAK_URL:-http://localhost:8180}
+      KC_HTTP_ENABLED: "true"
+      KC_PROXY_HEADERS: xforwarded
+      # lidos pelo realm (infra/keycloak/realm) só no primeiro import; depois, mude pelo admin
+      WEB_URL: ${WEB_URL:-http://localhost:5173}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_FROM: ${SMTP_FROM:-no-reply@gabarit.ai}
+      SMTP_AUTH: ${SMTP_AUTH:-true}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      # 587 = STARTTLS (padrão); 465 = TLS direto (SMTP_SSL=true, SMTP_STARTTLS=false)
+      SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
+      SMTP_SSL: ${SMTP_SSL:-false}
+    ports:
+      - "${KEYCLOAK_PORT:-8180}:8080"
+    volumes:
+      - ./infra/keycloak/themes/gabarit:/opt/keycloak/themes/gabarit:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      # a imagem não tem curl/wget: HTTP na mão via /dev/tcp na porta de gerenciamento (9000)
+      test:
+        - CMD
+        - bash
+        - -c
+        - >-
+          exec 3<>/dev/tcp/127.0.0.1/9000
+          && printf 'GET /health/ready HTTP/1.0\r\nHost: localhost\r\n\r\n' >&3
+          && grep -q '"status": "UP"' <&3
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
     restart: unless-stopped
+
+  core:
+    build:
+      context: ./services/core
+      target: dev
+    image: gabarit/core:dev
+    container_name: gabarit_core
+    # só o que o core usa (sem env_file): RABBITMQ_PORT do .env é a porta do host, não da rede interna
+    environment:
+      # log em JSON (com o MDC) no container; pela IDE continua texto
+      LOGGING_STRUCTURED_FORMAT_CONSOLE: ecs
+      DB_HOST: postgres
+      CORE_DB_PASSWORD: ${CORE_DB_PASSWORD:?defina CORE_DB_PASSWORD no .env}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      RABBITMQ_VHOST: ${RABBITMQ_VHOST:-/}
+      # tokens: iss = URL pública; chaves pela rede interna (busca na primeira requisição, sem depender no boot)
+      KEYCLOAK_URL: ${KEYCLOAK_URL:-http://localhost:8180}
+      KEYCLOAK_INTERNAL_URL: http://keycloak:8080
+      WEB_URL: ${WEB_URL:-http://localhost:5173}
+    ports:
+      - "${CORE_PORT:-8080}:8080"
+    volumes:
+      # só fonte e pom (somente leitura); target/ fica dentro do container, sem arquivo de root no host
+      - ./services/core/src:/app/src:ro
+      - ./services/core/pom.xml:/app/pom.xml:ro
+      # schemas compartilhados, usados nos testes de contrato
+      - ./contracts:/contracts:ro
+      # topologia real do RabbitMQ, importada no Testcontainers
+      - ./infra/rabbitmq/definitions.json:/infra/rabbitmq/definitions.json:ro
+      # cache do Maven: não baixa tudo de novo a cada container
+      - core_m2:/root/.m2
+    depends_on:
+      postgres:
+        condition: service_healthy
+      # a fila core.exam_discovered é declarada pela infra, não pelo core
+      rabbitmq-init:
+        condition: service_completed_successfully
+    healthcheck:
+      # a imagem JRE não tem curl/wget: HTTP na mão via /dev/tcp do bash
+      test:
+        - CMD
+        - bash
+        - -c
+        - >-
+          exec 3<>/dev/tcp/127.0.0.1/8080
+          && printf 'GET /actuator/health/readiness HTTP/1.0\r\nHost: localhost\r\n\r\n' >&3
+          && grep -q '"status":"UP"' <&3
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 60s
+    restart: "no"
 
   # cron que só publica comandos (infra/scheduler/crontab); disparo manual: make scrape
   scheduler:
@@ -86,6 +212,23 @@ services:
         condition: service_completed_successfully
     restart: unless-stopped
 
+  web:
+    build:
+      context: ./web
+      target: dev
+    image: gabarit/web:dev
+    container_name: gabarit_web
+    # em dev a configuração vem de web/public/config.js (URLs de localhost)
+    ports:
+      - "${WEB_PORT:-5173}:5173"
+    volumes:
+      - ./web:/app
+      # node_modules fica o da imagem (instalado no Linux do container), não o do host.
+      # Mudou o package.json? Recrie com: docker compose up -d --build --renew-anon-volumes web
+      - /app/node_modules
+    restart: "no"
+
 volumes:
   postgres_data:
   rabbitmq_data:
+  core_m2:

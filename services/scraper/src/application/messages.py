@@ -1,11 +1,13 @@
 """Mensagens que entram e saem do serviço. Espelham os schemas em /contracts (fonte da verdade)."""
 
+from collections.abc import Iterable
 from datetime import UTC, date, datetime
 from typing import Literal
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from src.domain.entities.catalog_position import CatalogPosition
 from src.domain.entities.exam import Exam
 
 
@@ -19,6 +21,7 @@ class ScrapeRequested(BaseModel):
 
 class PositionData(BaseModel):
     name: str
+    catalog_slugs: list[str]
 
 
 class ExamData(BaseModel):
@@ -58,6 +61,47 @@ class ExamDiscovered(BaseModel):
             correlation_id=correlation_id,
             data=ExamData(
                 **exam.model_dump(exclude={"positions"}),
-                positions=[PositionData(name=p.name) for p in exam.positions],
+                positions=[
+                    PositionData(name=p.name, catalog_slugs=list(p.catalog_slugs))
+                    for p in exam.positions
+                ],
+            ),
+        )
+
+
+class CatalogPositionData(BaseModel):
+    slug: str
+    name: str
+
+
+class PositionCatalogData(BaseModel):
+    source: str
+    positions: list[CatalogPositionData]
+
+
+class PositionCatalogDiscovered(BaseModel):
+    """Evento de saída (contracts/events/position_catalog.discovered.v1.json).
+
+    O catálogo inteiro da fonte num evento só: o `core` faz upsert por (source, slug).
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    event_id: UUID = Field(default_factory=uuid4)
+    event_type: Literal["position_catalog.discovered"] = "position_catalog.discovered"
+    version: Literal[1] = 1
+    occurred_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    correlation_id: str | None = None
+    data: PositionCatalogData
+
+    @classmethod
+    def from_catalog(
+        cls, source: str, catalog: Iterable[CatalogPosition], correlation_id: str | None = None
+    ) -> "PositionCatalogDiscovered":
+        return cls(
+            correlation_id=correlation_id,
+            data=PositionCatalogData(
+                source=source,
+                positions=[CatalogPositionData(slug=c.slug, name=c.name) for c in catalog],
             ),
         )
