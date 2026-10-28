@@ -509,6 +509,21 @@ a:hover {
   display: none;
 }
 
+/* telas de informação e erro: texto e, embaixo, o botão de seguir */
+.gb-info-message {
+  display: grid;
+  gap: 20px;
+}
+
+.gb-info-message .instruction {
+  margin: 0;
+  color: var(--gb-muted);
+}
+
+.gb-mt {
+  margin-top: 16px;
+}
+
 /* ---------- rodapé do card ---------- */
 
 .gb-info {
