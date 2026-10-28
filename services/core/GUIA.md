@@ -86,6 +86,30 @@ O scraper agora publica o catálogo de cargos da fonte (ex.: "Enfermeiro", "Téc
 
 ---
 
+## Autenticação ✅
+
+- [x] 🛠️ **Resource server JWT** (`shared/SecurityConfig`): tudo exige token do Keycloak, menos `/actuator/health/**`; sem sessão e sem CSRF (token no header); CORS só para a origem do web (`WEB_URL`).
+  - `issuer-uri` = URL pública do Keycloak (é o `iss` do token); `jwk-set-uri` = rede interna (`keycloak:8080`); `audiences: core` (mapper `audience-core` no client `web` do realm).
+- [x] **`GET /me`** (`user/MeController`): usuário do token. O `id` é o `sub` do Keycloak: use como chave do usuário nas tabelas do core (não o e-mail, que pode mudar).
+- [x] Testes: sem token → 401, com token → dados do token, CORS só da origem do web. Ponta a ponta: token adulterado, de outro realm ou sem `aud` `core` → 401.
+
+> Nos endpoints novos, pegue o usuário com `@AuthenticationPrincipal Jwt jwt` e `jwt.getSubject()`.
+
+---
+
+## Perfil do usuário ✅
+
+Nome, e-mail e senha são do Keycloak (o web abre as telas dele com `kc_action=UPDATE_PROFILE` / `UPDATE_PASSWORD`). No core ficam só as preferências de estudo.
+
+- [x] **`V3__user_profile.sql`**: `user_profile` (chave = `sub` do Keycloak, `ufs TEXT[]`) e `user_profile_position` (FK para `position_catalog`: só dá para seguir cargo que existe; índice para "quem segue o cargo X").
+- [x] **`GET /catalog/positions`** (`exam`): catálogo em ordem alfabética do português.
+- [x] **`GET` / `PUT /me/profile`** (`user`): o usuário vem do token, nunca do corpo. O `PUT` substitui tudo; cargo inexistente, UF inválida ou mais de 30 cargos → 400 (`BadRequestException` em `shared/`, formato ProblemDetail).
+- [x] Testes: serviço no Postgres real e controller com token simulado.
+
+> Próximo uso: filtrar os concursos da home e notificar quando abrir concurso para um cargo seguido (`user_profile_position` × `exam_position.catalog_slugs`).
+
+---
+
 ## Fase 3: API de leitura
 
 - [ ] `GET /exams`: paginado, filtros por `uf`, inscrições abertas (calculado pelas datas, nunca guardado), texto no título.

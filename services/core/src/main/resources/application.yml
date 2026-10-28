@@ -18,12 +18,33 @@ spring:
       ddl-auto: validate
     open-in-view: false
 
+  # erros da API no formato ProblemDetail (RFC 9457), inclusive validação do corpo
+  mvc:
+    problemdetails:
+      enabled: true
+
   rabbitmq:
     host: ${RABBITMQ_HOST:localhost}
     port: ${RABBITMQ_PORT:5672}
     username: ${RABBITMQ_USER}
     password: ${RABBITMQ_PASSWORD}
     virtual-host: ${RABBITMQ_VHOST:/}
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # chaves de assinatura pela rede interna (de dentro do container, o Keycloak é keycloak:8080)
+          jwk-set-uri: ${KEYCLOAK_INTERNAL_URL:http://localhost:8180}/realms/${KEYCLOAK_REALM:gabarit}/protocol/openid-connect/certs
+          # o "iss" do token é a URL pública (a que o navegador usa); com jwk-set-uri definido,
+          # o issuer só é conferido no token, sem o core precisar acessar essa URL
+          issuer-uri: ${KEYCLOAK_URL:http://localhost:8180}/realms/${KEYCLOAK_REALM:gabarit}
+          # token emitido para o core (mapper "audience-core" no client web do realm)
+          audiences: core
+
+gabarit:
+  # origem do web liberada no CORS
+  web-url: ${WEB_URL:http://localhost:5173}
 
 management:
   endpoints:
