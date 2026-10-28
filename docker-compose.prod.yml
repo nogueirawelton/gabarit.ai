@@ -70,6 +70,12 @@ services:
       context: ./services/scraper
       target: prod
     shm_size: 1gb
+    # DNS para fora da rede (o DNS interno do Docker continua resolvendo postgres, rabbitmq...).
+    # Com os resolvedores do servidor, consultas externas falhavam de vez em quando
+    # (UnknownHostException no SMTP / site do PCI)
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
     environment:
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_PORT: "5672"
@@ -89,6 +95,12 @@ services:
   keycloak:
     build:
       context: ./infra/keycloak
+    # DNS para fora da rede (o DNS interno do Docker continua resolvendo postgres, rabbitmq...).
+    # Com os resolvedores do servidor, consultas externas falhavam de vez em quando
+    # (UnknownHostException no SMTP / site do PCI)
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
     # comando padrão da imagem: start --optimized --import-realm
     environment:
       KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
