@@ -8,6 +8,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-postgres}
       # lido pelos scripts em infra/postgres/init (só no primeiro boot, com volume vazio)
       CORE_DB_PASSWORD: ${CORE_DB_PASSWORD:?defina CORE_DB_PASSWORD no .env}
+      KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?defina KEYCLOAK_DB_PASSWORD no .env}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
@@ -64,11 +65,60 @@ services:
         required: false
     environment:
       RABBITMQ_HOST: rabbitmq
+      # o RABBITMQ_PORT do .env é a porta publicada no host; dentro da rede é sempre 5672
+      RABBITMQ_PORT: "5672"
     depends_on:
       rabbitmq:
         condition: service_healthy
       rabbitmq-init:
         condition: service_completed_successfully
+    restart: unless-stopped
+
+  keycloak:
+    build:
+      context: ./infra/keycloak
+    image: gabarit/keycloak
+    container_name: gabarit_keycloak
+    environment:
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?defina KEYCLOAK_DB_PASSWORD no .env}
+      # admin do console, criado só no primeiro boot (banco vazio)
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER:?defina KEYCLOAK_ADMIN_USER no .env}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?defina KEYCLOAK_ADMIN_PASSWORD no .env}
+      # URL pública (é o issuer dos tokens): o navegador e o core precisam ver a mesma
+      KC_HOSTNAME: ${KEYCLOAK_URL:-http://localhost:8180}
+      # TLS fica no reverse proxy, na frente do Keycloak
+      KC_HTTP_ENABLED: "true"
+      KC_PROXY_HEADERS: xforwarded
+      # lidos pelo realm (infra/keycloak/realm) só no primeiro import; depois, mude pelo admin
+      WEB_URL: ${WEB_URL:-http://localhost:5173}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_FROM: ${SMTP_FROM:-no-reply@gabarit.ai}
+      SMTP_AUTH: ${SMTP_AUTH:-true}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      # 587 = STARTTLS (padrão); 465 = TLS direto (SMTP_SSL=true, SMTP_STARTTLS=false)
+      SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
+      SMTP_SSL: ${SMTP_SSL:-false}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      # a imagem não tem curl/wget: HTTP na mão via /dev/tcp na porta de gerenciamento (9000)
+      test:
+        - CMD
+        - bash
+        - -c
+        - >-
+          exec 3<>/dev/tcp/127.0.0.1/9000
+          && printf 'GET /health/ready HTTP/1.0\r\nHost: localhost\r\n\r\n' >&3
+          && grep -q '"status": "UP"' <&3
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
     restart: unless-stopped
 
   core:
@@ -88,6 +138,10 @@ services:
       RABBITMQ_USER: ${RABBITMQ_USER}
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
       RABBITMQ_VHOST: ${RABBITMQ_VHOST:-/}
+      # tokens: iss = URL pública; chaves pela rede interna (busca na primeira requisição, sem depender no boot)
+      KEYCLOAK_URL: ${KEYCLOAK_URL:-http://localhost:8180}
+      KEYCLOAK_INTERNAL_URL: http://keycloak:8080
+      WEB_URL: ${WEB_URL:-http://localhost:5173}
     depends_on:
       postgres:
         condition: service_healthy
@@ -123,6 +177,23 @@ services:
     depends_on:
       rabbitmq-init:
         condition: service_completed_successfully
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./web
+      target: prod
+    image: gabarit/web
+    container_name: gabarit_web
+    # viram o config.js no boot (URLs públicas: quem usa é o navegador)
+    environment:
+      KEYCLOAK_URL: ${KEYCLOAK_URL:-http://localhost:8180}
+      API_URL: ${API_URL:-http://localhost:8080}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     restart: unless-stopped
 
 volumes:

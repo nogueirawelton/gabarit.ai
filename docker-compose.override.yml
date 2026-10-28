@@ -9,6 +9,31 @@ services:
       - "${RABBITMQ_PORT:-5672}:5672"
       - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
 
+  keycloak:
+    # dev: sem build otimizado, tema montado do host e sem cache (edite o CSS e recarregue a página)
+    command: ["start-dev", "--import-realm"]
+    # start-dev refaz o build no boot: as opções de build (fixas no Dockerfile) vão de novo aqui
+    environment:
+      KC_DB: postgres
+      KC_HEALTH_ENABLED: "true"
+    ports:
+      - "${KEYCLOAK_PORT:-8180}:8080"
+    volumes:
+      - ./infra/keycloak/themes/gabarit:/opt/keycloak/themes/gabarit:ro
+
+  web:
+    build:
+      target: dev
+    image: gabarit/web:dev
+    ports:
+      - "${WEB_PORT:-5173}:5173"
+    volumes:
+      - ./web:/app
+      # node_modules fica o da imagem (instalado no Linux do container), não o do host.
+      # Mudou o package.json? Recrie com: docker compose up -d --build --renew-anon-volumes web
+      - /app/node_modules
+    restart: "no"
+
   core:
     build:
       target: dev

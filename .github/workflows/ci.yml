@@ -68,6 +68,24 @@ jobs:
       - name: mvn verify
         run: ./mvnw -B verify
 
+  web:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - run: npm ci --no-audit --no-fund
+      # typecheck + bundle
+      - run: npm run build
+
   infra:
     runs-on: ubuntu-24.04
     steps:
@@ -81,6 +99,9 @@ jobs:
           POSTGRES_USER: ci
           POSTGRES_PASSWORD: ci
           CORE_DB_PASSWORD: ci
+          KEYCLOAK_DB_PASSWORD: ci
+          KEYCLOAK_ADMIN_USER: ci
+          KEYCLOAK_ADMIN_PASSWORD: ci
           RABBITMQ_USER: ci
           RABBITMQ_PASSWORD: ci
         run: |

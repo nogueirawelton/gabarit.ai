@@ -12,7 +12,7 @@ svc_dir = $(or $(DIR_$(1)),services/$(1))
 TEST_core       = docker compose run --rm --no-deps -v /var/run/docker.sock:/var/run/docker.sock core ./mvnw -q -B test
 TEST_scraper    = docker compose run --rm --no-deps scraper pytest
 TEST_extraction = docker compose run --rm --no-deps extraction pytest
-TEST_web        = cd web && npm test
+TEST_web        = docker compose run --rm --no-deps web npm run typecheck
 
 help:            ## lista os comandos disponíveis
 	@grep -E "^[a-zA-Z_-]+:.*##" $(MAKEFILE_LIST) | awk -F ":.*## " "{printf \"  %-10s %s\\n\", \$$1, \$$2}"

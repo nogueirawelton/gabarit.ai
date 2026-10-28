@@ -35,7 +35,7 @@ Boas práticas esperadas:
 
 **gabarit-ai** — plataforma de estudo para concursos: coleta editais/provas (scraping), extrai conteúdo, monta planos de estudo e notifica o usuário. Arquitetura de microsserviços orientada a mensagens.
 
-> Os serviços estão sendo criados um a um: hoje existem o `scraper` e o `core` (roteiro de cada um no `GUIA.md` do serviço). Confira o estado atual antes de assumir que algo existe.
+> Os serviços estão sendo criados um a um: hoje existem o `scraper`, o `core` e o `web` (roteiro de cada um no `GUIA.md` do serviço). Confira o estado atual antes de assumir que algo existe.
 
 ### Serviços planejados (ver `Makefile`)
 | Serviço | Stack | Papel |
@@ -43,13 +43,15 @@ Boas práticas esperadas:
 | `services/core` | Java (Maven wrapper) | todo o backend: API do web, concursos, planos de estudo, usuários, notificações |
 | `services/scraper` | Python | coleta de concursos/provas |
 | `services/extraction` | Python | extração de conteúdo dos documentos |
-| `web` | Node (npm) | frontend |
+| `web` | React + Vite + TypeScript (npm) | frontend (SPA); login pelo Keycloak |
 
 ### Infraestrutura de apoio
 - **PostgreSQL 16 + pgvector** (`pgvector/pgvector:0.8.0-pg16`) — dados e embeddings. Um banco e um usuário por serviço, criados em `infra/postgres/init/` (só roda com volume vazio).
 - **RabbitMQ 3.13 (management)** — mensageria entre serviços.
 - **MinIO** — armazenamento de arquivos (PDFs de provas/editais). Ainda não está no compose.
 - **Topologia do RabbitMQ** compartilhada em `infra/rabbitmq/definitions.json`, importada pelo one-shot `rabbitmq-init` antes dos serviços subirem (filas de consumidores precisam existir antes de alguém publicar).
+- **Keycloak 26** (`infra/keycloak`) — autenticação. Realm `gabarit` versionado em `infra/keycloak/realm/` (importado só se não existir) e tema de login próprio em `infra/keycloak/themes/gabarit` (mesmo visual do web). O web usa Authorization Code + PKCE (client público `web`); a senha só é digitada no Keycloak. Dev: `http://localhost:8180` (admin em `/admin`). URLs do web e SMTP vêm de variáveis de ambiente no primeiro import do realm.
+- **API do `core` exige token do Keycloak** (Bearer JWT): `iss` = URL pública do Keycloak, `aud` contém `core`, chaves buscadas pela rede interna (`keycloak:8080`). O web lê URLs da API e do Keycloak de `config.js`, gerado no boot do container (mesma imagem para qualquer ambiente).
 - **Agendador** (`infra/scheduler`): supercronic que só publica comandos na fila; disparo manual com `make scrape`.
 - Configuração via `.env` (modelo em `.env.example`); dentro da rede do compose os serviços se acessam pelo nome (`postgres`, `rabbitmq`, `minio`).
 
