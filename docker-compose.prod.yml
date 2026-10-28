@@ -6,8 +6,9 @@
 #     keycloak https://auth.<domínio>:8080
 #     core     https://api.<domínio>:8080
 #   Os outros serviços são internos (sem domínio).
-# - Sem container_name e sem rede declarada: o Coolify prefixa os nomes e liga tudo na rede do
-#   recurso; os serviços continuam se achando pelo nome (postgres, rabbitmq, keycloak...).
+# - Sem container_name: o Coolify prefixa os nomes.
+# - Rede: a da Destination do Coolify (personal_gabarit-ai_network), que já existe no servidor
+#   (external). Todos os serviços entram nela e se acham pelo nome (postgres, rabbitmq, keycloak...).
 # - Sem bind mount: tudo que vem do repositório está dentro das imagens.
 # - Variáveis: as do .env.example, cadastradas na aba Environment Variables do recurso.
 #   WEB_URL e SMTP_* são lidos pelo realm só no primeiro deploy (banco vazio).
@@ -200,3 +201,8 @@ services:
 volumes:
   postgres_data:
   rabbitmq_data:
+
+networks:
+  default:
+    name: personal_gabarit-ai_network
+    external: true
