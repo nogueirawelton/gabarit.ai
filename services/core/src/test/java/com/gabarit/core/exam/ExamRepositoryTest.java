@@ -82,7 +82,7 @@ class ExamRepositoryTest {
 		assertThat(found.getPositions().getFirst().getCatalogSlugs()).containsExactly("enfermeiro", "enfermeiro-psf");
 		// consulta pelo índice GIN: concursos com cargo no catálogo "enfermeiro-psf"
 		Integer count = jdbc.queryForObject(
-				"SELECT count(*) FROM exam_position WHERE catalog_slugs @> ARRAY['enfermeiro-psf']", Integer.class);
+				"SELECT count(*) FROM exam_position WHERE catalog_slugs @> ARRAY['enfermeiro-psf']::VARCHAR[]", Integer.class);
 		assertThat(count).isEqualTo(1);
 	}
 

@@ -35,7 +35,7 @@ Boas práticas esperadas:
 
 **gabarit-ai** — plataforma de estudo para concursos: coleta editais/provas (scraping), extrai conteúdo, monta planos de estudo e notifica o usuário. Arquitetura de microsserviços orientada a mensagens.
 
-> Os serviços estão sendo criados um a um: hoje existem o `scraper`, o `core` e o `web` (roteiro de cada um no `GUIA.md` do serviço). Confira o estado atual antes de assumir que algo existe.
+> Os serviços estão sendo criados um a um: hoje existem o `scraper`, o `core` e o `web` (roteiro de cada um no `GUIA.md` do serviço). O `extraction` (worker da LLM: Claude) só tem o roteiro em `services/extraction/GUIA.md`, ainda sem código; as fases de estudo (carteira, documentos, simulado, plano) estão no GUIA do `core`. Confira o estado atual antes de assumir que algo existe.
 
 ### Serviços planejados (ver `Makefile`)
 | Serviço | Stack | Papel |
@@ -48,10 +48,12 @@ Boas práticas esperadas:
 ### Infraestrutura de apoio
 - **PostgreSQL 16 + pgvector** (`pgvector/pgvector:0.8.0-pg16`) — dados e embeddings. Um banco e um usuário por serviço, criados em `infra/postgres/init/` (só roda com volume vazio).
 - **RabbitMQ 3.13 (management)** — mensageria entre serviços.
-- **MinIO** — armazenamento de arquivos (PDFs de provas/editais). Ainda não está no compose.
+- **MinIO** (`infra/minio`, imagem `coollabsio/minio` com tag fixa: a MinIO não publica mais imagens community) — armazenamento de arquivos (fotos de perfil; depois PDFs de provas/editais). O one-shot `minio-init` cria buckets, policies e um usuário por serviço (`core` só acessa o bucket `avatars`); buckets privados, navegador lê por URL pré-assinada pelo core com `MINIO_PUBLIC_URL`. Dev: API `http://localhost:9000`, console `http://localhost:9001`.
 - **Topologia do RabbitMQ** compartilhada em `infra/rabbitmq/definitions.json`, importada pelo one-shot `rabbitmq-init` antes dos serviços subirem (filas de consumidores precisam existir antes de alguém publicar).
 - **Keycloak 26** (`infra/keycloak`) — autenticação. Realm `gabarit` versionado em `infra/keycloak/realm/` (importado só se não existir) e tema de login próprio em `infra/keycloak/themes/gabarit` (mesmo visual do web). O web usa Authorization Code + PKCE (client público `web`); a senha só é digitada no Keycloak. Dev: `http://localhost:8180` (admin em `/admin`). URLs do web e SMTP vêm de variáveis de ambiente no primeiro import do realm.
 - **API do `core` exige token do Keycloak** (Bearer JWT): `iss` = URL pública do Keycloak, `aud` contém `core`, chaves buscadas pela rede interna (`keycloak:8080`). O web lê URLs da API e do Keycloak de `config.js`, gerado no boot do container (mesma imagem para qualquer ambiente).
+- **E-mail:** o `core` manda o resumo diário de concursos pelo mesmo SMTP do Keycloak (`SMTP_*`); em dev vai para o **Mailpit** (`http://localhost:8025`), nunca para o SMTP real.
+- **Limites de memória** em todos os serviços do `docker-compose.prod.yml`: as JVMs (`core`, Keycloak) e o RabbitMQ dimensionam heap/alarme por eles.
 - **Agendador** (`infra/scheduler`): supercronic que só publica comandos na fila; disparo manual com `make scrape`.
 - Configuração via `.env` (modelo em `.env.example`); dentro da rede do compose os serviços se acessam pelo nome (`postgres`, `rabbitmq`, `minio`).
 
@@ -61,6 +63,7 @@ Boas práticas esperadas:
 
 ### Convenções
 - Serviços Python seguem **arquitetura hexagonal**: `src/domain` (entidades e ports), `src/application/use_cases`, `src/infrastructure` (adapters, factories, logging). Async (`asyncio`, `aio-pika`, `asyncpg`, `httpx`), validação com `pydantic`.
+- Ids de tabela são **UUID v7** (gerado pela aplicação), nunca sequenciais; exceções só com chave natural (ex.: `sub` do Keycloak, hash do arquivo).
 - Commits em português no padrão Conventional Commits: `feat(escopo): …`, `chore(infra): …`, `wip(…): …`.
 
 ## Comandos (`Makefile`)

@@ -2,14 +2,14 @@ package com.gabarit.core.exam;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.UuidGenerator;
 
 import java.time.Instant;
+import java.util.UUID;
 
 /**
  * Cargo do catálogo de uma fonte (ex.: "Enfermeiro"), que agrupa os nomes crus dos concursos
@@ -19,9 +19,10 @@ import java.time.Instant;
 @Table(name = "position_catalog")
 public class CatalogPosition {
 
+	// UUID v7: ordenado pelo tempo (não espalha inserções pelo índice) e não dá para adivinhar
 	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long id;
+	@UuidGenerator(style = UuidGenerator.Style.VERSION_7)
+	private UUID id;
 
 	@Column(nullable = false, updatable = false)
 	private String source;
@@ -73,7 +74,7 @@ public class CatalogPosition {
 		updatedAt = Instant.now();
 	}
 
-	public Long getId() {
+	public UUID getId() {
 		return id;
 	}
 

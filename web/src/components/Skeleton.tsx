@@ -30,10 +30,17 @@ export function AppShellSkeleton() {
             <Skeleton className="h-8 w-32 rounded-[9px]" />
             <div className="hidden gap-2 sm:flex">
               <Skeleton className="h-8 w-16 rounded-lg" />
-              <Skeleton className="h-8 w-16 rounded-lg" />
+              <Skeleton className="h-8 w-20 rounded-lg" />
             </div>
           </div>
-          <Skeleton className="size-9 rounded-full" />
+          {/* menu do usuário: nome e e-mail só no desktop */}
+          <div className="flex items-center gap-3">
+            <div className="hidden flex-col items-end gap-1.5 md:flex">
+              <Skeleton className="h-3.5 w-28" />
+              <Skeleton className="h-3 w-40" />
+            </div>
+            <Skeleton className="size-9 rounded-full" />
+          </div>
         </div>
       </div>
       <div className="mx-auto max-w-6xl px-4 pt-10 pb-dock sm:pt-12 sm:pb-12">
@@ -70,7 +77,10 @@ export function InterestsSkeleton() {
           <Skeleton key={w} className={`h-7 rounded-full ${w}`} />
         ))}
       </div>
-      <Skeleton className="mt-5 h-4 w-32" />
+      <div className="mt-5 flex gap-5">
+        <Skeleton className="h-4 w-32" />
+        <Skeleton className="h-4 w-40" />
+      </div>
     </div>
   );
 }
@@ -89,6 +99,14 @@ export function PreferencesSkeleton() {
         ))}
       </div>
       <Skeleton className="mt-3 h-11 rounded-[10px]" />
+
+      <Skeleton className="mt-8 h-5 w-44" />
+      <Skeleton className="mt-2 h-4 w-72 max-w-full" />
+      <div className="mt-4 flex flex-wrap gap-2">
+        {["w-28", "w-20", "w-20", "w-24"].map((w, i) => (
+          <Skeleton key={i} className={`h-9 rounded-lg ${w}`} />
+        ))}
+      </div>
 
       <Skeleton className="mt-8 h-5 w-40" />
       <Skeleton className="mt-2 h-4 w-64 max-w-full" />
@@ -117,6 +135,44 @@ export function LoginSkeleton() {
       <Skeleton className="mt-2 h-5 w-40" />
       <Skeleton className="mt-8 h-11 rounded-[10px]" />
       <Skeleton className="mt-3 h-11 rounded-[10px]" />
+    </Loading>
+  );
+}
+
+/** Cards da lista de concursos. */
+export function ExamListSkeleton({ count = 4 }: { count?: number }) {
+  return (
+    <Loading className="mt-4 grid gap-4 sm:grid-cols-2">
+      {Array.from({ length: count }, (_, i) => (
+        <div
+          key={i}
+          className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900"
+        >
+          <div className="flex gap-2">
+            <Skeleton className="h-6 w-40 rounded-full" />
+            <Skeleton className="h-6 w-14 rounded-full" />
+          </div>
+          <Skeleton className="mt-4 h-5 w-4/5" />
+          <Skeleton className="mt-3 h-4 w-48" />
+          <Skeleton className="mt-2 h-4 w-56 max-w-full" />
+        </div>
+      ))}
+    </Loading>
+  );
+}
+
+/** Página do concurso. */
+export function ExamDetailSkeleton() {
+  return (
+    <Loading>
+      <Skeleton className="h-4 w-24" />
+      <div className="mt-6 flex gap-2">
+        <Skeleton className="h-7 w-44 rounded-full" />
+        <Skeleton className="h-7 w-16 rounded-full" />
+      </div>
+      <Skeleton className="mt-4 h-9 w-3/4" />
+      <Skeleton className="mt-8 h-28 rounded-2xl" />
+      <Skeleton className="mt-6 h-64 rounded-2xl" />
     </Loading>
   );
 }

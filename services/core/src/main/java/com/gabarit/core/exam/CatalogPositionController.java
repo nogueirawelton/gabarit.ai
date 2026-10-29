@@ -5,12 +5,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.UUID;
 
 /** Catálogo de cargos (para o usuário escolher os cargos de interesse). */
 @RestController
 class CatalogPositionController {
 
-	record CatalogPositionResponse(long id, String slug, String name) {
+	record CatalogPositionResponse(UUID id, String slug, String name) {
 
 		static CatalogPositionResponse of(CatalogPosition position) {
 			return new CatalogPositionResponse(position.getId(), position.getSlug(), position.getName());

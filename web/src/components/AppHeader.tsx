@@ -1,18 +1,26 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { House, LogOut, UserRound, type LucideIcon } from "lucide-react";
+import { BookOpen, ChevronDown, House, LogOut, UserRound, type LucideIcon } from "lucide-react";
 import { useAuth } from "react-oidc-context";
-import { NavLink, useLocation } from "react-router";
+import { Link, NavLink, useLocation } from "react-router";
 
+import { Avatar } from "./Avatar";
+import { NotificationBell } from "./NotificationBell";
 import { Logo } from "./Logo";
+import { useMenu } from "./useMenu";
 
 const NAV: { to: string; label: string; icon: LucideIcon }[] = [
   { to: "/", label: "Início", icon: House },
-  { to: "/perfil", label: "Perfil", icon: UserRound },
+  { to: "/estudos", label: "Estudos", icon: BookOpen },
 ];
+
+/** Item ativo também nas subpáginas (/estudos/5 acende "Estudos"); o início só na própria raiz. */
+function isActive(to: string, pathname: string) {
+  return to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(`${to}/`);
+}
 
 /**
  * Navegação da área logada. Desktop: menu no cabeçalho. Celular: dock flutuante embaixo (as
- * páginas reservam espaço para ele com `pb-dock`).
+ * páginas reservam espaço para ele com `pb-dock`). Perfil e Sair: menu do usuário, nos dois.
  */
 export function AppHeader() {
   return (
@@ -24,19 +32,9 @@ export function AppHeader() {
 }
 
 function Header() {
-  const auth = useAuth();
-  const queryClient = useQueryClient();
-  const profile = auth.user?.profile;
-  const initials = (profile?.name ?? profile?.email ?? "?")
-    .split(/\s+/)
-    .map((part) => part[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-
   return (
     <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/80 backdrop-blur dark:border-slate-800 dark:bg-slate-950/80">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4">
+      <div className="mx-auto flex h-18 max-w-6xl items-center justify-between gap-3 px-4">
         <div className="flex items-center gap-8">
           <NavLink to="/" aria-label="gabarit.ai, página inicial">
             <Logo />
@@ -46,7 +44,7 @@ function Header() {
               <NavLink
                 key={item.to}
                 to={item.to}
-                end
+                end={item.to === "/"}
                 className={({ isActive }) =>
                   `rounded-lg px-3 py-1.5 text-sm font-medium transition ${
                     isActive
@@ -61,32 +59,92 @@ function Header() {
           </nav>
         </div>
 
-        <div className="flex items-center gap-1 sm:gap-3">
-          <div className="hidden text-right md:block">
-            <p className="text-sm leading-tight font-medium">{profile?.name}</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400">{profile?.email}</p>
-          </div>
-          <span className="grid size-9 place-items-center rounded-full bg-indigo-100 text-sm font-semibold text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300">
-            {initials}
-          </span>
-          <button
-            type="button"
-            onClick={() => {
-              // o próximo login no mesmo navegador não vê nada em cache deste usuário
-              queryClient.clear();
-              void auth.signoutRedirect();
-            }}
-            aria-label="Sair"
-            className="inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 sm:px-3 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-slate-100"
-          >
-            <LogOut className="size-4" aria-hidden="true" />
-            <span className="hidden sm:inline">Sair</span>
-          </button>
+        <div className="flex items-center gap-1 sm:gap-2">
+          <UserMenu />
+          <NotificationBell />
         </div>
       </div>
     </header>
   );
 }
+
+/** Menu do usuário: abre pelo avatar (comportamento em `useMenu`). */
+function UserMenu() {
+  const auth = useAuth();
+  const queryClient = useQueryClient();
+  const { pathname } = useLocation();
+  const user = auth.user?.profile;
+  const { open, setOpen, root, trigger, menu, onMenuKeyDown } = useMenu();
+
+  function signOut() {
+    // o próximo login no mesmo navegador não vê nada em cache deste usuário
+    queryClient.clear();
+    void auth.signoutRedirect();
+  }
+
+  return (
+    <div ref={root} className="relative">
+      <button
+        ref={trigger}
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label="Menu da conta"
+        className={`flex items-center gap-3 rounded-xl p-1 transition hover:bg-slate-100 md:py-1 md:pr-2 md:pl-3 dark:hover:bg-slate-900 ${
+          open ? "bg-slate-100 dark:bg-slate-900" : ""
+        }`}
+      >
+        <span className="hidden text-right md:block">
+          <span className="block text-sm leading-tight font-medium">{user?.name}</span>
+          <span className="block text-xs text-slate-500 dark:text-slate-400">{user?.email}</span>
+        </span>
+        <Avatar />
+        <ChevronDown
+          className={`hidden size-4 text-slate-400 transition-transform md:block ${open ? "rotate-180" : ""}`}
+          aria-hidden="true"
+        />
+      </button>
+
+      {open && (
+        <div
+          ref={menu}
+          role="menu"
+          aria-label="Conta"
+          onKeyDown={onMenuKeyDown}
+          className="absolute right-0 mt-2 w-64 origin-top-right overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg shadow-slate-900/10 dark:border-slate-800 dark:bg-slate-900 dark:shadow-black/40"
+        >
+          {/* no celular o nome não aparece no cabeçalho: o menu mostra quem está logado */}
+          <div className="flex items-center gap-3 px-2.5 py-2 md:hidden">
+            <Avatar className="size-10 text-sm" />
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium">{user?.name}</p>
+              <p className="truncate text-xs text-slate-500 dark:text-slate-400">{user?.email}</p>
+            </div>
+          </div>
+          <div className="my-1 h-px bg-slate-200 md:hidden dark:bg-slate-800" />
+
+          <Link
+            to="/perfil"
+            role="menuitem"
+            onClick={() => setOpen(false)}
+            className={`${menuItem} ${pathname === "/perfil" ? "text-indigo-700 dark:text-indigo-300" : ""}`}
+          >
+            <UserRound className="size-4" aria-hidden="true" />
+            Perfil
+          </Link>
+          <button type="button" role="menuitem" onClick={signOut} className={menuItem}>
+            <LogOut className="size-4" aria-hidden="true" />
+            Sair
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const menuItem =
+  "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm font-medium text-slate-700 outline-none transition hover:bg-slate-100 focus-visible:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 dark:focus-visible:bg-slate-800";
 
 /**
  * Dock do celular: pílula flutuante embaixo (acima da barra de gestos do iPhone). Um único
@@ -94,7 +152,7 @@ function Header() {
  */
 function MobileDock() {
   const { pathname } = useLocation();
-  const active = NAV.findIndex((item) => item.to === pathname);
+  const active = NAV.findIndex((item) => isActive(item.to, pathname));
 
   return (
     <nav
@@ -117,7 +175,7 @@ function MobileDock() {
           <li key={to} className="relative">
             <NavLink
               to={to}
-              end
+              end={to === "/"}
               className={({ isActive }) =>
                 `flex h-14 flex-col items-center justify-center gap-0.5 rounded-xl text-[11px] font-semibold tracking-wide transition-colors ${
                   isActive

@@ -1,6 +1,15 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { type QueryClient, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { apiGet, apiPut, type CatalogPosition, type Profile } from "../api";
+import {
+  apiDelete,
+  apiGet,
+  apiPostForm,
+  apiPut,
+  type CatalogPosition,
+  type EducationLevel,
+  type Profile,
+} from "../api";
+import { examKeys } from "./exams";
 import { requireToken, useSession } from "./session";
 
 export const profileKeys = {
@@ -31,14 +40,63 @@ export function useCatalog(source = "pciconcursos") {
   });
 }
 
-export type ProfileUpdate = { positionIds: number[]; ufs: string[] };
+export type ProfileUpdate = { positionIds: string[]; ufs: string[]; educationLevels: EducationLevel[] };
 
-/** Salva as preferências e já põe a resposta no cache: a home mostra o novo sem buscar de novo. */
+/**
+ * Salva as preferências e já põe a resposta no cache: a home mostra o novo sem buscar de novo.
+ * "Meus concursos" dependem dos cargos e UFs: são buscados de novo.
+ */
 export function useUpdateProfile() {
   const { userId, accessToken } = useSession();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (update: ProfileUpdate) => apiPut<Profile>("/me/profile", requireToken(accessToken), update),
+    onSuccess: (profile) => {
+      queryClient.setQueryData(profileKeys.profile(userId), profile);
+      void queryClient.invalidateQueries({ queryKey: examKeys.mine });
+    },
+  });
+}
+
+/** Envia a foto (já preparada por `prepareAvatar`) e troca a URL no cache: cabeçalho e perfil atualizam juntos. */
+export function useUploadAvatar() {
+  const { userId, accessToken } = useSession();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (image: Blob) => {
+      const form = new FormData();
+      form.append("file", image, "avatar.jpg");
+      return apiPostForm<{ url: string }>("/me/avatar", requireToken(accessToken), form);
+    },
+    onSuccess: ({ url }) => setAvatarUrl(queryClient, userId, url),
+  });
+}
+
+export function useRemoveAvatar() {
+  const { userId, accessToken } = useSession();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => apiDelete("/me/avatar", requireToken(accessToken)),
+    onSuccess: () => setAvatarUrl(queryClient, userId, null),
+  });
+}
+
+function setAvatarUrl(queryClient: QueryClient, userId: string | undefined, avatarUrl: string | null) {
+  const key = profileKeys.profile(userId);
+  if (queryClient.getQueryData<Profile>(key)) {
+    queryClient.setQueryData<Profile>(key, (profile) => profile && { ...profile, avatarUrl });
+  } else {
+    void queryClient.invalidateQueries({ queryKey: key });
+  }
+}
+
+/** Liga ou desliga o resumo diário por e-mail; salva na hora (sem a barra de salvar). */
+export function useChangeEmailDigest() {
+  const { userId, accessToken } = useSession();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (emailDigest: boolean) =>
+      apiPut<Profile>("/me/profile/email-digest", requireToken(accessToken), { emailDigest }),
     onSuccess: (profile) => queryClient.setQueryData(profileKeys.profile(userId), profile),
   });
 }

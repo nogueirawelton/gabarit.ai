@@ -12,11 +12,15 @@ Itens com 🛠️ são infra: peça para o Claude fazer.
 ```
 com.gabarit.core
 ├── exam/      tudo de concurso: entidade, repositório, serviço, listener, controller, DTOs
-├── plan/      planos de estudo (depois)
-├── user/      usuários (depois)
+├── study/     carteira, simulados e plano de estudos (Fases 4–9)
+├── document/  arquivos enviados e extrações da LLM (Fases 5–6)
+├── user/      perfil, foto e "meus concursos" (usuário vem do token do Keycloak)
+├── notification/  avisos de concurso novo (sininho) e resumo diário por e-mail
 └── shared/    config, tratamento de erro, utilitários
 ```
 Regra: um pacote usa o outro pelo serviço público dele (ex.: `ExamService`), nunca pelo repositório.
+
+**Ids: UUID v7 em todas as tabelas** (`@Id @UuidGenerator(style = VERSION_7)`, coluna `UUID`). Id sequencial na URL deixa adivinhar recursos (`/estudos/5` → `/estudos/6`) e mostra o volume; o v7 é ordenado pelo tempo, então não espalha as inserções pelo índice como o UUID aleatório. Exceções com chave natural: `user_profile` (o `sub` do Keycloak) e `document_blob` (o SHA-256). A `V12__uuid_ids.sql` converteu as tabelas que nasceram com `BIGINT`, preservando dados e vínculos (conferido numa cópia do banco de dev). Tabela nova já nasce com `id UUID PRIMARY KEY`.
 
 **Como rodar:**
 - `make up`: stack inteira, `core` em `http://localhost:8080` (dev: `make restart s=core` recompila).
@@ -105,26 +109,183 @@ Nome, e-mail e senha são do Keycloak (o web abre as telas dele com `kc_action=U
 - [x] **`GET /catalog/positions`** (`exam`): catálogo em ordem alfabética do português.
 - [x] **`GET` / `PUT /me/profile`** (`user`): o usuário vem do token, nunca do corpo. O `PUT` substitui tudo; cargo inexistente, UF inválida ou mais de 30 cargos → 400 (`BadRequestException` em `shared/`, formato ProblemDetail).
 - [x] Testes: serviço no Postgres real e controller com token simulado.
+- [x] 🛠️ **MinIO** (`infra/minio`): bucket privado `avatars` e usuário `core` restrito a ele, criados pelo one-shot `minio-init`.
+- [x] **Foto de perfil** (`V4__user_avatar.sql`, `AvatarService`, `POST`/`DELETE /me/avatar`; `avatarUrl` no `GET /me/profile`):
+  - o web recorta e reduz no navegador; o core não confia no arquivo: formato pelos bytes (só JPEG/PNG), dimensões conferidas antes de decodificar, re-encode para JPEG 512px sem EXIF;
+  - chave nova a cada upload (`{sub}/{uuid}.jpg`): grava o arquivo → troca a chave no banco (linha travada) → apaga o anterior;
+  - leitura por URL pré-assinada com a URL **pública** do MinIO (a assinatura inclui o host), reaproveitada por 12h para o navegador cachear.
+  - Testes: `AvatarImageTest`, controller, e `AvatarServiceTest` com MinIO real (mesmo `init.sh` da infra).
 
+> Implementada pelo Claude. Pontos para ler: ordem das operações em `AvatarService.upload` (o que acontece se o banco ou o MinIO falhar) e `AvatarImage.read` (por que conferir o tamanho antes do `reader.read`).
+>
 > Próximo uso: filtrar os concursos da home e notificar quando abrir concurso para um cargo seguido (`user_profile_position` × `exam_position.catalog_slugs`).
 
 ---
 
-## Fase 3: API de leitura
+## Fase 3: API de leitura ✅
 
-- [ ] `GET /exams`: paginado, filtros por `uf`, inscrições abertas (calculado pelas datas, nunca guardado), texto no título.
-- [ ] `GET /exams/{id}` com os cargos.
-- [ ] DTOs de resposta separados das entidades; erros no formato `ProblemDetail` (RFC 9457) num `@RestControllerAdvice` em `shared/`.
-  - **Pesquisar:** *Pageable e Page no Spring Data*, *Specification ou query derivada para filtros opcionais*, *por que não devolver entidade JPA no controller*.
-- **Pronto quando:** o web consegue listar e abrir concursos, e uma consulta com N concursos faz um número fixo de queries (sem N+1).
+- [x] **Contrato:** `GET /exams` (filtros `uf`, `status`, `q`, `page`, `size` até 50), `GET /exams/{id}` e `GET /me/exams` (`status`, `q`, `page`, `size`). Respostas em DTO (`ExamSummary`, `ExamDetail`, `PageResponse` em `shared/`), nunca entidade nem `Page` do Spring.
+- [x] **`ExamStatus` calculado, nunca guardado:** `UPCOMING`/`OPEN`/`CLOSED`/`UNKNOWN`. Sem início conta como já começado: o PCI lista concurso aberto só com o fim (549 de 559 concursos têm fim, só 90 têm início). A regra existe em Java (`ExamStatus.of`) e em SQL (`ExamSpecifications.status`); um teste confere que as duas batem.
+- [x] **"Hoje" no fuso de Brasília:** bean `Clock` em `shared/ClockConfig`; os testes fixam a data.
+- [x] **Busca com `Specification`** (`ExamSpecifications`): um predicado por filtro presente. UF inclui os nacionais; `q` ignora caixa e trata `%`/`_` como texto; ordem fixa no servidor: abertos → em breve → sem data → encerrados, e dentro de cada grupo o fim mais próximo primeiro (sem fim por último).
+- [x] **Detalhe:** `@EntityGraph` (uma query), só cargos ativos, em ordem alfabética do português; 404 com `NotFoundException` (ProblemDetail).
+- [x] **"Meus concursos"** em `user/MyExamsController` (dependência user → exam): cargos seguidos agrupados por fonte, UFs do perfil; perfil sem cargo → lista vazia sem consultar. Cada item traz `matchingPositions` (os cargos seguidos naquele concurso), buscados numa query por página.
+- [x] **`V5`: `catalog_slugs` virou `varchar[]`.** O Hibernate envia array de String como `varchar[]`, e o Postgres não tem `text[] && varchar[]`. Com a coluna em `varchar[]`, o filtro vira `catalog_slugs && ?` e usa o índice GIN (conferido com `EXPLAIN`). SQL à mão: `ARRAY['enfermeiro']::VARCHAR[]`.
+- [x] **Testes:** `ExamStatusTest` (regras e fuso), `ExamSearchTest` (Postgres real: cada filtro, combinados, bordas de data, ordem, paginação e **número fixo de queries**: 3 com página de 5 ou de 30), `ExamControllerTest` e `MyExamsControllerTest`.
+- [x] **Web:** home com "Para você" / "Todos", busca (com debounce, na URL) e "Carregar mais"; página `/concursos/:id` com datas, vagas, cargos e link para a fonte.
+
+> ✋ **Revisão:** implementada pelo Claude. Pontos para ler:
+> - `ExamSpecifications.matching`: por que a ordem fica no servidor e por que o `orderBy` dentro da Specification não quebra a query de contagem;
+> - `ExamSearchTest.numeroDeQueriesNaoDependeDoTamanhoDaPagina`: como medir N+1 com as estatísticas do Hibernate;
+> - `ExamFilter.catalogSlugs`: diferença entre `null` (sem filtro) e mapa vazio (nada).
+>
+
+### Escolaridade e busca sem acento ✅
+
+- [x] **`V6`: escolaridade como níveis.** `EducationLevel` (`FUNDAMENTAL`, `MEDIO`, `TECNICO`, `SUPERIOR`) extraído do texto livre da fonte (`EducationLevel.parse`, a cada evento) para `exam.education_levels`; os concursos que já estavam no banco foram preenchidos pela própria migration, com a mesma regra em SQL. O texto original continua para exibição.
+- [x] **Perfil:** `user_profile.education_levels`; o `PUT /me/profile` passa a exigir `educationLevels` (nível desconhecido → 400). Vazio = qualquer nível, como as UFs.
+- [x] **Filtro:** `GET /me/exams` usa os níveis do perfil, e `GET /exams` aceita `educationLevel`. Basta um nível em comum; concurso sem escolaridade informada entra sempre. O filtro é no nível do concurso: um concurso "Médio / Superior" aparece para quem marcou Superior mesmo que o cargo seguido seja de nível médio (a fonte não diz a escolaridade de cada cargo).
+- [x] **`V7`: busca sem acento** com a extensão `unaccent`. Ela é *trusted* (PG 13+): o dono do banco cria pela migration, sem superusuário e sem mexer na infra. O título passa por `unaccent(lower(...))` no SQL; o texto digitado é normalizado em Java. Sem índice por enquanto (centenas de concursos); quando pesar, índice trigram numa função `IMMUTABLE` que embrulhe o `unaccent`.
+- [x] Testes: `EducationLevelTest`, filtro de escolaridade e busca sem acento no `ExamSearchTest`, perfil e controllers.
+
+---
+
+## Notificações ✅
+
+Concurso novo que bate com o perfil vira aviso no sininho do app e entra no resumo diário por e-mail. Decisões de produto: e-mail + sininho, **resumo diário** (não um e-mail por concurso), só concurso **novo** (atualização, reabertura e prorrogação não avisam).
+
+- [x] **Gatilho:** o `ExamService.upsert` publica `ExamCreatedEvent` (evento do Spring, não do RabbitMQ) só quando cria o concurso. O `NotificationService` ouve com `@EventListener`, **na mesma transação**: se gravar o aviso falhar, o concurso também não é gravado e a mensagem volta para a fila. Assim cada interessado recebe o aviso uma vez. Reentrega e atualização não avisam (viram `IGNORED`/`UPDATED`); concurso que já chega encerrado também não.
+- [x] **Quem é avisado:** `UserProfileRepository.findInterested`, as mesmas regras do `GET /me/exams` vistas do lado do usuário (cargo seguido da mesma fonte, UF ou nacional, nível de escolaridade em comum). Um teste confere que os avisados são exatamente os que veriam o concurso em "meus concursos".
+- [x] **Sininho:** `GET /me/notifications`, `GET /me/notifications/unread-count`, `POST /me/notifications/{id}/read`, `POST /me/notifications/read-all`. Aviso de outro usuário → 404.
+- [x] **Resumo diário** (`NotificationDigestJob`, `@Scheduled` às 8h de Brasília, `NOTIFICATION_DIGEST_CRON`): um e-mail por usuário com os avisos ainda não enviados dos últimos 7 dias; cada usuário numa transação, com os avisos travados (`FOR UPDATE SKIP LOCKED`: duas instâncias do core não mandam em dobro) e marcados como enviados só se o envio deu certo. Concurso que encerrou desde o aviso sai do e-mail. Avisos com mais de 90 dias são apagados.
+- [x] **Contato:** o e-mail é do Keycloak; o core guarda a cópia do token (`email`, `email_verified`, `given_name`) quando o usuário abre o app (`GET /me/profile`). Só e-mail confirmado recebe. O usuário desliga o resumo no perfil (`PUT /me/profile/email-digest`); o sininho continua.
+- [x] 🛠️ **SMTP:** o core usa o mesmo SMTP do Keycloak em produção; em dev, o **Mailpit** (`http://localhost:8025`), para nunca mandar e-mail de verdade testando. SMTP fora do ar não derruba o health do core.
+- [x] **Testes:** `NotificationTest` (quem é avisado, reentrega, paridade com "meus concursos", sininho) e `NotificationDigestJobTest` com SMTP de verdade no teste (GreenMail): quem recebe, conteúdo, não reenviar, janela de 7 dias, concurso encerrado.
+
+> ✋ **Revisão:** implementada pelo Claude. Pontos para ler:
+> - `NotificationService.onExamCreated`: por que na mesma transação (e o custo: um bug aqui trava a ingestão de concursos, que vai para a DLQ depois de 3 tentativas);
+> - `NotificationDigestJob.sendTo`: a ordem travar → enviar → marcar, e o que acontece se o commit falhar depois do envio (o usuário recebe em dobro no dia seguinte: raro e aceitável);
+> - `UserProfileRepository.findInterested`: os `CAST` explícitos (parâmetro nulo e array sem tipo confundem o Postgres).
+>
+> Pendente: link de descadastro em um clique no e-mail (hoje o link leva ao perfil, que exige login).
+
+---
+
+# Estudo: carteira, documentos, simulado e plano
+
+**Objetivo:** a pessoa estuda para um concurso, aberto ou passado, sem esperar o próximo edital. Ela põe o concurso na **carteira**, envia o **edital** e as **provas relacionadas com gabarito** (do mesmo cargo ou banca, deste concurso ou de outros), e o app usa a LLM (Claude, no worker `extraction`) para montar o conteúdo programático, os **simulados** e o **plano de estudos**.
+
+**Decisões já tomadas:**
+- **Os PDFs vêm do usuário, por upload.** O projeto não baixa PDF de terceiros: o PCI bloqueia por `robots.txt` e captcha, e não contornamos isso (ver o GUIA do scraper).
+- **Concurso passado entra pela carteira, não pelo scraper.** O edital é a fonte da verdade: dele saem órgão, banca, ano, cargos, data da prova e conteúdo. Coletar encerrados da `/vagas/` fica como opção futura.
+- **LLM = Claude, chamada só pelo worker Python `extraction`.** O `core` orquestra (pede por fila, guarda o resultado e avisa no sininho); nenhum segredo da Anthropic fica no `core`.
+- **Mesmo arquivo, uma extração.** Arquivos são identificados pelo hash (SHA-256) do conteúdo; o resultado de uma tarefa é reaproveitado entre usuários. O arquivo e o acesso continuam privados de cada um: ninguém vê o que o outro enviou, só não pagamos duas vezes pela mesma leitura.
+
+**Pacotes novos:**
+```
+com.gabarit.core
+├── study/     carteira (alvos de estudo), simulados e plano de estudos
+└── document/  arquivos enviados, pedidos de extração e resultados (cache por hash)
+```
+Dependências: `study → document → (nada de domínio)`; `study → exam` (concurso da lista). O `document` não conhece carteira: guarda arquivos e resultados, e quem dá sentido a eles é o `study`.
+
+**Ordem das fases e por quê:** carteira e upload (4 e 5) não usam LLM e destravam o resto; o pipeline (6) é a fundação de todas as tarefas; edital (7) é a tarefa mais simples de validar e é pré-requisito de questão e plano; simulado (8) dá o diagnóstico que o plano (9) usa; custo (10) entra quando houver uso real para medir.
+
+---
+
+## Fase 4: carteira (pacote `study`) ✅
+
+- [x] **`V9__study_target.sql`**: `study_target` = um concurso que a pessoa estuda. `exam_id` liga ao concurso da lista (nulo = cadastrado à mão; `ON DELETE SET NULL`: concurso apagado não apaga o estudo); `title`, `organ`, `board`, `year` (1950–2100), `position_name`, `exam_date`. Único `(user_id, exam_id)`: o mesmo concurso da lista entra uma vez.
+- [x] **API** (`StudyTargetController`): `GET /me/study-targets`, `POST` (`{examId}` ou `{title}`, exatamente um; 201 com `Location`, ou 200 se o concurso já estava), `GET`/`PUT`/`DELETE /me/study-targets/{id}`. Item de outro usuário → 404. Limite de 20 por carteira.
+- [x] **Concurso da lista** entra com título, órgão (título sem o " - UF") e ano (das datas de inscrição); o cargo tem de ser um dos cargos ativos do concurso. **Cargo do perfil:** se um só cargo do concurso está entre os que a pessoa segue, ele já vem escolhido; com mais de um, nada é escolhido por ela, mas `suggestedPositions` traz esses cargos e o web os mostra primeiro ("Seus cargos"). A regra é a mesma do "meus concursos" (`ProfileView.catalogSlugsBySource` + `ExamService.matchingPositions`). **Concurso à mão** aceita qualquer cargo.
+- [x] **Web:** "Estudos" na navegação (cabeçalho e dock), página da carteira com "Cadastrar concurso" (só o título), página do estudo com os dados editáveis (cargo em lista quando o concurso é da lista) e "Remover dos estudos"; botão "Estudar para este concurso" na página do concurso. O bloco de arquivos aparece como "em breve" (Fase 5).
+- [x] Testes: `StudyTargetServiceTest` (Postgres real: preenchimento, não duplicar, cargo do concurso, carteira de outro usuário, limite) e `StudyTargetControllerTest`.
+
+> ✋ **Revisão:** implementada pelo Claude. Pontos para ler: `StudyTargetService.addExam` (idempotência e o caso dos dois cliques simultâneos, comentado) e por que o `PUT` manda todos os campos (vazio apaga).
+
+---
+
+## Fase 5: documentos (pacotes `document` e `study`) ✅
+
+Divisão: o **`document`** cuida só de arquivo (URL de envio, conferência, um blob por conteúdo) e não conhece carteira; o **`study`** liga o arquivo ao concurso com o tipo e o status. Assim a dependência é `study → document`, sem ciclo, e o `document` serve depois para outros usos.
+
+- [x] 🛠️ **MinIO:** bucket privado `documents` (o `core` lê e escreve); regra de ciclo de vida que apaga `uploads/` em 1 dia (envio abandonado); CORS do `PUT` só para a origem do web (conferido com o preflight do navegador). O usuário `extraction` (só leitura) entra com o worker (Fase 0 do GUIA do extraction).
+- [x] **`V10__document.sql`**: `document_blob` (PK = SHA-256; `storage_key`, tamanho, páginas) e `study_document` (dono, concurso com `ON DELETE CASCADE`, `kind`, nome original, `status` `UPLOADING`/`READY`/`REJECTED` com o motivo, e o blob).
+- [x] **`V11__study_paper.sql`: prova relacionada com dois espaços.** `study_paper` (concurso, ano, tipo/cor, `answers_included`) e `study_document.paper_id`. Edital é do concurso (`paper_id` nulo, quantos quiser: retificações); prova e gabarito ocupam os espaços de uma prova relacionada, **um de cada** (índice único `(paper_id, kind)`). Assim o par prova ↔ gabarito é explícito desde o envio, e a Fase 8 não precisa adivinhar. "Gabarito no mesmo arquivo" é uma opção da prova (sem espaço de gabarito). A migration converte arquivos avulsos que já existissem (cada um vira uma prova relacionada).
+- [x] **Envio em três passos** (`StudyDocumentController`):
+  1. `POST /me/study-targets/{id}/documents` (`kind`, `paperId` para prova/gabarito, `name`, `size`) → URL pré-assinada de `PUT` para `uploads/<usuário>/<id>.pdf`, válida por 15 min, com o `Content-Type: application/pdf` **na assinatura** (outro tipo → 403 do MinIO);
+  2. o navegador envia direto ao MinIO (com barra de progresso);
+  3. `POST .../documents/{docId}/complete` → `DocumentService.ingest`: baixa em stream para arquivo temporário calculando o SHA-256, confere o cabeçalho `%PDF-`, abre com o PDFBox (cache em disco) para contar páginas, e recusa o que não é PDF, está corrompido, tem senha, passa de 30 MB ou de 600 páginas (limites da API do Claude). Aprovado → copiado para `blobs/<sha256>.pdf` (dentro do MinIO), um blob por conteúdo. Recusado volta **200** com `REJECTED` e o motivo (fica na lista); confirmar de novo devolve o mesmo resultado.
+- [x] **Falha de rede no meio da conferência não perde o envio:** o arquivo só é apagado de `uploads/` quando foi aprovado ou recusado; erro de MinIO/disco deixa o envio para tentar de novo.
+- [x] **`V13__paper_edital.sql`: edital daquela prova** como terceiro espaço (opcional) da prova relacionada. Edital **sem** prova relacionada é o do concurso-alvo; **dentro** de uma prova, é o do ano dela. Serve para classificar as questões de 2019 pelo conteúdo do edital de 2019 (não pelo atual) e para comparar o que entrou e saiu entre editais. O mesmo edital em várias provas (vários cargos e tipos no mesmo ano) é um arquivo só, e uma leitura só da LLM.
+- [x] **Provas relacionadas:** `POST /me/study-targets/{id}/papers` (ano, tipo/cor, gabarito junto), `DELETE .../papers/{paperId}` (leva os arquivos dela); `GET .../materials` devolve editais e provas com os dois espaços. Espaço com arquivo aprovado não é sobrescrito (remover é explícito); envio recusado ou não concluído é substituído pelo novo.
+- [x] **Limites:** 30 arquivos e 12 provas relacionadas por concurso, 50 envios por usuário em 24 h. Envio começado e nunca confirmado some em 1 dia (job de madrugada).
+- [x] **Abrir o arquivo:** cada arquivo aprovado vem com uma URL pré-assinada de leitura (1 h).
+- [x] **Web:** seção "Edital e provas relacionadas" na página do estudo: lista de editais e um cartão por prova relacionada ("Prova de 2019 · Tipo 1") com os espaços **Prova** e **Gabarito** lado a lado; barra de progresso, motivo da recusa no próprio espaço, remover.
+- [x] Testes: `DocumentServiceTest` (MinIO e Postgres reais, envio como o navegador: PDF válido, mesmo arquivo duas vezes = um blob, não-PDF, corrompido, com senha, não chegou, Content-Type errado → 403), `StudyDocumentServiceTest` (ponta a ponta com os dois espaços, espaço ocupado, recusado substituído, gabarito junto, edital × prova, outro usuário, limites, abandono, cascatas) e `StudyDocumentControllerTest`.
+
+> ✋ **Revisão:** implementada pelo Claude. Pontos para ler: `DocumentService.ingest` (o que apaga e quando) e por que o `complete` recusado responde 200.
+>
+> Pendente, anotado: blob sem nenhum `study_document` apontando continua no MinIO (pode ser de outra pessoa; limpar com um job quando pesar).
+
+---
+
+## Fase 6: pipeline de extração (core ↔ `extraction`)
+
+- [ ] 🛠️ **Contratos** em `contracts/`: comando `extraction.requested` (`task`, `inputs` = hashes dos blobs + parâmetros, `prompt_version`) e evento `extraction.completed` / `extraction.failed` (`task`, `inputs`, `prompt_version`, `result` JSON validado pelo schema da tarefa, `usage` com tokens e custo).
+- [ ] 🛠️ **Filas** no `definitions.json`: `extraction.requests` (consumida pelo worker) e `core.extraction_results`, ambas com DLQ.
+- [ ] **`V11__extraction.sql`**: `extraction` = cache de resultados. Chave única `(task, inputs_hash, prompt_version)`; `status` (`PENDING`, `DONE`, `FAILED`), `result JSONB`, `input_tokens`, `output_tokens`, `cost_usd`, `created_at`, `completed_at`.
+- [ ] **`ExtractionService.request(task, inputs, params)`**: se já existe `DONE` com a mesma chave, devolve na hora (**cache entre usuários**); se `PENDING`, só aguarda; senão grava `PENDING` e publica o comando. Idempotente.
+- [ ] **Listener** do resultado: grava, e o `study` reage (evento interno do Spring, como em `ExamCreatedEvent`) atualizando o alvo e criando o aviso no sininho ("O edital de X está pronto").
+- [ ] **Versão do prompt na chave:** prompt melhorou → versão nova → próxima leitura reprocessa; resultados antigos ficam para comparação.
+  - **Pesquisar:** *JSONB no Hibernate (`@JdbcTypeCode(SqlTypes.JSON)`)*, *request/reply assíncrono com correlation id*.
+- **Pronto quando:** um pedido falso (tarefa `ECHO`) vai ao worker e volta, e pedir de novo a mesma coisa não publica nada.
+
+---
+
+## Fase 7: edital → concurso, cargos e conteúdo
+
+- [ ] **Tarefa `EDITAL_OVERVIEW`** (edital inteiro): órgão, banca, ano, data da prova, lista de cargos (nome, escolaridade, vagas). Preenche o alvo; a pessoa **confirma e escolhe o cargo**.
+- [ ] **Tarefa `EDITAL_SYLLABUS`** (edital + cargo escolhido): conteúdo programático **daquele cargo**: disciplinas → tópicos, número de questões ou peso por disciplina (quando o edital diz), tipo de prova (A–E, certo/errado, discursiva, redação).
+- [ ] **Editais das provas relacionadas** (espaço "edital desta prova"): o mesmo `EDITAL_SYLLABUS` para cada um, e um **casamento de tópicos entre anos** (o mesmo tópico com nomes um pouco diferentes vira um só), para mostrar o que é recorrente, o que entrou e o que saiu.
+- [ ] **`V12__syllabus.sql`**: disciplinas e tópicos ligados ao alvo (cópia do resultado, para o plano e o simulado referenciarem tópico por id).
+- [ ] **Web:** "Conteúdo" do alvo: disciplinas e tópicos, com o que a pessoa já estudou marcado.
+- **Pronto quando:** com 10 editais reais (de bancas diferentes), órgão, banca, data e cargos batem, e o conteúdo de um cargo bate com o PDF numa conferência manual.
+
+---
+
+## Fase 8: prova + gabarito → questões, e o simulado
+
+- [ ] **Tarefa `EXAM_PAPER`** (prova + gabarito + tipo/cor + conteúdo do cargo **do edital daquela prova**, ou do edital do concurso se a prova não tiver o seu): questões com número, enunciado, alternativas (A–E) **ou** item certo/errado, resposta do gabarito, anulada, e **disciplina/tópico do edital**. Questão com imagem: guardar a página de origem para mostrar o recorte.
+- [ ] **`V13__question.sql`**: `question` (ligada ao blob da prova, não ao usuário: é compartilhável), alternativas, resposta, tópico.
+- [ ] **Simulado** (`study`): `simulation` (alvo, prova, início, fim, tempo limite) e `simulation_answer`. Correção no servidor (o web não recebe o gabarito antes de entregar). Resultado: nota geral e por disciplina, questões erradas com a resposta certa.
+- [ ] **"Questão com problema"**: a pessoa reporta (enunciado cortado, gabarito errado); reportes viram dado para melhorar o prompt.
+- [ ] **Web:** modo prova (uma questão por tela ou caderno corrido, cronômetro, marcar para revisar), tela de resultado.
+- **Pronto quando:** dá para fazer uma prova relacionada inteira e a nota bate com a correção manual pelo gabarito.
+
+---
+
+## Fase 9: plano de estudos
+
+- [ ] **Entradas:** conteúdo do cargo (pesos), data alvo (do edital novo ou escolhida pela pessoa), horas por dia/semana e dias disponíveis, resultado dos simulados (pontos fracos), assuntos que mais caem na banca (das questões extraídas).
+- [ ] **Decisão a tomar antes de codar:** plano gerado inteiro pela LLM, ou **LLM só para pesos e prioridades + agenda montada no core** (determinística). A segunda é mais barata, replaneja sem custo quando a pessoa perde um dia e é testável; a LLM entra onde agrega (priorizar tópicos, explicar o porquê).
+- [ ] **`plan/`** (semanas → sessões → tópicos, com questões das provas relacionadas daquele tópico para praticar); replanejar quando o simulado muda o diagnóstico.
+- [ ] **Concurso aberto chega:** quando sai edital novo para o mesmo cargo, oferecer migrar o plano para o conteúdo novo.
+- **Pronto quando:** a pessoa recebe um plano até a data alvo, marca sessões como feitas e o plano se ajusta.
+
+---
+
+## Fase 10: custo e limites
+
+- [ ] Painel simples (consulta SQL) de custo por tarefa, por usuário e por mês, com o `usage` que o worker devolve.
+- [ ] Limites por plano de usuário (gratuito/pago) aplicados no `ExtractionService.request` (antes de publicar).
+- [ ] Reprocessamento em lote (prompt novo) pela **Batches API** (metade do preço, sem pressa).
+- **Pronto quando:** dá para responder "quanto custa um usuário ativo por mês".
 
 ---
 
 ## Depois
 
-- **`plan/`**: plano de estudo por usuário e cargo-alvo.
-- **`user/`**: cadastro e autenticação (Spring Security).
-- **Notificações**: job assíncrono no próprio `core` (ex.: concurso novo para o cargo que o usuário segue).
 - **Normalização de cargos entre bancas**: o scraper manda o nome cru; padronizar é papel do `core`.
 
 ---

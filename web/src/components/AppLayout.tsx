@@ -1,4 +1,5 @@
-import { Outlet } from "react-router";
+import { useEffect } from "react";
+import { Outlet, useLocation, useNavigationType } from "react-router";
 
 import { AppHeader } from "./AppHeader";
 
@@ -7,6 +8,16 @@ import { AppHeader } from "./AppHeader";
  * Assim a navegação não remonta o menu (o destaque do dock desliza e o cabeçalho não pisca).
  */
 export function AppLayout() {
+  const { pathname } = useLocation();
+  const navigationType = useNavigationType();
+
+  // página nova começa no topo; no voltar/avançar (POP) o navegador restaura a rolagem
+  useEffect(() => {
+    if (navigationType !== "POP") {
+      window.scrollTo(0, 0);
+    }
+  }, [pathname, navigationType]);
+
   return (
     <div className="min-h-svh">
       <AppHeader />

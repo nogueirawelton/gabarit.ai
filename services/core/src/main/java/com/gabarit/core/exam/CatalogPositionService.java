@@ -11,6 +11,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -42,7 +43,7 @@ public class CatalogPositionService {
 
 	/** Os cargos com esses ids, em ordem alfabética. Id que não existe é ignorado. */
 	@Transactional(readOnly = true)
-	public List<CatalogPosition> findAll(Collection<Long> ids) {
+	public List<CatalogPosition> findAll(Collection<UUID> ids) {
 		return repository.findAllById(ids).stream().sorted(BY_NAME).toList();
 	}
 

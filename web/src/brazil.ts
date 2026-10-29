@@ -1,3 +1,5 @@
+import type { EducationLevel } from "./api";
+
 /** Estados por região, na ordem em que aparecem na tela de perfil. */
 export const REGIONS: { name: string; ufs: string[] }[] = [
   { name: "Norte", ufs: ["AC", "AP", "AM", "PA", "RO", "RR", "TO"] },
@@ -5,6 +7,14 @@ export const REGIONS: { name: string; ufs: string[] }[] = [
   { name: "Centro-Oeste", ufs: ["DF", "GO", "MT", "MS"] },
   { name: "Sudeste", ufs: ["ES", "MG", "RJ", "SP"] },
   { name: "Sul", ufs: ["PR", "RS", "SC"] },
+];
+
+/** Níveis de escolaridade das vagas, na ordem em que aparecem na tela. */
+export const EDUCATION_LEVELS: { value: EducationLevel; label: string }[] = [
+  { value: "FUNDAMENTAL", label: "Fundamental" },
+  { value: "MEDIO", label: "Médio" },
+  { value: "TECNICO", label: "Técnico" },
+  { value: "SUPERIOR", label: "Superior" },
 ];
 
 const LOWERCASE_WORDS = new Set(["a", "e", "o", "da", "de", "do", "das", "dos", "em", "na", "no", "para"]);

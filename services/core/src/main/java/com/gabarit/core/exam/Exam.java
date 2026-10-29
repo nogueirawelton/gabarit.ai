@@ -3,25 +3,28 @@ package com.gabarit.core.exam;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.UuidGenerator;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -33,9 +36,10 @@ import java.util.stream.Collectors;
 @Table(name = "exam")
 public class Exam {
 
+	// UUID v7: ordenado pelo tempo (não espalha inserções pelo índice) e não dá para adivinhar
 	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long id;
+	@UuidGenerator(style = UuidGenerator.Style.VERSION_7)
+	private UUID id;
 
 	@Column(nullable = false, updatable = false)
 	private String source;
@@ -54,6 +58,11 @@ public class Exam {
 	private String region;
 
 	private String educationLevel;
+
+	// níveis extraídos do educationLevel (nomes do EducationLevel), para filtrar; varchar[] (ver V6)
+	@JdbcTypeCode(SqlTypes.ARRAY)
+	@Column(nullable = false, columnDefinition = "varchar[]")
+	private List<String> educationLevels = new ArrayList<>();
 
 	private String openings;
 
@@ -118,6 +127,8 @@ public class Exam {
 		this.uf = snapshot.uf();
 		this.region = snapshot.region();
 		this.educationLevel = snapshot.educationLevel();
+		this.educationLevels = EducationLevel.parse(snapshot.educationLevel()).stream().map(Enum::name)
+				.collect(Collectors.toCollection(ArrayList::new));
 		this.openings = snapshot.openings();
 		this.registrationStart = snapshot.registrationStart();
 		this.registrationEnd = snapshot.registrationEnd();
@@ -164,7 +175,7 @@ public class Exam {
 		updatedAt = Instant.now();
 	}
 
-	public Long getId() {
+	public UUID getId() {
 		return id;
 	}
 
@@ -194,6 +205,11 @@ public class Exam {
 
 	public String getEducationLevel() {
 		return educationLevel;
+	}
+
+	public Set<EducationLevel> getEducationLevels() {
+		return educationLevels.stream().map(EducationLevel::valueOf)
+				.collect(Collectors.toCollection(() -> EnumSet.noneOf(EducationLevel.class)));
 	}
 
 	public String getOpenings() {

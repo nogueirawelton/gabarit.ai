@@ -18,6 +18,27 @@ spring:
       ddl-auto: validate
     open-in-view: false
 
+  # foto de perfil: o web já manda recortada e reduzida (~100 KB); o limite é para quem chama a API direto
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
+
+  # resumo diário de concursos. SMTP_HOST vazio: o job não envia (só registra no log)
+  mail:
+    host: ${SMTP_HOST:}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USER:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail.smtp.auth: ${SMTP_AUTH:true}
+      # 587 = STARTTLS; 465 = TLS direto (SMTP_SSL=true, SMTP_STARTTLS=false)
+      mail.smtp.starttls.enable: ${SMTP_STARTTLS:true}
+      mail.smtp.ssl.enable: ${SMTP_SSL:false}
+      mail.smtp.connectiontimeout: 10000
+      mail.smtp.timeout: 10000
+      mail.smtp.writetimeout: 10000
+
   # erros da API no formato ProblemDetail (RFC 9457), inclusive validação do corpo
   mvc:
     problemdetails:
@@ -45,8 +66,26 @@ spring:
 gabarit:
   # origem do web liberada no CORS
   web-url: ${WEB_URL:http://localhost:5173}
+  notifications:
+    from: ${SMTP_FROM:no-reply@gabarit.ai}
+    # todo dia às 8h (horário de Brasília); formato cron do Spring (segundo minuto hora dia mês dia-da-semana)
+    digest-cron: ${NOTIFICATION_DIGEST_CRON:0 0 8 * * *}
+  # MinIO (API S3): bucket e usuário criados pela infra (infra/minio/init.sh)
+  storage:
+    # leitura e escrita (de dentro do container: http://minio:9000)
+    url: ${MINIO_URL:http://localhost:9000}
+    # host das URLs pré-assinadas, as que o navegador usa
+    public-url: ${MINIO_PUBLIC_URL:http://localhost:9000}
+    access-key: ${MINIO_ACCESS_KEY:core}
+    secret-key: ${MINIO_SECRET_KEY}
+    avatars-bucket: avatars
+    documents-bucket: documents
 
 management:
+  health:
+    # SMTP fora do ar não deixa o core "doente": o resumo tenta de novo no dia seguinte
+    mail:
+      enabled: false
   endpoints:
     web:
       exposure:

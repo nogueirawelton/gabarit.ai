@@ -11,9 +11,9 @@ import org.testcontainers.utility.MountableFile;
 
 import java.io.IOException;
 
-// Aplicação inteira: Postgres + RabbitMQ. Mesmas imagens do docker-compose.yml.
+// Aplicação inteira: Postgres + RabbitMQ + MinIO. Mesmas imagens do docker-compose.yml.
 @TestConfiguration(proxyBeanMethods = false)
-@Import(PostgresTestConfiguration.class)
+@Import({ PostgresTestConfiguration.class, MinioTestConfiguration.class })
 public class TestcontainersConfiguration {
 
 	private static final String DEFINITIONS = "/tmp/definitions.json";

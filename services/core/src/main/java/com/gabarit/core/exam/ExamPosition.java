@@ -3,8 +3,6 @@ package com.gabarit.core.exam;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -12,6 +10,7 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
@@ -19,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Cargo de um concurso. Só existe dentro do {@link Exam}, que é quem cria, ativa e inativa.
@@ -28,9 +28,10 @@ import java.util.List;
 @Table(name = "exam_position")
 public class ExamPosition {
 
+	// UUID v7: ordenado pelo tempo (não espalha inserções pelo índice) e não dá para adivinhar
 	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long id;
+	@UuidGenerator(style = UuidGenerator.Style.VERSION_7)
+	private UUID id;
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(name = "exam_id", nullable = false, updatable = false)
@@ -42,9 +43,10 @@ public class ExamPosition {
 	@Column(nullable = false)
 	private boolean active;
 
-	// text[] no Postgres. Slugs da mesma source do concurso; sem FK de propósito (ver V2)
+	// varchar[] no Postgres (V5: o tipo que o Hibernate usa nos parâmetros, para o "&&" da busca).
+	// Slugs da mesma source do concurso; sem FK de propósito (ver V2)
 	@JdbcTypeCode(SqlTypes.ARRAY)
-	@Column(nullable = false, columnDefinition = "text[]")
+	@Column(nullable = false, columnDefinition = "varchar[]")
 	private List<String> catalogSlugs = new ArrayList<>();
 
 	@Column(nullable = false, updatable = false)
@@ -87,7 +89,7 @@ public class ExamPosition {
 		updatedAt = Instant.now();
 	}
 
-	public Long getId() {
+	public UUID getId() {
 		return id;
 	}
 

@@ -3,6 +3,7 @@ package com.gabarit.core.user;
 import com.gabarit.core.PostgresTestConfiguration;
 import com.gabarit.core.exam.CatalogPosition;
 import com.gabarit.core.exam.CatalogPositionService;
+import com.gabarit.core.exam.EducationLevel;
 import com.gabarit.core.shared.BadRequestException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,6 +15,7 @@ import org.springframework.context.annotation.Import;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -30,7 +32,7 @@ class UserProfileServiceTest {
 	@Autowired
 	CatalogPositionService catalog;
 
-	Map<String, Long> ids;
+	Map<String, UUID> ids;
 
 	@BeforeEach
 	void catalogo() {
@@ -51,7 +53,7 @@ class UserProfileServiceTest {
 
 	@Test
 	void salvaELeOPerfilComCargosEmOrdemAlfabetica() {
-		service.update("kc-1", List.of(ids.get("enfermeiro"), ids.get("agente-de-endemias")), List.of("sp", "MG"));
+		service.update("kc-1", List.of(ids.get("enfermeiro"), ids.get("agente-de-endemias")), List.of("sp", "MG"), List.of());
 
 		var profile = service.get("kc-1");
 
@@ -63,9 +65,9 @@ class UserProfileServiceTest {
 
 	@Test
 	void salvarDeNovoSubstituiTudo() {
-		service.update("kc-2", List.of(ids.get("enfermeiro")), List.of("SP"));
+		service.update("kc-2", List.of(ids.get("enfermeiro")), List.of("SP"), List.of());
 
-		service.update("kc-2", List.of(ids.get("analista")), List.of());
+		service.update("kc-2", List.of(ids.get("analista")), List.of(), List.of());
 
 		var profile = service.get("kc-2");
 		assertThat(profile.positions()).extracting(CatalogPosition::getSlug).containsExactly("analista");
@@ -73,24 +75,35 @@ class UserProfileServiceTest {
 	}
 
 	@Test
+	void escolaridadeSemRepeticaoNaOrdemDosNiveis() {
+		service.update("kc-6", List.of(), List.of(),
+				List.of(EducationLevel.SUPERIOR, EducationLevel.MEDIO, EducationLevel.SUPERIOR));
+
+		assertThat(service.get("kc-6").educationLevels()).containsExactly(EducationLevel.MEDIO,
+				EducationLevel.SUPERIOR);
+	}
+
+	@Test
 	void recusaCargoQueNaoExiste() {
-		assertThatThrownBy(() -> service.update("kc-3", List.of(ids.get("enfermeiro"), 999_999L), List.of()))
+		UUID missing = UUID.randomUUID();
+
+		assertThatThrownBy(() -> service.update("kc-3", List.of(ids.get("enfermeiro"), missing), List.of(), List.of()))
 			.isInstanceOf(BadRequestException.class)
-			.hasMessageContaining("999999");
+			.hasMessageContaining(missing.toString());
 	}
 
 	@Test
 	void recusaUfInvalida() {
-		assertThatThrownBy(() -> service.update("kc-4", List.of(), List.of("SP", "XX")))
+		assertThatThrownBy(() -> service.update("kc-4", List.of(), List.of("SP", "XX"), List.of()))
 			.isInstanceOf(BadRequestException.class)
 			.hasMessageContaining("XX");
 	}
 
 	@Test
 	void recusaCargosDemais() {
-		List<Long> many = java.util.stream.LongStream.rangeClosed(1, UserProfileService.MAX_POSITIONS + 1).boxed().toList();
+		List<UUID> many = java.util.stream.Stream.generate(UUID::randomUUID).limit(UserProfileService.MAX_POSITIONS + 1).toList();
 
-		assertThatThrownBy(() -> service.update("kc-5", many, List.of())).isInstanceOf(BadRequestException.class);
+		assertThatThrownBy(() -> service.update("kc-5", many, List.of(), List.of())).isInstanceOf(BadRequestException.class);
 	}
 
 }

@@ -62,6 +62,56 @@ services:
         condition: service_healthy
     restart: "no"
 
+  minio:
+    build:
+      context: ./infra/minio
+      target: server
+    image: gabarit/minio
+    container_name: gabarit_minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?defina MINIO_ROOT_USER no .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?defina MINIO_ROOT_PASSWORD no .env}
+      # o navegador acessa o MinIO direto, por URL pré-assinada pelo core: só a origem do web
+      MINIO_API_CORS_ALLOW_ORIGIN: ${WEB_URL:-http://localhost:5173}
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      # console (navegador de objetos), só em dev
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      # a imagem não tem curl/wget nem grep: HTTP na mão via /dev/tcp e builtins do bash
+      test:
+        - CMD
+        - bash
+        - -c
+        - >-
+          exec 3<>/dev/tcp/127.0.0.1/9000
+          && printf 'GET /minio/health/live HTTP/1.0\r\nHost: localhost\r\n\r\n' >&3
+          && read -r status <&3
+          && [[ $$status == *' 200 '* ]]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+    restart: unless-stopped
+
+  # one-shot: buckets, policies e usuário de cada serviço (infra/minio/init.sh)
+  minio-init:
+    build:
+      context: ./infra/minio
+      target: init
+    image: gabarit/minio-init
+    container_name: gabarit_minio_init
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      CORE_MINIO_PASSWORD: ${CORE_MINIO_PASSWORD:?defina CORE_MINIO_PASSWORD no .env}
+    depends_on:
+      minio:
+        condition: service_healthy
+    restart: "no"
+
   scraper:
     build:
       context: ./services/scraper
@@ -163,6 +213,21 @@ services:
       KEYCLOAK_URL: ${KEYCLOAK_URL:-http://localhost:8180}
       KEYCLOAK_INTERNAL_URL: http://keycloak:8080
       WEB_URL: ${WEB_URL:-http://localhost:5173}
+      # arquivos: upload/download pela rede interna; URLs pré-assinadas com a URL pública
+      # (a assinatura inclui o host: assinada com minio:9000, o navegador não consegue usar)
+      MINIO_URL: http://minio:9000
+      MINIO_PUBLIC_URL: ${MINIO_PUBLIC_URL:-http://localhost:9000}
+      MINIO_ACCESS_KEY: core
+      MINIO_SECRET_KEY: ${CORE_MINIO_PASSWORD:?defina CORE_MINIO_PASSWORD no .env}
+      # resumo diário de concursos: em dev vai para o Mailpit (sem autenticação nem TLS)
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      SMTP_AUTH: "false"
+      SMTP_STARTTLS: "false"
+      SMTP_SSL: "false"
+      SMTP_FROM: ${SMTP_FROM:-no-reply@gabarit.ai}
+      # para testar o resumo sem esperar as 8h, ex.: NOTIFICATION_DIGEST_CRON="0 * * * * *" (todo minuto)
+      NOTIFICATION_DIGEST_CRON: ${NOTIFICATION_DIGEST_CRON:-0 0 8 * * *}
     ports:
       - "${CORE_PORT:-8080}:8080"
     volumes:
@@ -173,6 +238,8 @@ services:
       - ./contracts:/contracts:ro
       # topologia real do RabbitMQ, importada no Testcontainers
       - ./infra/rabbitmq/definitions.json:/infra/rabbitmq/definitions.json:ro
+      # init do MinIO (bucket, policy e usuário do core), rodado no Testcontainers
+      - ./infra/minio:/infra/minio:ro
       # cache do Maven: não baixa tudo de novo a cada container
       - core_m2:/root/.m2
     depends_on:
@@ -180,6 +247,9 @@ services:
         condition: service_healthy
       # a fila core.exam_discovered é declarada pela infra, não pelo core
       rabbitmq-init:
+        condition: service_completed_successfully
+      # bucket e usuário do core criados pela infra
+      minio-init:
         condition: service_completed_successfully
     healthcheck:
       # a imagem JRE não tem curl/wget: HTTP na mão via /dev/tcp do bash
@@ -196,6 +266,20 @@ services:
       retries: 6
       start_period: 60s
     restart: "no"
+
+  # caixa de e-mail de mentira: tudo que o core envia em dev para aqui (http://localhost:8025),
+  # nunca para o SMTP real do .env
+  mailpit:
+    image: axllent/mailpit:v1.31.5
+    container_name: gabarit_mailpit
+    ports:
+      - "${MAILPIT_PORT:-8025}:8025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    restart: unless-stopped
 
   # cron que só publica comandos (infra/scheduler/crontab); disparo manual: make scrape
   scheduler:
@@ -231,4 +315,5 @@ services:
 volumes:
   postgres_data:
   rabbitmq_data:
+  minio_data:
   core_m2:

@@ -41,5 +41,6 @@ COPY --from=build /extracted/snapshot-dependencies/ ./
 COPY --from=build /extracted/application/ ./
 USER app
 EXPOSE 8080
-# heap proporcional ao limite de memória do container
-ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75", "-jar", "core.jar"]
+# heap = 60% do limite de memória do container (docker-compose.prod.yml); o resto é metaspace,
+# threads e buffers. Sem limite no container, a JVM calcularia sobre a RAM do servidor inteiro
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=60", "-jar", "core.jar"]

@@ -107,6 +107,10 @@ jobs:
           KEYCLOAK_URL: https://auth.example.com
           WEB_URL: https://app.example.com
           API_URL: https://api.example.com
+          MINIO_ROOT_USER: ci
+          MINIO_ROOT_PASSWORD: ci
+          CORE_MINIO_PASSWORD: ci
+          MINIO_PUBLIC_URL: https://files.example.com
         run: |
           docker compose -f docker-compose.yml config -q
           # exclude_from_hc é chave do Coolify (o docker compose não conhece): valida sem ela

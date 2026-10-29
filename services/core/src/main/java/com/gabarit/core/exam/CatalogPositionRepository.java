@@ -3,9 +3,10 @@ package com.gabarit.core.exam;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.UUID;
 
 // package-private: outros pacotes acessam pelo serviço do pacote, nunca pelo repositório
-interface CatalogPositionRepository extends JpaRepository<CatalogPosition, Long> {
+interface CatalogPositionRepository extends JpaRepository<CatalogPosition, UUID> {
 
 	// o catálogo inteiro de uma fonte cabe em memória (~250 cargos): uma query por evento
 	List<CatalogPosition> findBySource(String source);
