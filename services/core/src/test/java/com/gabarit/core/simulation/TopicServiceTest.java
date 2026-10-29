@@ -34,6 +34,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyMap;
@@ -105,7 +106,7 @@ class TopicServiceTest {
 				Optional.of(new TargetSyllabus(syllabusReading, SNAKE.readValue(SYLLABUS, EditalSyllabus.class))));
 		given(documents.paperReadings("maria", targetId)).willReturn(Map.of(paperId, examReading));
 		Extraction pending = reading(classification, Extraction.Status.PENDING, null);
-		given(extractions.request(eq(ExtractionTask.QUESTION_TOPICS), anyList(), anyMap()))
+		given(extractions.request(any(), eq(ExtractionTask.QUESTION_TOPICS), anyList(), anyMap()))
 			.willReturn(pending);
 		given(extractions.find(anyCollection())).willReturn(Map.of(classification, pending));
 	}
@@ -143,7 +144,7 @@ class TopicServiceTest {
 
 		assertThat(requested.status()).isEqualTo(Extraction.Status.PENDING);
 		ArgumentCaptor<Map<String, Object>> params = ArgumentCaptor.forClass(Map.class);
-		verify(extractions).request(eq(ExtractionTask.QUESTION_TOPICS), eq(List.of()), params.capture());
+		verify(extractions).request(eq("maria"), eq(ExtractionTask.QUESTION_TOPICS), eq(List.of()), params.capture());
 		assertThat(params.getValue()).containsEntry("exam_reading_id", examReading.toString())
 			.containsEntry("syllabus_reading_id", syllabusReading.toString());
 		assertThat((List<Map<String, Object>>) params.getValue().get("topics")).extracting(t -> t.get("code"))
@@ -212,6 +213,22 @@ class TopicServiceTest {
 
 		assertThat(practice).containsOnlyKeys(new SimulationService.TopicRef("Português", "Crase."));
 		assertThat(practice.get(new SimulationService.TopicRef("Português", "Crase."))).hasSize(2);
+	}
+
+	@Test
+	void questaoReportadaSaiDaPratica() {
+		service.classify("maria", targetId, paperId);
+		finish("""
+				{"classifications": [{"ordinal": 0, "topic": "1.2"}, {"ordinal": 1, "topic": "1.2"}]}""");
+		UUID first = jdbc.queryForObject("SELECT id FROM question WHERE extraction_id = ? AND ordinal = 0", UUID.class,
+				examReading);
+		jdbc.update("""
+				INSERT INTO question_report (id, question_id, user_id, reason, created_at)
+				VALUES (?, ?, 'maria', 'WRONG_ANSWER', now())""", UUID.randomUUID(), first);
+
+		var practice = service.practiceQuestions("maria", targetId);
+
+		assertThat(practice.get(new SimulationService.TopicRef("Português", "Crase."))).hasSize(1).doesNotContain(first);
 	}
 
 }

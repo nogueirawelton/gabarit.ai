@@ -1,4 +1,4 @@
-.PHONY: help up down restart logs ps test lock scrape reset
+.PHONY: help up down restart logs ps test lock scrape custo reset
 
 SERVICES = core scraper extraction web
 
@@ -50,6 +50,9 @@ lock:            ## regenera os locks de dependências Python (precisa do uv no 
 
 scrape:          ## dispara uma coleta agora (mesmo comando do cron): make scrape [source=pciconcursos]
 	docker compose run --rm --no-deps scheduler publish gabarit.commands scrape.requested '{"source":"$(or $(source),pciconcursos)"}'
+
+custo:           ## gasto com a LLM nos últimos 30 dias (US$), por dia, tarefa, modelo e pessoa
+	@docker compose exec -T postgres sh -c 'psql -q -U "$$POSTGRES_USER" -d core' < infra/postgres/queries/custo.sql
 
 reset:           ## CUIDADO: derruba tudo e apaga os volumes (dados)
 	docker compose down -v

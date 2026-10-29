@@ -30,6 +30,12 @@ interface QuestionRepository extends JpaRepository<Question, UUID> {
 			GROUP BY 1 ORDER BY count(*) DESC, 1 DESC LIMIT 1""")
 	Integer mostCommonOptionCount(Collection<UUID> extractions);
 
+	/** Questões que a pessoa já recebeu em simulados de prática ou inéditos deste concurso. */
+	@Query(nativeQuery = true, value = """
+			SELECT DISTINCT sq.question_id FROM simulation_question sq JOIN simulation s ON s.id = sq.simulation_id
+			WHERE s.study_target_id = :targetId AND s.user_id = :userId""")
+	List<UUID> seenInSimulations(String userId, UUID targetId);
+
 	@Modifying
 	@Query(nativeQuery = true, value = """
 			INSERT INTO simulation_question (simulation_id, question_id, ordinal) VALUES (:simulationId, :questionId, :ordinal)""")

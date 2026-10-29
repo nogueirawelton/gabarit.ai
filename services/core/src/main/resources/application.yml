@@ -80,6 +80,9 @@ gabarit:
     secret-key: ${MINIO_SECRET_KEY}
     avatars-bucket: avatars
     documents-bucket: documents
+  llm:
+    # trava de segurança: pedidos novos à LLM por pessoa em 24 h (leitura que já existe não conta)
+    daily-limit: ${LLM_DAILY_LIMIT:150}
 
 management:
   health:

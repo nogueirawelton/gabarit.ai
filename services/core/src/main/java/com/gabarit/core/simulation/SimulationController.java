@@ -38,6 +38,10 @@ class SimulationController {
 	record AnswerRequest(@Size(max = 2) String answer) {
 	}
 
+	/** Motivo e comentário opcional. */
+	record ReportRequest(@NotNull QuestionReport.Reason reason, @Size(max = 500) String comment) {
+	}
+
 	private final SimulationService service;
 
 	SimulationController(SimulationService service) {
@@ -66,6 +70,14 @@ class SimulationController {
 	void answer(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id, @PathVariable UUID questionId,
 			@Valid @RequestBody AnswerRequest request) {
 		service.answer(jwt.getSubject(), id, questionId, request.answer());
+	}
+
+	/** Reporta a questão com problema: sai da nota e da prática da pessoa. */
+	@PutMapping("/me/simulations/{id}/questions/{questionId}/report")
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	void report(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id, @PathVariable UUID questionId,
+			@Valid @RequestBody ReportRequest request) {
+		service.report(jwt.getSubject(), id, questionId, request.reason(), request.comment());
 	}
 
 	@PostMapping("/me/simulations/{id}/finish")

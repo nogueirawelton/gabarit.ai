@@ -1,6 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { apiGet, apiPostJson, apiPut, isUuid, type Simulation, type SimulationSummary } from "../api";
+import {
+  apiGet,
+  apiPostJson,
+  apiPut,
+  isUuid,
+  type ReportReason,
+  type Simulation,
+  type SimulationSummary,
+} from "../api";
 import { requireToken, useSession } from "./session";
 
 export const simulationKeys = {
@@ -82,5 +90,19 @@ export function useFinishSimulation(simulationId: string) {
       queryClient.setQueryData(simulationKeys.detail(userId, simulation.id), simulation);
       void queryClient.invalidateQueries({ queryKey: ["simulations", userId] });
     },
+  });
+}
+
+/** Reporta uma questão com problema; o simulado volta do servidor (a nota muda). */
+export function useReportQuestion(simulationId: string) {
+  const { userId, accessToken } = useSession();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ questionId, reason, comment }: { questionId: string; reason: ReportReason; comment: string }) =>
+      apiPut<void>(`/me/simulations/${simulationId}/questions/${questionId}/report`, requireToken(accessToken), {
+        reason,
+        comment: comment || null,
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: simulationKeys.detail(userId, simulationId) }),
   });
 }

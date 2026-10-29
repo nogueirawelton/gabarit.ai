@@ -3,8 +3,10 @@ package com.gabarit.core.extraction;
 import com.gabarit.core.document.DocumentService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.gabarit.core.shared.BadRequestException;
 import org.springframework.amqp.AmqpException;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -17,6 +19,8 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.HexFormat;
 import java.util.List;
@@ -55,8 +59,10 @@ public class ExtractionService {
 
 	private final Clock clock;
 
+	private final int dailyLimit;
+
 	ExtractionService(ExtractionRepository repository, RabbitTemplate rabbit, TransactionTemplate transaction,
-			ApplicationEventPublisher events, Clock clock) {
+			ApplicationEventPublisher events, Clock clock, @Value("${gabarit.llm.daily-limit}") int dailyLimit) {
 		this.repository = repository;
 		this.rabbit = rabbit;
 		// transação própria mesmo quando quem pede está numa (ex.: confirmar o envio do edital): o
@@ -65,6 +71,7 @@ public class ExtractionService {
 		this.transaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
 		this.events = events;
 		this.clock = clock;
+		this.dailyLimit = dailyLimit;
 	}
 
 	/**
@@ -72,10 +79,15 @@ public class ExtractionService {
 	 * prompt, devolve essa (pronta, pendente ou com falha definitiva) sem publicar nada; falha
 	 * transitória é pedida de novo. O resultado chega depois, por {@link ExtractionFinishedEvent}.
 	 *
+	 * <p>Trava de segurança: quem já fez {@code gabarit.llm.daily-limit} pedidos novos em 24 h não
+	 * faz mais (leitura que já existe continua vindo).
+	 *
+	 * @param userId quem pede (guardado na leitura nova: é quem "paga" por ela)
 	 * @param documents SHA-256 dos PDFs (blobs do DocumentService), na ordem que a tarefa espera
 	 * @param params parâmetros da tarefa (valores JSON: texto, número, lista, mapa...)
 	 */
-	public Extraction request(ExtractionTask task, List<String> documents, Map<String, Object> params) {
+	public Extraction request(String userId, ExtractionTask task, List<String> documents,
+			Map<String, Object> params) {
 		documents.forEach(sha256 -> {
 			if (!SHA256.matcher(sha256).matches()) {
 				throw new IllegalArgumentException("sha256 inválido: " + sha256);
@@ -90,10 +102,15 @@ public class ExtractionService {
 			return existing.canRetry() ? retry(existing.getId(), documents, params) : existing;
 		}
 
+		Instant dayAgo = clock.instant().minus(Duration.ofDays(1));
+		if (repository.countByRequestedByAndCreatedAtAfter(userId, dayAgo) >= dailyLimit) {
+			throw new BadRequestException(
+					"limite de %d leituras novas pela IA em 24 h atingido: tente de novo amanhã".formatted(dailyLimit));
+		}
 		Extraction created;
 		try {
 			created = transaction.execute(status -> repository.saveAndFlush(
-					new Extraction(task, inputsHash, inputsJson, clock.instant())));
+					new Extraction(userId, task, inputsHash, inputsJson, clock.instant())));
 		}
 		catch (DataIntegrityViolationException e) {
 			// outro pedido igual gravou primeiro (e publica ele): devolve o dele

@@ -4,7 +4,7 @@ import {
   CalendarCheck,
   Check,
   ExternalLink,
-  ListChecks,
+  Sparkles,
   type LucideIcon,
   Timer,
   Trash2,
@@ -30,7 +30,7 @@ import { EditalFiles, RelatedPapers } from "../components/StudyDocuments";
 import { PlanForm, PlanPanel } from "../components/StudyPlan";
 import { usePlan } from "../data/plans";
 import { useSimulations, useStartSimulation } from "../data/simulations";
-import { useTopicPractice, useTopics } from "../data/topics";
+import { useMockExam, usePrepareMockExam, useStartMockExam, useTopicPractice, useTopics } from "../data/topics";
 import { useRemoveStudyTarget, useStudyMaterials, useStudyTarget, useUpdateStudyTarget } from "../data/study";
 import { primaryButton, secondaryButton } from "./StudiesPage";
 
@@ -314,15 +314,18 @@ function StudyActions({
   const [startingSimulation, setStartingSimulation] = useState(false);
   const [editingPlan, setEditingPlan] = useState(false);
   const plan = usePlan(targetId);
+  const [startingMock, setStartingMock] = useState(false);
   const syllabus = edital?.syllabus;
-  const syllabusReady = syllabus?.status === "DONE" && syllabus.syllabus?.positionFound;
+  const syllabusReady = Boolean(syllabus?.status === "DONE" && syllabus.syllabus?.positionFound);
+  const mockExam = useMockExam(targetId, syllabusReady);
+  const prepareMock = usePrepareMockExam(targetId);
   const actions: {
     icon: LucideIcon;
     title: string;
     description: string;
     needs?: ReactNode;
     // sem ação: "Em breve"
-    action?: { label: string; onClick: () => void };
+    action?: { label: string; onClick: () => void; disabled?: boolean };
   }[] = [
     {
       icon: CalendarCheck,
@@ -349,10 +352,56 @@ function StudyActions({
         ) : undefined,
     },
     {
-      icon: ListChecks,
-      title: "Questões no estilo da banca",
-      description: "Questões para resolver por disciplina e tópico, no formato da prova do seu cargo.",
-      needs: !syllabusReady && "Precisa do conteúdo programático do cargo.",
+      icon: Sparkles,
+      title: "Simulado inédito",
+      description: `Prova completa e inédita no formato da sua${
+        mockExam.data ? ` (${mockExam.data.questions} questões)` : ""
+      }, gerada pela IA no estilo da banca.`,
+      needs: !syllabusReady ? (
+        "Precisa do conteúdo programático do cargo."
+      ) : mockExam.data ? (
+        <>
+          {mockExam.data.pendingTopics > 0
+            ? `Preparando: ${mockExam.data.readyTopics} de ${mockExam.data.topics} tópicos prontos…`
+            : mockExam.data.readyTopics === 0
+              ? "Preparado uma vez, serve para os próximos simulados."
+              : `${mockExam.data.readyTopics} de ${mockExam.data.topics} tópicos prontos.`}
+          {/* pronto em parte (tópico que falhou ou conteúdo que mudou): dá para completar */}
+          {mockExam.data.pendingTopics === 0 &&
+            mockExam.data.readyTopics > 0 &&
+            mockExam.data.readyTopics < mockExam.data.topics && (
+              <>
+                {" "}
+                <button
+                  type="button"
+                  onClick={() => prepareMock.mutate()}
+                  disabled={prepareMock.isPending}
+                  className="font-semibold text-indigo-700 hover:underline dark:text-indigo-300"
+                >
+                  Completar
+                </button>
+              </>
+            )}
+          {prepareMock.isError && (
+            <span className="block text-red-700 dark:text-red-300">
+              {prepareMock.error instanceof ApiError && prepareMock.error.detail
+                ? prepareMock.error.detail
+                : "Não foi possível preparar agora."}
+            </span>
+          )}
+        </>
+      ) : undefined,
+      action: !syllabusReady || !mockExam.data
+        ? undefined
+        : mockExam.data.pendingTopics > 0
+          ? { label: "Preparando…", onClick: () => undefined, disabled: true }
+          : mockExam.data.readyTopics > 0
+            ? { label: "Começar simulado inédito", onClick: () => setStartingMock(true) }
+            : {
+                label: prepareMock.isPending ? "Pedindo…" : "Preparar simulado",
+                onClick: () => prepareMock.mutate(),
+                disabled: prepareMock.isPending,
+              },
     },
   ];
 
@@ -384,7 +433,7 @@ function StudyActions({
               <button
                 type="button"
                 onClick={action?.onClick}
-                disabled={!action}
+                disabled={!action || action.disabled}
                 className={`${primaryButton} w-full justify-center`}
               >
                 {action?.label ?? "Em breve"}
@@ -396,6 +445,7 @@ function StudyActions({
       {editingPlan && (
         <PlanForm targetId={targetId} plan={plan.data ?? null} examDate={examDate} onDone={() => setEditingPlan(false)} />
       )}
+      {startingMock && <StartMockExamForm targetId={targetId} onCancel={() => setStartingMock(false)} />}
       {startingSimulation && (
         <StartSimulationForm targetId={targetId} papers={readPapers} onCancel={() => setStartingSimulation(false)} />
       )}
@@ -474,6 +524,55 @@ function StartSimulationForm({
       )}
       <div className="mt-4 flex gap-2">
         <button type="submit" disabled={!paperId || start.isPending} className={primaryButton}>
+          {start.isPending ? "Começando…" : "Começar"}
+        </button>
+        <button type="button" onClick={onCancel} className={secondaryButton}>
+          Cancelar
+        </button>
+      </div>
+    </form>
+  );
+}
+
+/** Tempo do simulado inédito e começar. */
+function StartMockExamForm({ targetId, onCancel }: { targetId: string; onCancel: () => void }) {
+  const start = useStartMockExam(targetId);
+  const navigate = useNavigate();
+  const [minutes, setMinutes] = useState<number | null>(240);
+
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    start.mutate({ timeLimitMinutes: minutes }, { onSuccess: (simulation) => void navigate(`/simulados/${simulation.id}`) });
+  }
+
+  return (
+    <form onSubmit={submit} className="mt-4 rounded-xl border border-indigo-200 bg-indigo-50/40 p-4 dark:border-indigo-500/30 dark:bg-indigo-500/5">
+      <p className="font-semibold">Simulado inédito</p>
+      <div className="mt-3 max-w-xs">
+        <Field label="Tempo">
+          <select
+            value={minutes ?? ""}
+            onChange={(e) => setMinutes(e.target.value ? Number(e.target.value) : null)}
+            className={inputClass}
+          >
+            {TIME_LIMITS.map(({ minutes: value, label }) => (
+              <option key={label} value={value ?? ""}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </Field>
+      </div>
+      <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+        Questões que você ainda não viu entram primeiro. O gabarito e os comentários aparecem depois de entregar.
+      </p>
+      {start.isError && (
+        <p role="alert" className="mt-2 text-sm text-red-700 dark:text-red-300">
+          {start.error instanceof ApiError && start.error.detail ? start.error.detail : "Não foi possível começar agora."}
+        </p>
+      )}
+      <div className="mt-4 flex gap-2">
+        <button type="submit" disabled={start.isPending} className={primaryButton}>
           {start.isPending ? "Começando…" : "Começar"}
         </button>
         <button type="button" onClick={onCancel} className={secondaryButton}>

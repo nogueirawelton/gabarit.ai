@@ -53,8 +53,9 @@ interface QuestionTopicRepository extends JpaRepository<QuestionTopic, UUID> {
 
 	/**
 	 * Questões das leituras dadas (provas lidas ou questões geradas) ligadas a tópicos do conteúdo, que
-	 * servem para praticar (objetivas, não anuladas e com resposta no gabarito): reais primeiro, na
-	 * ordem das provas.
+	 * servem para praticar (objetivas, não anuladas, com resposta no gabarito, não reportadas pela
+	 * pessoa nem por {@link QuestionReport#REPORTS_TO_HIDE} pessoas): reais primeiro, na ordem das
+	 * provas.
 	 */
 	@Query(nativeQuery = true, value = """
 			SELECT qt.question_id AS question_id, s.name AS subject, t.text AS topic
@@ -64,10 +65,31 @@ interface QuestionTopicRepository extends JpaRepository<QuestionTopic, UUID> {
 			JOIN syllabus_subject s ON s.id = t.subject_id
 			WHERE q.extraction_id IN (:sources) AND s.extraction_id = :syllabusReading
 			  AND q.kind <> 'ESSAY' AND NOT q.annulled AND q.answer IS NOT NULL
+			  AND NOT EXISTS (SELECT 1 FROM question_report r WHERE r.question_id = q.id AND r.user_id = :userId)
+			  AND (SELECT count(*) FROM question_report r WHERE r.question_id = q.id) < 3
 			ORDER BY q.generated, q.extraction_id, q.ordinal""")
-	List<QuestionTopicName> practiceQuestions(Collection<UUID> sources, UUID syllabusReading);
+	List<QuestionTopicName> practiceQuestions(Collection<UUID> sources, UUID syllabusReading, String userId);
 
 	boolean existsByQuestionIdAndTopicId(UUID questionId, UUID topicId);
+
+	/** Questão gerada ligada a um tópico. */
+	interface GeneratedQuestion {
+
+		UUID getTopicId();
+
+		UUID getQuestionId();
+
+	}
+
+	/** As questões geradas (com gabarito; sem as reportadas, como na prática) dos tópicos, na ordem da geração. */
+	@Query(nativeQuery = true, value = """
+			SELECT qt.topic_id AS topic_id, q.id AS question_id
+			FROM question_topic qt JOIN question q ON q.id = qt.question_id
+			WHERE qt.topic_id IN (:topics) AND q.generated AND q.answer IS NOT NULL
+			  AND NOT EXISTS (SELECT 1 FROM question_report r WHERE r.question_id = q.id AND r.user_id = :userId)
+			  AND (SELECT count(*) FROM question_report r WHERE r.question_id = q.id) < 3
+			ORDER BY q.extraction_id, q.ordinal""")
+	List<GeneratedQuestion> generatedFor(Collection<UUID> topics, String userId);
 
 	/** Desfaz as ligações das questões da prova com os tópicos do conteúdo (antes de ligar de novo). */
 	@Modifying

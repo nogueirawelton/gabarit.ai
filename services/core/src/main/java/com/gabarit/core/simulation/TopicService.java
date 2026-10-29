@@ -126,7 +126,7 @@ public class TopicService {
 					.map(t -> Map.of("code", t.code(), "subject", t.getSubject().getName(), "text", cut(t.getText(), 4000)))
 					.toList(),
 				"questions", questionCatalog.questions(exam).stream().map(TopicService::questionParams).toList());
-		Extraction extraction = extractions.request(ExtractionTask.QUESTION_TOPICS, List.of(), params);
+		Extraction extraction = extractions.request(userId, ExtractionTask.QUESTION_TOPICS, List.of(), params);
 		TopicClassification classification = classifications.findByStudyPaperId(paperId)
 			.orElseGet(() -> new TopicClassification(userId, targetId, paperId));
 		classification.request(exam.extractionId(), syllabus.extractionId(), extraction.getId(), clock.instant());
@@ -185,7 +185,7 @@ public class TopicService {
 		if (sources.isEmpty()) {
 			return Map.of();
 		}
-		return links.practiceQuestions(sources, syllabus.get())
+		return links.practiceQuestions(sources, syllabus.get(), userId)
 			.stream()
 			.collect(Collectors.groupingBy(q -> new SimulationService.TopicRef(q.getSubject(), q.getTopic()),
 					LinkedHashMap::new,

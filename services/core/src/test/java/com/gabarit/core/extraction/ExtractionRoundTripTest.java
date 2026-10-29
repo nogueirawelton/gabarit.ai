@@ -58,7 +58,7 @@ class ExtractionRoundTripTest {
 
 	/** Cada teste com parâmetros próprios: chaves de cache diferentes. */
 	Extraction request(String test) {
-		return service.request(ExtractionTask.ECHO, List.of(SHA), Map.of("test", test));
+		return service.request("maria", ExtractionTask.ECHO, List.of(SHA), Map.of("test", test));
 	}
 
 	JsonNode receiveRequest() {
@@ -113,11 +113,11 @@ class ExtractionRoundTripTest {
 	@Test
 	void pedidoIgualNaoPublicaDeNovo() {
 		TreeMap<String, Object> params = new TreeMap<>(Map.of("test", "cache", "cargo", "Analista"));
-		Extraction first = service.request(ExtractionTask.ECHO, List.of(SHA), params);
+		Extraction first = service.request("maria", ExtractionTask.ECHO, List.of(SHA), params);
 		receiveRequest();
 
 		// pendente: só aguarda. Parâmetros em outra ordem são a mesma entrada
-		Extraction same = service.request(ExtractionTask.ECHO, List.of(SHA), params.descendingMap());
+		Extraction same = service.request("maria", ExtractionTask.ECHO, List.of(SHA), params.descendingMap());
 		assertThat(same.getId()).isEqualTo(first.getId());
 		assertNoRequest();
 	}
@@ -182,7 +182,7 @@ class ExtractionRoundTripTest {
 
 	@Test
 	void hashInvalidoERecusado() {
-		assertThatIllegalArgumentException().isThrownBy(() -> service.request(ExtractionTask.ECHO, List.of("nao-e-hash"), Map.of()));
+		assertThatIllegalArgumentException().isThrownBy(() -> service.request("maria", ExtractionTask.ECHO, List.of("nao-e-hash"), Map.of()));
 	}
 
 }

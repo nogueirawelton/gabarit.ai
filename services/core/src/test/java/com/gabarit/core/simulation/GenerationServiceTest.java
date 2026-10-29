@@ -7,6 +7,7 @@ import com.gabarit.core.extraction.ExtractionService;
 import com.gabarit.core.extraction.ExtractionTask;
 import com.gabarit.core.shared.BadRequestException;
 import com.gabarit.core.shared.NotFoundException;
+import com.gabarit.core.study.EditalOverview;
 import com.gabarit.core.study.EditalSyllabus;
 import com.gabarit.core.study.StudyDocumentService;
 import com.gabarit.core.study.StudyDocumentService.TargetSyllabus;
@@ -33,6 +34,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
@@ -100,7 +102,7 @@ class GenerationServiceTest {
 				null, null, Instant.parse("2026-11-01T00:00:00Z"), null, List.of()));
 		given(documents.targetSyllabus("maria", targetId)).willReturn(Optional.of(new TargetSyllabus(syllabusReading, SYLLABUS)));
 		Extraction pending = reading(Extraction.Status.PENDING, null);
-		given(extractions.request(eq(ExtractionTask.TOPIC_QUESTIONS), eq(List.of()), anyMap())).willReturn(pending);
+		given(extractions.request(any(), eq(ExtractionTask.TOPIC_QUESTIONS), eq(List.of()), anyMap())).willReturn(pending);
 		given(extractions.find(anyCollection())).willReturn(Map.of(generation, pending));
 	}
 
@@ -128,7 +130,7 @@ class GenerationServiceTest {
 
 		assertThat(state.status()).isEqualTo(Extraction.Status.PENDING);
 		ArgumentCaptor<Map<String, Object>> params = ArgumentCaptor.forClass(Map.class);
-		verify(extractions).request(eq(ExtractionTask.TOPIC_QUESTIONS), eq(List.of()), params.capture());
+		verify(extractions).request(eq("maria"), eq(ExtractionTask.TOPIC_QUESTIONS), eq(List.of()), params.capture());
 		assertThat(params.getValue()).containsEntry("board", "FGV")
 			.containsEntry("answer_format", "MULTIPLE_CHOICE")
 			.containsEntry("options_count", 5)
@@ -162,6 +164,31 @@ class GenerationServiceTest {
 			assertThat(q.correct()).isTrue();
 			assertThat(q.explanation()).isEqualTo("À vista é locução feminina.");
 		});
+	}
+
+	@Test
+	void simuladoIneditoNaEstruturaDoQuadroDeProvas() {
+		// quadro: 3 questões de Português (Crase recebe 2, Regência 1)
+		given(documents.targetExam("maria", targetId)).willReturn(Optional.of(new EditalOverview.Exam(1, "Todos",
+				"MULTIPLE_CHOICE", 3, List.of(new EditalOverview.Section(null, "Língua Portuguesa", 3, 1.0)), false)));
+		var status = service.mockExam("maria", targetId);
+		assertThat(status.questions()).isEqualTo(3);
+		assertThat(status.sections()).containsExactly(new GenerationService.MockExamSection("Português", 3));
+		assertThat(status.topics()).isEqualTo(2);
+		assertThat(status.readyTopics()).isZero();
+
+		assertThat(service.prepareMockExam("maria", targetId).pendingTopics()).isEqualTo(2);
+		assertThatThrownBy(() -> service.startMockExam("maria", targetId, 60)).isInstanceOf(BadRequestException.class)
+			.hasMessageContaining("preparado");
+
+		finish();
+
+		assertThat(service.mockExam("maria", targetId).readyTopics()).isEqualTo(2);
+		var exam = service.startMockExam("maria", targetId, 60);
+		assertThat(exam.title()).isEqualTo("Simulado inédito · FGV");
+		assertThat(exam.deadline()).isNotNull();
+		// as duas geradas (a geração foi a mesma para os dois tópicos)
+		assertThat(exam.questions()).hasSize(2).allSatisfy(q -> assertThat(q.generated()).isTrue());
 	}
 
 }

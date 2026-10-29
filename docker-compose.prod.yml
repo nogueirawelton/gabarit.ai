@@ -294,6 +294,8 @@ services:
       SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
       SMTP_SSL: ${SMTP_SSL:-false}
       SMTP_FROM: ${SMTP_FROM:-no-reply@gabarit.ai}
+      # trava de segurança: pedidos novos à LLM por pessoa em 24 h
+      LLM_DAILY_LIMIT: ${LLM_DAILY_LIMIT:-150}
     depends_on:
       postgres:
         condition: service_healthy

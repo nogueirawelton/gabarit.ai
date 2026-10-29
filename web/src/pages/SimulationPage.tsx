@@ -1,10 +1,10 @@
-import { ArrowLeft, ArrowRight, Bookmark, Check, Clock, ImageIcon, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Bookmark, Check, Clock, Flag, ImageIcon, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router";
 
-import { ApiError, isUuid, type Simulation, type SimulationQuestion } from "../api";
+import { ApiError, isUuid, type ReportReason, type Simulation, type SimulationQuestion } from "../api";
 import { ExamDetailSkeleton } from "../components/Skeleton";
-import { useAnswer, useFinishSimulation, useSimulation } from "../data/simulations";
+import { useAnswer, useFinishSimulation, useReportQuestion, useSimulation } from "../data/simulations";
 import { primaryButton, secondaryButton } from "./StudiesPage";
 
 /** Simulado: a prova em andamento (uma questão por vez, cronômetro, mapa) ou, entregue, o resultado. */
@@ -438,6 +438,7 @@ function Result({ simulation }: { simulation: Simulation }) {
                 className="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900"
               >
                 <ReviewedQuestion question={question} />
+                <ReportQuestion simulationId={simulation.id} question={question} />
               </li>
             ))}
           </ul>
@@ -488,6 +489,81 @@ function WeakTopics({ result }: { result: NonNullable<Simulation["result"]> }) {
   );
 }
 
+const REPORT_REASONS: { value: ReportReason; label: string }[] = [
+  { value: "WRONG_ANSWER", label: "Gabarito errado" },
+  { value: "BROKEN_STATEMENT", label: "Enunciado ou alternativas cortados ou com erro" },
+  { value: "OUT_OF_SCOPE", label: "Fora do conteúdo do cargo" },
+  { value: "OTHER", label: "Outro problema" },
+];
+
+/**
+ * "Reportar problema": a questão sai da sua nota e não volta nas práticas; com reportes de várias
+ * pessoas, sai para todos.
+ */
+function ReportQuestion({ simulationId, question }: { simulationId: string; question: SimulationQuestion }) {
+  const report = useReportQuestion(simulationId);
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState<ReportReason>("WRONG_ANSWER");
+  const [comment, setComment] = useState("");
+
+  if (question.reported) {
+    return (
+      <p className="mt-4 text-xs text-slate-500 dark:text-slate-400">
+        Você reportou esta questão: ela ficou fora da sua nota e não volta nas suas práticas.
+      </p>
+    );
+  }
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-800 hover:underline dark:text-slate-400 dark:hover:text-slate-200"
+      >
+        <Flag className="size-3.5" aria-hidden="true" />
+        Reportar problema
+      </button>
+    );
+  }
+  return (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        report.mutate({ questionId: question.id, reason, comment: comment.trim() }, { onSuccess: () => setOpen(false) });
+      }}
+      className="mt-4 grid gap-2 rounded-lg bg-slate-50 p-3 text-sm dark:bg-slate-800/50"
+    >
+      <select
+        value={reason}
+        onChange={(e) => setReason(e.target.value as ReportReason)}
+        className="h-9 rounded-lg border border-slate-200 bg-white px-2 dark:border-slate-700 dark:bg-slate-950"
+      >
+        {REPORT_REASONS.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+      <input
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
+        maxLength={500}
+        placeholder="O que está errado? (opcional)"
+        className="h-9 rounded-lg border border-slate-200 bg-white px-2 dark:border-slate-700 dark:bg-slate-950"
+      />
+      {report.isError && <p className="text-red-700 dark:text-red-300">Não foi possível reportar agora.</p>}
+      <div className="flex gap-2">
+        <button type="submit" disabled={report.isPending} className={primaryButton}>
+          {report.isPending ? "Enviando…" : "Reportar"}
+        </button>
+        <button type="button" onClick={() => setOpen(false)} className={secondaryButton}>
+          Cancelar
+        </button>
+      </div>
+    </form>
+  );
+}
+
 /** Questão corrigida: a certa em verde, a sua (se errada) em vermelho. */
 function ReviewedQuestion({ question }: { question: SimulationQuestion }) {
   const options =
@@ -497,13 +573,15 @@ function ReviewedQuestion({ question }: { question: SimulationQuestion }) {
           { letter: "E", text: "Errado" },
         ]
       : question.options;
-  const status = question.annulled
-    ? ["Anulada", "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"]
-    : question.correct === true
-      ? ["Certa", "bg-emerald-50 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-400"]
-      : question.correct === false
-        ? ["Errada", "bg-red-50 text-red-700 dark:bg-red-400/10 dark:text-red-400"]
-        : [question.answer ? "Em branco" : "Sem gabarito", "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"];
+  const status = question.reported
+    ? ["Reportada · fora da nota", "bg-amber-50 text-amber-800 dark:bg-amber-400/10 dark:text-amber-300"]
+    : question.annulled
+      ? ["Anulada", "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"]
+      : question.correct === true
+        ? ["Certa", "bg-emerald-50 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-400"]
+        : question.correct === false
+          ? ["Errada", "bg-red-50 text-red-700 dark:bg-red-400/10 dark:text-red-400"]
+          : [question.answer ? "Em branco" : "Sem gabarito", "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"];
 
   return (
     <>

@@ -345,7 +345,11 @@ export type SimulationQuestion = {
   generated: boolean;
   /** Comentário da resposta (questão gerada, depois de entregar). */
   explanation: string | null;
+  /** Você reportou com problema: fica fora da nota e não volta na prática. */
+  reported: boolean;
 };
+
+export type ReportReason = "WRONG_ANSWER" | "BROKEN_STATEMENT" | "OUT_OF_SCOPE" | "OTHER";
 
 export type TopicRef = { subject: string; topic: string };
 
@@ -439,4 +443,14 @@ export type GenerationState = {
   failureReason: string | null;
   retryable: boolean;
   outdated: boolean;
+};
+
+/** Simulado inédito do cargo: estrutura como no quadro de provas e o preparo (tópicos com questões geradas). */
+export type MockExamStatus = {
+  questions: number;
+  sections: { subject: string; questions: number }[];
+  topics: number;
+  readyTopics: number;
+  pendingTopics: number;
+  failedTopics: number;
 };

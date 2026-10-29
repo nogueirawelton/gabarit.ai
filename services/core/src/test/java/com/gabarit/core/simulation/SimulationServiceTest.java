@@ -307,4 +307,33 @@ class SimulationServiceTest {
 		assertThat(service.list("maria", targetId)).extracting(s -> s.total()).contains(2, 3);
 	}
 
+	@Test
+	void questaoReportadaSaiDaNota() {
+		SimulationView started = service.start("maria", targetId, paperId, null);
+		service.answer("maria", started.id(), number(started, 1).id(), "B");
+		service.answer("maria", started.id(), number(started, 2).id(), "A");
+		service.finish("maria", started.id());
+
+		// a 2 (errada) estava com o gabarito errado
+		service.report("maria", started.id(), number(started, 2).id(), QuestionReport.Reason.WRONG_ANSWER, " gabarito é A ");
+
+		SimulationView reported = service.get("maria", started.id());
+		assertThat(number(reported, 2)).satisfies(q -> {
+			assertThat(q.reported()).isTrue();
+			assertThat(q.correct()).isNull();
+		});
+		assertThat(reported.result()).satisfies(r -> {
+			assertThat(r.correct()).isEqualTo(2);
+			assertThat(r.wrong()).isZero();
+			assertThat(r.unscored()).isEqualTo(1);
+		});
+		assertThat(jdbc.queryForObject("SELECT comment FROM question_report WHERE question_id = ?", String.class,
+				number(started, 2).id()))
+			.isEqualTo("gabarito é A");
+		// reporte de outra pessoa não muda a nota de quem não reportou
+		assertThat(number(reported, 1).reported()).isFalse();
+		assertThatThrownBy(() -> service.report("maria", started.id(), UUID.randomUUID(), QuestionReport.Reason.OTHER, null))
+			.isInstanceOf(NotFoundException.class);
+	}
+
 }

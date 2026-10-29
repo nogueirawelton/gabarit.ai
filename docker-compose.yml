@@ -262,6 +262,8 @@ services:
       SMTP_FROM: ${SMTP_FROM:-no-reply@gabarit.ai}
       # para testar o resumo sem esperar as 8h, ex.: NOTIFICATION_DIGEST_CRON="0 * * * * *" (todo minuto)
       NOTIFICATION_DIGEST_CRON: ${NOTIFICATION_DIGEST_CRON:-0 0 8 * * *}
+      # trava de segurança: pedidos novos à LLM por pessoa em 24 h
+      LLM_DAILY_LIMIT: ${LLM_DAILY_LIMIT:-150}
     ports:
       - "${CORE_PORT:-8080}:8080"
     volumes:

@@ -255,6 +255,9 @@ export function EditalSyllabus({
           {label} · {subjects.length} {subjects.length === 1 ? "disciplina" : "disciplinas"} · {topics}{" "}
           {topics === 1 ? "tópico" : "tópicos"}
         </p>
+        <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+          Abra uma disciplina para gerar questões no estilo da banca ou praticar cada tópico.
+        </p>
         <div className="mt-2 space-y-3">
           {byGroup(subjects).map(({ group, subjects: inGroup }, index) => (
             <section key={`${group}-${index}`}>

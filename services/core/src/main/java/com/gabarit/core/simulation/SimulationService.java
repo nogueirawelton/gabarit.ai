@@ -14,6 +14,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -47,11 +48,12 @@ public class SimulationService {
 	 * {@code kind}: MULTIPLE_CHOICE ou TRUE_FALSE (discursiva fica fora do simulado). {@code topic}: o
 	 * tópico do conteúdo do cargo (só depois de terminar, e se a prova foi ligada aos tópicos).
 	 * {@code generated}: inédita, gerada por IA para o tópico; {@code explanation}: o comentário
-	 * dela (só depois de terminar).
+	 * dela (só depois de terminar). {@code reported}: a pessoa reportou com problema (fora da nota).
 	 */
 	public record QuestionView(UUID id, int number, String subject, String kind, String baseText, String statement,
 			List<ExamPaper.Option> options, boolean hasImage, Integer page, String chosen, String answer,
-			Boolean annulled, Boolean correct, TopicRef topic, boolean generated, String explanation) {
+			Boolean annulled, Boolean correct, TopicRef topic, boolean generated, String explanation,
+			boolean reported) {
 	}
 
 	/** Tópico do conteúdo do cargo, com a disciplina dele (como o conteúdo escreve). */
@@ -91,17 +93,20 @@ public class SimulationService {
 
 	private final QuestionTopicRepository links;
 
+	private final QuestionReportRepository reports;
+
 	private final Clock clock;
 
 	SimulationService(SimulationRepository simulations, QuestionRepository questions,
 			SimulationAnswerRepository answers, StudyDocumentService documents, QuestionCatalog catalog,
-			QuestionTopicRepository links, Clock clock) {
+			QuestionTopicRepository links, QuestionReportRepository reports, Clock clock) {
 		this.simulations = simulations;
 		this.questions = questions;
 		this.answers = answers;
 		this.documents = documents;
 		this.catalog = catalog;
 		this.links = links;
+		this.reports = reports;
 		this.clock = clock;
 	}
 
@@ -133,11 +138,24 @@ public class SimulationService {
 	 */
 	@Transactional
 	public SimulationView startPractice(String userId, UUID targetId, String title, List<UUID> questionIds) {
+		return startChosen(userId, targetId, title, questionIds, null);
+	}
+
+	/**
+	 * Começa um simulado com as questões dadas, na ordem (ex.: o simulado inédito, montado com
+	 * questões geradas). Quem chama já conferiu o concurso.
+	 *
+	 * @param timeLimitMinutes nulo = sem limite de tempo
+	 * @throws BadRequestException nenhuma questão
+	 */
+	@Transactional
+	public SimulationView startChosen(String userId, UUID targetId, String title, List<UUID> questionIds,
+			Integer timeLimitMinutes) {
 		if (questionIds.isEmpty()) {
-			throw new BadRequestException("não há questões para praticar");
+			throw new BadRequestException("não há questões para o simulado");
 		}
-		Simulation simulation = simulations
-			.saveAndFlush(new Simulation(userId, targetId, null, null, title, clock.instant(), null));
+		Simulation simulation = simulations.saveAndFlush(new Simulation(userId, targetId, null, null, title,
+				clock.instant(), timeLimitMinutes == null ? null : Duration.ofMinutes(timeLimitMinutes)));
 		for (int i = 0; i < questionIds.size(); i++) {
 			questions.addToSimulation(simulation.getId(), questionIds.get(i), i);
 		}
@@ -169,7 +187,7 @@ public class SimulationService {
 			boolean finished = simulation.isFinished(now);
 			return new SimulationSummary(simulation.getId(), simulation.getTitle(), simulation.getStartedAt(),
 					simulation.finishedAt(now), finished, chosen.size(), objective.size(),
-					finished ? result(objective, chosen, Map.of()).correct() : null);
+					finished ? result(objective, chosen, Map.of(), reported(userId, objective)).correct() : null);
 		}).toList();
 	}
 
@@ -190,7 +208,7 @@ public class SimulationService {
 			if (topics.isEmpty()) {
 				continue;
 			}
-			result(objective, chosen(simulation.getId()), topics).byTopic()
+			result(objective, chosen(simulation.getId()), topics, reported(userId, objective)).byTopic()
 				.forEach(t -> {
 					int[] counts = sum.computeIfAbsent(t.topic(), k -> new int[4]);
 					counts[0] += t.total();
@@ -203,6 +221,26 @@ public class SimulationService {
 			.stream()
 			.map(e -> new TopicResult(e.getKey(), e.getValue()[0], e.getValue()[1], e.getValue()[2], e.getValue()[3]))
 			.toList();
+	}
+
+	/**
+	 * Reporta uma questão do simulado com problema (de novo: atualiza o motivo). Para a pessoa, ela sai
+	 * da nota e não volta na prática; reportada por {@link QuestionReport#REPORTS_TO_HIDE} pessoas, sai
+	 * da prática de todos.
+	 *
+	 * @throws NotFoundException simulado de outro usuário ou questão que não está nele
+	 */
+	@Transactional
+	public void report(String userId, UUID id, UUID questionId, QuestionReport.Reason reason, String comment) {
+		Simulation simulation = find(userId, id);
+		boolean inSimulation = questionsOf(simulation).stream().anyMatch(q -> q.getId().equals(questionId));
+		if (!inSimulation) {
+			throw new NotFoundException("questão %s não está neste simulado".formatted(questionId));
+		}
+		QuestionReport report = reports.findByQuestionIdAndUserId(questionId, userId)
+			.orElseGet(() -> new QuestionReport(questionId, userId));
+		report.report(id, reason, comment == null || comment.isBlank() ? null : comment.strip(), clock.instant());
+		reports.save(report);
 	}
 
 	/**
@@ -265,16 +303,18 @@ public class SimulationService {
 		Instant now = clock.instant();
 		boolean finished = simulation.isFinished(now);
 		Map<UUID, TopicRef> topics = finished ? topics(simulation, objective) : Map.of();
+		Set<UUID> reported = reported(simulation.getUserId(), objective);
 		List<QuestionView> views = objective.stream().map(q -> {
 			String mine = chosen.get(q.getId());
 			return new QuestionView(q.getId(), q.getNumber(), q.getSubject(), q.getKind().name(), q.getBaseText(),
 					q.getStatement(), options(q), q.hasImage(), q.getPage(), mine, finished ? q.getAnswer() : null,
-					finished ? q.isAnnulled() : null, finished ? isCorrect(q, mine) : null, topics.get(q.getId()),
-					q.isGenerated(), finished ? q.getExplanation() : null);
+					finished ? q.isAnnulled() : null,
+					finished && !reported.contains(q.getId()) ? isCorrect(q, mine) : null, topics.get(q.getId()),
+					q.isGenerated(), finished ? q.getExplanation() : null, reported.contains(q.getId()));
 		}).toList();
 		return new SimulationView(simulation.getId(), simulation.getStudyTargetId(), simulation.getTitle(),
 				simulation.getStartedAt(), simulation.getDeadline(), simulation.finishedAt(now), finished, views,
-				finished ? result(objective, chosen, topics) : null);
+				finished ? result(objective, chosen, topics, reported) : null);
 	}
 
 	/** As questões objetivas do simulado: a prova inteira, ou as escolhidas (prática). */
@@ -313,7 +353,14 @@ public class SimulationService {
 		return chosen.equalsIgnoreCase(question.getAnswer().strip());
 	}
 
-	private static Result result(List<Question> objective, Map<UUID, String> chosen, Map<UUID, TopicRef> topics) {
+	/** Das questões, as que a pessoa reportou com problema (ficam fora da nota). */
+	private Set<UUID> reported(String userId, List<Question> objective) {
+		return objective.isEmpty() ? Set.of()
+				: new HashSet<>(reports.reportedBy(userId, objective.stream().map(Question::getId).toList()));
+	}
+
+	private static Result result(List<Question> objective, Map<UUID, String> chosen, Map<UUID, TopicRef> topics,
+			Set<UUID> reported) {
 		Map<String, int[]> bySubject = new LinkedHashMap<>();
 		Map<TopicRef, int[]> byTopic = new LinkedHashMap<>();
 		int correct = 0, wrong = 0, blank = 0, annulled = 0, unscored = 0;
@@ -334,7 +381,8 @@ public class SimulationService {
 				correct++;
 				outcome = 1;
 			}
-			else if (q.getAnswer() == null) {
+			else if (q.getAnswer() == null || reported.contains(q.getId())) {
+				// sem gabarito, ou reportada com problema: fora da nota
 				unscored++;
 				outcome = 0;
 			}

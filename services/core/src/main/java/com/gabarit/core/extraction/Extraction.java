@@ -10,6 +10,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.type.SqlTypes;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -68,6 +69,13 @@ public class Extraction {
 
 	private Integer cacheCreationInputTokens;
 
+	// quem pediu primeiro (quem reaproveita não aparece: não gastou nada)
+	@Column(updatable = false)
+	private String requestedBy;
+
+	// US$ (ModelPricing), quando a leitura termina; nulo antes, em falha ou com modelo fora da tabela
+	private BigDecimal costUsd;
+
 	@Column(nullable = false, updatable = false)
 	private Instant createdAt;
 
@@ -80,7 +88,8 @@ public class Extraction {
 		// JPA
 	}
 
-	Extraction(ExtractionTask task, String inputsHash, String inputs, Instant now) {
+	Extraction(String requestedBy, ExtractionTask task, String inputsHash, String inputs, Instant now) {
+		this.requestedBy = requestedBy;
 		this.task = task;
 		this.inputsHash = inputsHash;
 		this.promptVersion = task.promptVersion();
@@ -114,6 +123,7 @@ public class Extraction {
 		this.outputTokens = usage.outputTokens();
 		this.cacheReadInputTokens = usage.cacheReadInputTokens();
 		this.cacheCreationInputTokens = usage.cacheCreationInputTokens();
+		this.costUsd = ModelPricing.cost(model, usage);
 		this.completedAt = now;
 		return true;
 	}
@@ -170,6 +180,11 @@ public class Extraction {
 
 	public String getModel() {
 		return model;
+	}
+
+	/** Custo em US$ (nulo se não terminou ou o modelo não está na tabela de preços). */
+	public BigDecimal getCostUsd() {
+		return costUsd;
 	}
 
 	public Instant getCompletedAt() {

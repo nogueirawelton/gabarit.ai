@@ -344,7 +344,7 @@ public class StudyDocumentService {
 		Map<String, Object> position = new HashMap<>();
 		position.put("name", document.getPositionName());
 		position.put("specialty", document.getPositionSpecialty());
-		Extraction extraction = extractions.request(ExtractionTask.EDITAL_SYLLABUS,
+		Extraction extraction = extractions.request(document.getUserId(), ExtractionTask.EDITAL_SYLLABUS,
 				List.of(document.getBlobSha256()), Map.of("position", position));
 		document.syllabus(extraction.getId());
 		return extraction;
@@ -357,8 +357,8 @@ public class StudyDocumentService {
 
 	/** Mesmo edital (de qualquer pessoa) = mesma leitura: o ExtractionService devolve a existente. */
 	private Map<UUID, Extraction> requestReading(StudyDocument document) {
-		Extraction extraction = extractions.request(ExtractionTask.EDITAL_OVERVIEW, List.of(document.getBlobSha256()),
-				Map.of());
+		Extraction extraction = extractions.request(document.getUserId(), ExtractionTask.EDITAL_OVERVIEW,
+				List.of(document.getBlobSha256()), Map.of());
 		document.reading(extraction.getId());
 		return Map.of(extraction.getId(), extraction);
 	}
@@ -398,7 +398,7 @@ public class StudyDocumentService {
 		// HashMap: o tipo da prova pode ser nulo
 		Map<String, Object> params = new HashMap<>();
 		params.put("variant", paper.getVariant());
-		Extraction extraction = extractions.request(ExtractionTask.EXAM_PAPER, documents, params);
+		Extraction extraction = extractions.request(userId, ExtractionTask.EXAM_PAPER, documents, params);
 		paper.reading(extraction.getId());
 		return paperView(paper, slots, Map.of(extraction.getId(), extraction));
 	}

@@ -4,6 +4,7 @@ import {
   apiGet,
   apiPostJson,
   type GenerationState,
+  type MockExamStatus,
   type PaperTopics,
   type Simulation,
   type TopicPractice,
@@ -15,6 +16,7 @@ import { requireToken, useSession } from "./session";
 const topicKeys = {
   overview: (userId: string | undefined, targetId: string) => ["topics", userId, targetId] as const,
   practice: (userId: string | undefined, targetId: string) => ["topic-practice", userId, targetId] as const,
+  mockExam: (userId: string | undefined, targetId: string) => ["mock-exam", userId, targetId] as const,
 };
 
 /** O que mais cai (questões por tópico) e a ligação de cada prova; confere enquanto alguma liga. */
@@ -78,6 +80,46 @@ export function usePracticeTopic(targetId: string) {
         requireToken(accessToken),
         undefined,
       ),
+    onSuccess: (simulation) => {
+      queryClient.setQueryData(simulationKeys.detail(userId, simulation.id), simulation);
+      void queryClient.invalidateQueries({ queryKey: ["simulations", userId] });
+    },
+  });
+}
+
+/** O simulado inédito do cargo (estrutura e preparo); confere enquanto prepara. Só com o conteúdo lido. */
+export function useMockExam(targetId: string, enabled: boolean) {
+  const { userId, accessToken } = useSession();
+  return useQuery({
+    queryKey: topicKeys.mockExam(userId, targetId),
+    queryFn: ({ signal }) =>
+      apiGet<MockExamStatus>(`/me/study-targets/${targetId}/mock-exam`, requireToken(accessToken), signal),
+    enabled: enabled && Boolean(accessToken),
+    refetchInterval: (query) => ((query.state.data?.pendingTopics ?? 0) > 0 ? 5000 : false),
+  });
+}
+
+/** Gera as questões que faltam para o simulado inédito. */
+export function usePrepareMockExam(targetId: string) {
+  const { userId, accessToken } = useSession();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      apiPostJson<MockExamStatus>(`/me/study-targets/${targetId}/mock-exam/prepare`, requireToken(accessToken), undefined),
+    onSuccess: (status) => {
+      queryClient.setQueryData(topicKeys.mockExam(userId, targetId), status);
+      void queryClient.invalidateQueries({ queryKey: topicKeys.practice(userId, targetId) });
+    },
+  });
+}
+
+/** Começa o simulado inédito. */
+export function useStartMockExam(targetId: string) {
+  const { userId, accessToken } = useSession();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { timeLimitMinutes: number | null }) =>
+      apiPostJson<Simulation>(`/me/study-targets/${targetId}/mock-exam/start`, requireToken(accessToken), input),
     onSuccess: (simulation) => {
       queryClient.setQueryData(simulationKeys.detail(userId, simulation.id), simulation);
       void queryClient.invalidateQueries({ queryKey: ["simulations", userId] });

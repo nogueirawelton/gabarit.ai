@@ -108,16 +108,16 @@ class StudyDocumentServiceTest {
 				ON CONFLICT DO NOTHING
 				""", SYLLABUS);
 		Extraction pending = extraction(READING, ExtractionTask.EDITAL_OVERVIEW, Extraction.Status.PENDING);
-		given(extractions.request(any(), anyList(), anyMap())).willReturn(pending);
+		given(extractions.request(any(), any(), anyList(), anyMap())).willReturn(pending);
 		Extraction syllabusPending = extraction(SYLLABUS, ExtractionTask.EDITAL_SYLLABUS, Extraction.Status.PENDING);
-		given(extractions.request(eq(ExtractionTask.EDITAL_SYLLABUS), anyList(), anyMap())).willReturn(syllabusPending);
+		given(extractions.request(any(), eq(ExtractionTask.EDITAL_SYLLABUS), anyList(), anyMap())).willReturn(syllabusPending);
 		jdbc.update("""
 				INSERT INTO extraction (id, task, inputs_hash, prompt_version, inputs, status, created_at, requested_at)
 				VALUES (?, 'EXAM_PAPER', 'teste', 'v1', '{}', 'PENDING', now(), now())
 				ON CONFLICT DO NOTHING
 				""", PAPER_READING);
 		Extraction paperPending = extraction(PAPER_READING, ExtractionTask.EXAM_PAPER, Extraction.Status.PENDING);
-		given(extractions.request(eq(ExtractionTask.EXAM_PAPER), anyList(), anyMap())).willReturn(paperPending);
+		given(extractions.request(any(), eq(ExtractionTask.EXAM_PAPER), anyList(), anyMap())).willReturn(paperPending);
 	}
 
 	/** Leitura do pacote extraction (mock), feita com o prompt atual da tarefa. */
@@ -314,11 +314,11 @@ class StudyDocumentServiceTest {
 		var sent = send(Kind.EDITAL, null, content);
 		// arquivo errado não gasta leitura: nada é pedido no envio
 		assertThat(sent.reading()).isNull();
-		verify(extractions, never()).request(any(), anyList(), anyMap());
+		verify(extractions, never()).request(any(), any(), anyList(), anyMap());
 
 		var edital = service.read("maria", targetId, sent.id());
 
-		verify(extractions).request(ExtractionTask.EDITAL_OVERVIEW, List.of(sha256(content)), Map.of());
+		verify(extractions).request("maria", ExtractionTask.EDITAL_OVERVIEW, List.of(sha256(content)), Map.of());
 		assertThat(edital.reading().status()).isEqualTo(Extraction.Status.PENDING);
 		em.flush();
 		assertThat(jdbc.queryForObject("SELECT extraction_id FROM study_document WHERE id = ?", UUID.class, edital.id()))
@@ -332,7 +332,7 @@ class StudyDocumentServiceTest {
 		send(Kind.EDITAL, paperId, pdf(10, "edital 2019"));
 		var prova = send(Kind.PROVA, paperId, pdf(4, "prova"));
 
-		verify(extractions, never()).request(any(), anyList(), anyMap());
+		verify(extractions, never()).request(any(), any(), anyList(), anyMap());
 		assertThatThrownBy(() -> service.read("maria", targetId, prova.id())).isInstanceOf(BadRequestException.class);
 	}
 
@@ -343,7 +343,7 @@ class StudyDocumentServiceTest {
 		var read = service.read("maria", targetId, edital.id());
 
 		assertThat(read.reading().status()).isEqualTo(Extraction.Status.PENDING);
-		verify(extractions, times(2)).request(any(), anyList(), anyMap());
+		verify(extractions, times(2)).request(any(), any(), anyList(), anyMap());
 	}
 
 	/** Edital do concurso enviado e com a leitura pedida. */
@@ -401,14 +401,14 @@ class StudyDocumentServiceTest {
 		assertThat(chosen.position()).isEqualTo(new StudyDocumentService.Position("Analista Judiciário", "Direito"));
 		// escolher só grava: cargo errado não gasta leitura
 		assertThat(chosen.syllabus()).isNull();
-		verify(extractions, never()).request(eq(ExtractionTask.EDITAL_SYLLABUS), anyList(), anyMap());
+		verify(extractions, never()).request(any(), eq(ExtractionTask.EDITAL_SYLLABUS), anyList(), anyMap());
 		// concurso à mão: vira também o cargo do concurso
 		assertThat(targets.get("maria", targetId).positionName()).isEqualTo("Analista Judiciário – Direito");
 
 		var read = service.readSyllabus("maria", targetId, edital.id());
 
 		assertThat(read.syllabus().status()).isEqualTo(Extraction.Status.PENDING);
-		verify(extractions).request(ExtractionTask.EDITAL_SYLLABUS, List.of(sha256(content)),
+		verify(extractions).request("maria", ExtractionTask.EDITAL_SYLLABUS, List.of(sha256(content)),
 				Map.of("position", Map.of("name", "Analista Judiciário", "specialty", "Direito")));
 		em.flush();
 		assertThat(jdbc.queryForObject("SELECT syllabus_extraction_id FROM study_document WHERE id = ?", UUID.class,
@@ -424,7 +424,7 @@ class StudyDocumentServiceTest {
 		Map<String, Object> escrevente = new HashMap<>();
 		escrevente.put("name", "Escrevente");
 		escrevente.put("specialty", null);
-		verify(extractions).request(ExtractionTask.EDITAL_SYLLABUS, List.of(sha256(content)),
+		verify(extractions).request("maria", ExtractionTask.EDITAL_SYLLABUS, List.of(sha256(content)),
 				Map.of("position", escrevente));
 	}
 
@@ -460,7 +460,7 @@ class StudyDocumentServiceTest {
 				VALUES (?, 'EDITAL_OVERVIEW', 'teste', 'v2', '{}', 'PENDING', now(), now())
 				""", nova);
 		Extraction pending = extraction(nova, ExtractionTask.EDITAL_OVERVIEW, Extraction.Status.PENDING);
-		given(extractions.request(any(), anyList(), anyMap())).willReturn(pending);
+		given(extractions.request(any(), any(), anyList(), anyMap())).willReturn(pending);
 
 		var read = service.read("maria", targetId, edital.id());
 
@@ -504,7 +504,7 @@ class StudyDocumentServiceTest {
 		var read = service.readPaper("maria", targetId, paperId);
 
 		assertThat(read.reading().status()).isEqualTo(Extraction.Status.PENDING);
-		verify(extractions).request(ExtractionTask.EXAM_PAPER, List.of(sha256(exam), sha256(answerKey)),
+		verify(extractions).request("maria", ExtractionTask.EXAM_PAPER, List.of(sha256(exam), sha256(answerKey)),
 				Map.of("variant", "Tipo 1"));
 	}
 
@@ -516,7 +516,7 @@ class StudyDocumentServiceTest {
 
 		service.readPaper("maria", targetId, paperId);
 
-		verify(extractions).request(ExtractionTask.EXAM_PAPER, List.of(sha256(exam)), Map.of("variant", "Tipo 1"));
+		verify(extractions).request("maria", ExtractionTask.EXAM_PAPER, List.of(sha256(exam)), Map.of("variant", "Tipo 1"));
 	}
 
 	@Test
