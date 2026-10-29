@@ -230,25 +230,29 @@ Divisão: o **`document`** cuida só de arquivo (URL de envio, conferência, um 
 
 ---
 
-## Fase 6: pipeline de extração (core ↔ `extraction`)
+## Fase 6: pipeline de extração (core ↔ `extraction`) ✅
 
-- [ ] 🛠️ **Contratos** em `contracts/`: comando `extraction.requested` (`task`, `inputs` = hashes dos blobs + parâmetros, `prompt_version`) e evento `extraction.completed` / `extraction.failed` (`task`, `inputs`, `prompt_version`, `result` JSON validado pelo schema da tarefa, `usage` com tokens e custo).
-- [ ] 🛠️ **Filas** no `definitions.json`: `extraction.requests` (consumida pelo worker) e `core.extraction_results`, ambas com DLQ.
-- [ ] **`V11__extraction.sql`**: `extraction` = cache de resultados. Chave única `(task, inputs_hash, prompt_version)`; `status` (`PENDING`, `DONE`, `FAILED`), `result JSONB`, `input_tokens`, `output_tokens`, `cost_usd`, `created_at`, `completed_at`.
-- [ ] **`ExtractionService.request(task, inputs, params)`**: se já existe `DONE` com a mesma chave, devolve na hora (**cache entre usuários**); se `PENDING`, só aguarda; senão grava `PENDING` e publica o comando. Idempotente.
-- [ ] **Listener** do resultado: grava, e o `study` reage (evento interno do Spring, como em `ExamCreatedEvent`) atualizando o alvo e criando o aviso no sininho ("O edital de X está pronto").
-- [ ] **Versão do prompt na chave:** prompt melhorou → versão nova → próxima leitura reprocessa; resultados antigos ficam para comparação.
-  - **Pesquisar:** *JSONB no Hibernate (`@JdbcTypeCode(SqlTypes.JSON)`)*, *request/reply assíncrono com correlation id*.
-- **Pronto quando:** um pedido falso (tarefa `ECHO`) vai ao worker e volta, e pedir de novo a mesma coisa não publica nada.
+- [x] 🛠️ **Contratos** em `contracts/`: comando `extraction.requested` (`extraction_id`, `task`, `prompt_version`, `documents` = hash + chave no bucket, `params`) e eventos `extraction.completed` (`result` validado pelo schema da tarefa, `model`, `usage` com tokens) / `extraction.failed` (`reason`, `retryable`).
+- [x] 🛠️ **Filas** no `definitions.json`: `extraction.requests` (consumida pelo worker) e `core.extraction_results` (recebe os dois eventos), ambas com DLQ.
+- [x] **`V14__extraction.sql`**: `extraction` = cache de resultados. Chave única `(task, inputs_hash, prompt_version)`; `status` (`PENDING`, `DONE`, `FAILED`), `inputs`/`result` JSONB, `retryable`, `model` e tokens. Custo em dólar: ainda não calculado (tokens e modelo gravados; a tabela de preços tem faixas por tamanho de prompt em alguns modelos, ex.: Haiku 5.5 acima de 100 mil tokens).
+- [x] **`ExtractionService.request(task, documentos, params)`** (pacote `extraction`): hash do JSON canônico das entradas (chaves em ordem, listas na ordem). Existe com a mesma chave → devolve (**cache entre usuários**; `PENDING` só aguarda); `FAILED` com `retryable` → pede de novo; senão grava `PENDING` e publica depois do commit. Envio falhou → `FAILED` retryable.
+- [x] **Listener** (`ExtractionResultListener`): grava o resultado (repetido ou atrasado é ignorado) e publica `ExtractionFinishedEvent` (evento interno do Spring). Quem reage (o `study`, aviso no sininho) entra na Fase 7.
+- [x] **Versão do prompt na chave:** `ExtractionTask` guarda a versão que o core pede; prompt novo no worker → versão nova aqui → a próxima leitura reprocessa.
+- **Pronto:** `ExtractionRoundTripTest` (Testcontainers, o teste faz o papel do worker) e ida e volta real com o worker no compose (`ECHO` → `DONE`; hash que não confere → `FAILED`).
+- **Fica para depois:** pedido `PENDING` que nunca volta (worker parado por dias, mensagem na DLQ) não tem prazo. Se aparecer, um job que reenvia `PENDING` antigos resolve.
 
 ---
 
 ## Fase 7: edital → concurso, cargos e conteúdo
 
-- [ ] **Tarefa `EDITAL_OVERVIEW`** (edital inteiro): órgão, banca, ano, data da prova, lista de cargos (nome, escolaridade, vagas). Preenche o alvo; a pessoa **confirma e escolhe o cargo**.
+- [x] **Tarefa `EDITAL_OVERVIEW`** (edital inteiro): órgão, banca, ano, inscrições, data da prova, cargos (nome, especialidade, escolaridade, vagas, salário).
+  - Pedida quando o edital **do concurso-alvo** fica `READY` (`StudyDocumentService.complete`); `POST .../documents/{id}/reading` pede de novo (falha passageira ou edital enviado antes). `V15__edital_reading.sql`: `study_document.extraction_id`.
+  - `ExtractionService` grava o pedido em transação própria (`REQUIRES_NEW`): chamado dentro de outra, o resultado poderia chegar antes do commit.
+  - A leitura vai junto com o arquivo nos materiais (`reading`: status, `overview`, motivo da falha). **Nada é aplicado sozinho:** no web, "Usar no concurso" (órgão, banca, ano, data; o que o edital não traz não apaga o que já existe) e "Escolher" no cargo. Enquanto lê, o web confere a cada 5 s.
+  - Falta: aviso no sininho quando a leitura termina (a notificação hoje é só de concurso novo).
 - [ ] **Tarefa `EDITAL_SYLLABUS`** (edital + cargo escolhido): conteúdo programático **daquele cargo**: disciplinas → tópicos, número de questões ou peso por disciplina (quando o edital diz), tipo de prova (A–E, certo/errado, discursiva, redação).
 - [ ] **Editais das provas relacionadas** (espaço "edital desta prova"): o mesmo `EDITAL_SYLLABUS` para cada um, e um **casamento de tópicos entre anos** (o mesmo tópico com nomes um pouco diferentes vira um só), para mostrar o que é recorrente, o que entrou e o que saiu.
-- [ ] **`V12__syllabus.sql`**: disciplinas e tópicos ligados ao alvo (cópia do resultado, para o plano e o simulado referenciarem tópico por id).
+- [ ] **`V16__syllabus.sql`**: disciplinas e tópicos ligados ao alvo (cópia do resultado, para o plano e o simulado referenciarem tópico por id).
 - [ ] **Web:** "Conteúdo" do alvo: disciplinas e tópicos, com o que a pessoa já estudou marcado.
 - **Pronto quando:** com 10 editais reais (de bancas diferentes), órgão, banca, data e cargos batem, e o conteúdo de um cargo bate com o PDF numa conferência manual.
 
@@ -257,7 +261,7 @@ Divisão: o **`document`** cuida só de arquivo (URL de envio, conferência, um 
 ## Fase 8: prova + gabarito → questões, e o simulado
 
 - [ ] **Tarefa `EXAM_PAPER`** (prova + gabarito + tipo/cor + conteúdo do cargo **do edital daquela prova**, ou do edital do concurso se a prova não tiver o seu): questões com número, enunciado, alternativas (A–E) **ou** item certo/errado, resposta do gabarito, anulada, e **disciplina/tópico do edital**. Questão com imagem: guardar a página de origem para mostrar o recorte.
-- [ ] **`V13__question.sql`**: `question` (ligada ao blob da prova, não ao usuário: é compartilhável), alternativas, resposta, tópico.
+- [ ] **`V17__question.sql`**: `question` (ligada ao blob da prova, não ao usuário: é compartilhável), alternativas, resposta, tópico.
 - [ ] **Simulado** (`study`): `simulation` (alvo, prova, início, fim, tempo limite) e `simulation_answer`. Correção no servidor (o web não recebe o gabarito antes de entregar). Resultado: nota geral e por disciplina, questões erradas com a resposta certa.
 - [ ] **"Questão com problema"**: a pessoa reporta (enunciado cortado, gabarito errado); reportes viram dado para melhorar o prompt.
 - [ ] **Web:** modo prova (uma questão por tela ou caderno corrido, cronômetro, marcar para revisar), tela de resultado.

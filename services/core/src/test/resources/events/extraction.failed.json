@@ -1,0 +1,14 @@
+{
+  "event_id": "7d8e2b4a-1c3f-4e5a-8b6c-9d0e1f2a3b4c",
+  "event_type": "extraction.failed",
+  "version": 1,
+  "occurred_at": "2026-10-28T12:00:05.120443Z",
+  "correlation_id": "0e6a3f7c-58a0-4d41-9b0f-3a3c3b1e2f10",
+  "data": {
+    "extraction_id": "0193a1f0-0000-7000-8000-0000000000e1",
+    "task": "ECHO",
+    "prompt_version": "v1",
+    "reason": "conteúdo de blobs/2c26.pdf não confere com o sha256",
+    "retryable": false
+  }
+}

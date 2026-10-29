@@ -81,6 +81,12 @@ class StudyDocumentController {
 		return service.complete(jwt.getSubject(), targetId, documentId);
 	}
 
+	/** Pede (de novo) a leitura do edital do concurso; 200 com o arquivo e a leitura. */
+	@PostMapping("/me/study-targets/{targetId}/documents/{documentId}/reading")
+	DocumentView read(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID targetId, @PathVariable UUID documentId) {
+		return service.read(jwt.getSubject(), targetId, documentId);
+	}
+
 	@DeleteMapping("/me/study-targets/{targetId}/documents/{documentId}")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	void remove(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID targetId, @PathVariable UUID documentId) {

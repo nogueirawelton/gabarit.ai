@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gabarit.ai/contracts/events/extraction.completed.v1.json",
+  "title": "extraction.completed v1",
+  "description": "Resultado de um extraction.requested, já validado pelo schema da tarefa. Publicado pelo extraction em gabarit.events com routing key extraction.completed.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["event_id", "event_type", "version", "occurred_at", "correlation_id", "data"],
+  "properties": {
+    "event_id": { "type": "string", "format": "uuid" },
+    "event_type": { "const": "extraction.completed" },
+    "version": { "const": 1 },
+    "occurred_at": { "type": "string", "format": "date-time", "description": "UTC." },
+    "correlation_id": { "type": ["string", "null"], "description": "message_id do extraction.requested." },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["extraction_id", "task", "prompt_version", "model", "result", "usage"],
+      "properties": {
+        "extraction_id": { "type": "string", "format": "uuid" },
+        "task": { "type": "string", "minLength": 1 },
+        "prompt_version": { "type": "string", "minLength": 1 },
+        "model": { "type": ["string", "null"], "description": "Modelo que gerou o resultado; null quando a tarefa não usa LLM (ECHO)." },
+        "result": { "type": "object", "description": "Saída da tarefa, no formato do schema dela." },
+        "usage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["input_tokens", "output_tokens", "cache_read_input_tokens", "cache_creation_input_tokens"],
+          "properties": {
+            "input_tokens": { "type": "integer", "minimum": 0 },
+            "output_tokens": { "type": "integer", "minimum": 0 },
+            "cache_read_input_tokens": { "type": "integer", "minimum": 0 },
+            "cache_creation_input_tokens": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    }
+  }
+}

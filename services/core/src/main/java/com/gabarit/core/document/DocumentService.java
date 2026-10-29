@@ -127,7 +127,7 @@ public class DocumentService {
 		if (pages > MAX_PAGES) {
 			throw new BadRequestException("PDF com páginas demais (máximo de %d)".formatted(MAX_PAGES));
 		}
-		String blobKey = "blobs/%s.pdf".formatted(sha256);
+		String blobKey = blobKey(sha256);
 		if (!blobs.existsById(sha256)) {
 			// cópia antes do registro: blob registrado sempre tem arquivo (copiar de novo é inofensivo)
 			storage.copy(bucket, key, blobKey, PDF);
@@ -138,7 +138,12 @@ public class DocumentService {
 
 	/** URL para o dono abrir o arquivo no navegador, até expirar. */
 	public URI viewUrl(String sha256) {
-		return storage.presignedGet(bucket, "blobs/%s.pdf".formatted(sha256), VIEW_URL_TTL);
+		return storage.presignedGet(bucket, blobKey(sha256), VIEW_URL_TTL);
+	}
+
+	/** Chave do PDF no bucket de documentos (é o que o worker extraction lê). */
+	public static String blobKey(String sha256) {
+		return "blobs/%s.pdf".formatted(sha256);
 	}
 
 	private static String uploadKey(String uploadId) {

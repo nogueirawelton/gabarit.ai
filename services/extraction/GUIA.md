@@ -27,42 +27,41 @@ Itens com 🛠️ são infra: peça para o Claude fazer.
 
 ## Fase 0: preparação
 
-- [ ] 🛠️ Esqueleto igual ao scraper: `pyproject.toml` (pytest, ruff), `requirements.txt`/`.lock` (`anthropic`, `aio-pika`, `pydantic-settings`, `aioboto3` ou `miniopy-async`, `pypdf`), `src/main.py`.
-- [ ] 🛠️ `Dockerfile` multi-stage (`dev`/`prod`, sem root), serviço nos dois compose (com limite de memória em produção), `ANTHROPIC_API_KEY` no `.env.example` e no Coolify, usuário `extraction` no MinIO só com leitura do bucket `documents`.
-- [ ] 🛠️ Fila `extraction.requests` + DLQ no `definitions.json`; contratos `extraction.requested` / `extraction.completed` / `extraction.failed` em `contracts/`.
-- **Pronto quando:** `make up` sobe o worker, ele conecta na fila e no MinIO e loga que está pronto.
+- [x] 🛠️ Esqueleto igual ao scraper: `pyproject.toml` (pytest, ruff), `requirements.txt`/`.lock` (`aio-pika`, `pydantic-settings`, `minio`), `src/main.py`. `anthropic` e `pypdf` entram na Fase 2, quando forem usados.
+- [x] 🛠️ `Dockerfile` multi-stage (`dev`/`prod`, sem root), serviço nos dois compose (384 MB em produção), `ANTHROPIC_API_KEY`/`CLAUDE_MODEL` no `.env.example` (cadastrar no Coolify), usuário `extraction` no MinIO só com `GetObject` em `documents/blobs/*`.
+  - O cliente `minio` recebe a região fixa: sem ela ele chama `GetBucketLocation`, que a policy não libera (tudo vira `AccessDenied`).
+- [x] 🛠️ Fila `extraction.requests` + DLQ no `definitions.json` (declarada pela infra; o worker só confere, passivo); contratos `extraction.requested` / `extraction.completed` / `extraction.failed` em `contracts/`.
+- **Pronto:** `make up` sobe o worker, ele confere o MinIO (credencial errada derruba o boot), conecta na fila e loga `extraction pronto`.
 
 ---
 
 ## Fase 1: domínio e pipeline sem LLM
 
-- [ ] **`src/domain`**: `Task` (enum), `ExtractionRequest` (tarefa, hashes dos blobs, parâmetros, versão do prompt), `ExtractionResult` (JSON validado + `usage`), erros (`InvalidInput` = não adianta tentar de novo; `TransientError` = tenta de novo).
-- [ ] **Ports:** `DocumentStore.read(sha256) -> bytes`, `LlmClient.run(task, documents, params) -> ExtractionResult`, `ResultPublisher`.
-- [ ] **Use case `ProcessExtraction`** + tarefa `ECHO` (devolve os parâmetros, sem LLM) para testar o caminho inteiro core → worker → core.
-- [ ] **Erros:** inválido (PDF corrompido, schema que não fecha depois de uma nova tentativa) → `extraction.failed` com o motivo; transitório (429, 5xx, rede) → a mensagem volta para a fila; depois de 3 → DLQ.
-- **Pronto quando:** o pedido `ECHO` do core vai e volta (Fase 6 do GUIA do core).
+- [x] **`src/domain`**: `Task` + `PROMPT_VERSIONS` (versões que o worker sabe executar), `DocumentRef`, `ExtractionOutput` (JSON validado + `Usage` + modelo), erros (`InvalidInputError` = não adianta tentar de novo; `TransientError` = tenta de novo).
+- [x] **Ports:** `DocumentStore.read(key) -> bytes`, `EventPublisher`. O `LlmClient` entra na Fase 2, com o primeiro adapter.
+- [x] **Use case `ProcessExtraction`** + tarefa `ECHO` (lê os PDFs, confere o sha256 e devolve os parâmetros, sem LLM).
+- [x] **Erros:** inválido (documento ausente, hash que não confere, versão de prompt desconhecida) → `extraction.failed` com `retryable=false`; transitório → a mensagem volta para a fila; na última entrega (`x-delivery-count`) o worker desiste e publica `extraction.failed` com `retryable=true`, para o core não esperar para sempre. DLQ fica só para mensagem malformada.
+- **Pronto:** o pedido `ECHO` vai e volta (Fase 6 do GUIA do core), testado no compose.
 
 ---
 
 ## Fase 2: adapter do Claude + avaliação (antes de qualquer tarefa ir para usuário)
 
-- [ ] **`src/infrastructure/claude.py`** (`LlmClient`):
-  - PDF como bloco `document` (até **32 MB e 600 páginas** por requisição; acima disso, dividir por páginas com `pypdf`, ex.: o edital em blocos e o conteúdo do cargo só nas páginas dele);
-  - **Files API** (sem beta): sobe o PDF uma vez por blob e reaproveita o `file_id` entre tarefas (o mesmo edital serve `EDITAL_OVERVIEW` e várias `EDITAL_SYLLABUS`); guardar o `file_id` por hash;
-  - **cache de prompt** no prefixo estável (prompt de sistema + documento): a segunda tarefa sobre o mesmo edital lê o documento do cache, bem mais barato. Conferir `usage.cache_read_input_tokens` > 0;
-  - **streaming** com `get_final_message()` (edital grande = resposta longa; evita timeout), `thinking: {type: "adaptive"}` e `effort` configurável por tarefa;
-  - checar `stop_reason` antes de ler o conteúdo: `max_tokens` (resposta cortada → falha), `refusal` (o modelo recusou → falha com o motivo);
-  - devolver `usage` (tokens de entrada, saída e cache) para o core calcular custo.
-- [ ] **Prompts versionados no repositório:** `prompts/<tarefa>/v1.md` + o modelo `pydantic` da saída. Versão nova = arquivo novo; a versão vai no resultado (é parte da chave de cache no core).
-- [ ] **Conjunto de avaliação** (`evals/`): ~10 editais e ~10 provas reais de bancas diferentes (FGV, Cebraspe, FCC, Vunesp, bancas pequenas), com a saída esperada conferida à mão. Script que roda uma versão de prompt contra o conjunto e mostra acerto e custo por documento.
-  - **Pesquisar:** *Anthropic Python SDK: PDF support, Files API, prompt caching, structured outputs, streaming*, *pydantic `model_json_schema`*.
-- **Pronto quando:** dá para rodar a avaliação de uma tarefa e ler "acerto X%, custo médio US$ Y por documento".
+- [x] **`src/infrastructure/llm/claude.py`** (`LlmClient`, SDK `anthropic` 2.x, async):
+  - PDF pela **Files API** (estável, sem beta): sobe uma vez por sha256 com `expires_in_seconds` (24h; expira sozinho na Anthropic, sem limpeza nossa) e reaproveita o `file_id` em memória até ~80% da validade. Também resolve o limite de 32 MB da requisição: o PDF de 30 MB em base64 não caberia.
+  - **cache de prompt** no último documento; o prompt de sistema (`src/prompts/system.md`) é o mesmo em todas as tarefas, então a 2ª tarefa sobre o mesmo edital lê o PDF do cache. Conferido: 172 mil tokens lidos do cache na nova tentativa.
+  - **streaming** (`beta.messages.stream` + `get_final_message()`), `thinking: adaptive`, `effort` por versão de prompt, `output_format` = modelo pydantic da tarefa (`parsed_output` já validado), `fallbacks="default"` (recusa por engano é refeita pela própria API num modelo de reserva).
+  - `stop_reason` conferido: `refusal` e `max_tokens` → falha definitiva; erros do SDK traduzidos (429/5xx/rede/credencial → transitório; 400/413 → definitivo).
+  - devolve `usage` e o modelo que respondeu.
+- [x] **Prompts versionados** em `src/prompts/<tarefa>/vN.md` + modelo pydantic `...V1` em `src/application/tasks/`. Versão nova = arquivo novo; registro em `src/application/tasks/__init__.py`.
+- [ ] **Conjunto de avaliação** (`evals/`): ~10 editais e ~10 provas reais de bancas diferentes, saída esperada conferida à mão, script com acerto e custo por documento. **Fazer antes de trocar de modelo ou de prompt.** Hoje o `.env` de dev usa `CLAUDE_MODEL=claude-haiku-5-5`; o padrão do código é `claude-opus-5-5`.
+- **Pronto (parcial):** edital real (MPRJ 2025, FGV, 55 páginas) lido certo em dev; falta o conjunto de avaliação.
 
 ---
 
 ## Fase 3: tarefas do edital
 
-- [ ] **`EDITAL_OVERVIEW`**: órgão, banca, ano, data da prova, cargos. Edital costuma ter anexos e retificações: pedir ao modelo que diga a página de onde tirou cada campo (ajuda a conferir).
+- [x] **`EDITAL_OVERVIEW` v1**: órgão, banca, ano, inscrições, data da prova e cargos (nome, especialidade, escolaridade, vagas e salário como o edital escreve, página do quadro de vagas). Um item por especialidade; mesmo cargo em várias cidades vira um item.
 - [ ] **`EDITAL_SYLLABUS`**: conteúdo do cargo escolhido. Atenção a conteúdo **comum a vários cargos** ("Conhecimentos Gerais, para todos os cargos") somado ao específico.
 - **Pronto quando:** a avaliação dessas duas tarefas passa no critério combinado (ex.: cargos 100%, conteúdo ≥ 95% dos tópicos) e o custo por edital é conhecido.
 

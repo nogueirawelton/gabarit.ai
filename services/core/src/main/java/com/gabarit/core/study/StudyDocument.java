@@ -70,6 +70,9 @@ public class StudyDocument {
 
 	private Integer pages;
 
+	// leitura do edital pela LLM (pacote extraction); só no edital do concurso-alvo
+	private UUID extractionId;
+
 	@Column(nullable = false, updatable = false)
 	private Instant createdAt;
 
@@ -91,6 +94,15 @@ public class StudyDocument {
 		this.blobSha256 = blobSha256;
 		this.sizeBytes = sizeBytes;
 		this.pages = pages;
+	}
+
+	void reading(UUID extractionId) {
+		this.extractionId = extractionId;
+	}
+
+	/** Edital do concurso-alvo (não o de uma prova relacionada): o que a LLM lê para preencher o concurso. */
+	boolean isTargetEdital() {
+		return kind == Kind.EDITAL && paperId == null;
 	}
 
 	void reject(String reason) {
@@ -142,6 +154,10 @@ public class StudyDocument {
 
 	public Integer getPages() {
 		return pages;
+	}
+
+	public UUID getExtractionId() {
+		return extractionId;
 	}
 
 	public Instant getCreatedAt() {

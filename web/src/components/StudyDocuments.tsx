@@ -10,6 +10,7 @@ import {
   useStudyMaterials,
   useUploadDocument,
 } from "../data/study";
+import { EditalReading } from "./EditalReading";
 
 const sizeFormat = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
 
@@ -70,6 +71,7 @@ function Editais({ targetId, editais }: { targetId: string; editais: StudyDocume
           {editais.map((document) => (
             <li key={document.id}>
               <DocumentRow targetId={targetId} document={document} />
+              <EditalReading targetId={targetId} document={document} />
             </li>
           ))}
         </ul>

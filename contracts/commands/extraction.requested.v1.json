@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gabarit.ai/contracts/commands/extraction.requested.v1.json",
+  "title": "extraction.requested v1",
+  "description": "Pede ao extraction uma tarefa sobre documentos (PDFs no bucket documents). Publicado pelo core em gabarit.commands com routing key extraction.requested. A resposta é um extraction.completed ou extraction.failed com o mesmo extraction_id.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["extraction_id", "task", "prompt_version", "documents", "params"],
+  "properties": {
+    "extraction_id": { "type": "string", "format": "uuid", "description": "Id do pedido no core; volta na resposta." },
+    "task": { "type": "string", "enum": ["ECHO", "EDITAL_OVERVIEW"], "description": "ECHO: lê os documentos e devolve os parâmetros, sem LLM (teste do caminho core → worker → core). EDITAL_OVERVIEW: um edital → órgão, banca, ano, datas e cargos." },
+    "prompt_version": { "type": "string", "pattern": "^v[0-9]+$", "description": "Versão do prompt da tarefa (prompts/<tarefa>/<versão>.md no extraction). Versão que o worker não tem é falha." },
+    "documents": {
+      "description": "PDFs de entrada, na ordem que a tarefa espera (ex.: prova, depois gabarito).",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["sha256", "key"],
+        "properties": {
+          "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "Hash do conteúdo; o worker confere depois de ler." },
+          "key": { "type": "string", "minLength": 1, "description": "Chave do objeto no bucket documents, ex.: blobs/<sha256>.pdf." }
+        }
+      }
+    },
+    "params": { "type": "object", "description": "Parâmetros da tarefa (ex.: cargo escolhido, tipo/cor da prova)." }
+  }
+}

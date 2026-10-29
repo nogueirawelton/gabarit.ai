@@ -1,0 +1,18 @@
+{
+  "event_id": "4b0c6a1e-3f0e-4a8b-9a43-5f2a2f1d7c11",
+  "event_type": "extraction.completed",
+  "version": 1,
+  "occurred_at": "2026-10-28T12:00:05.120443Z",
+  "correlation_id": "0e6a3f7c-58a0-4d41-9b0f-3a3c3b1e2f10",
+  "data": {
+    "extraction_id": "0193a1f0-0000-7000-8000-0000000000e1",
+    "task": "ECHO",
+    "prompt_version": "v1",
+    "model": null,
+    "result": {
+      "params": { "cargo": "Analista" },
+      "documents": [{ "sha256": "2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae", "size_bytes": 3 }]
+    },
+    "usage": { "input_tokens": 0, "output_tokens": 0, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0 }
+  }
+}

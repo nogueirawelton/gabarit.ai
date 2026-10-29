@@ -46,12 +46,59 @@
       "arguments": {
         "x-queue-type": "quorum"
       }
+    },
+    {
+      "name": "extraction.requests",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-queue-type": "quorum",
+        "x-delivery-limit": 3,
+        "x-dead-letter-exchange": "gabarit.dlx",
+        "x-dead-letter-routing-key": "extraction.requests"
+      }
+    },
+    {
+      "name": "extraction.requests.dlq",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-queue-type": "quorum"
+      }
+    },
+    {
+      "name": "core.extraction_results",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-queue-type": "quorum",
+        "x-delivery-limit": 3,
+        "x-dead-letter-exchange": "gabarit.dlx",
+        "x-dead-letter-routing-key": "core.extraction_results"
+      }
+    },
+    {
+      "name": "core.extraction_results.dlq",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-queue-type": "quorum"
+      }
     }
   ],
   "bindings": [
     { "source": "gabarit.events", "vhost": "/", "destination": "core.exam_discovered", "destination_type": "queue", "routing_key": "exam.discovered", "arguments": {} },
     { "source": "gabarit.dlx", "vhost": "/", "destination": "core.exam_discovered.dlq", "destination_type": "queue", "routing_key": "core.exam_discovered", "arguments": {} },
     { "source": "gabarit.events", "vhost": "/", "destination": "core.position_catalog_discovered", "destination_type": "queue", "routing_key": "position_catalog.discovered", "arguments": {} },
-    { "source": "gabarit.dlx", "vhost": "/", "destination": "core.position_catalog_discovered.dlq", "destination_type": "queue", "routing_key": "core.position_catalog_discovered", "arguments": {} }
+    { "source": "gabarit.dlx", "vhost": "/", "destination": "core.position_catalog_discovered.dlq", "destination_type": "queue", "routing_key": "core.position_catalog_discovered", "arguments": {} },
+    { "source": "gabarit.commands", "vhost": "/", "destination": "extraction.requests", "destination_type": "queue", "routing_key": "extraction.requested", "arguments": {} },
+    { "source": "gabarit.dlx", "vhost": "/", "destination": "extraction.requests.dlq", "destination_type": "queue", "routing_key": "extraction.requests", "arguments": {} },
+    { "source": "gabarit.events", "vhost": "/", "destination": "core.extraction_results", "destination_type": "queue", "routing_key": "extraction.completed", "arguments": {} },
+    { "source": "gabarit.events", "vhost": "/", "destination": "core.extraction_results", "destination_type": "queue", "routing_key": "extraction.failed", "arguments": {} },
+    { "source": "gabarit.dlx", "vhost": "/", "destination": "core.extraction_results.dlq", "destination_type": "queue", "routing_key": "core.extraction_results", "arguments": {} }
   ]
 }

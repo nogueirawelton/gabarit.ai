@@ -13,7 +13,7 @@
 # - Sem bind mount: tudo que vem do repositório está dentro das imagens.
 # - Limite de memória em todo serviço (deploy.resources.limits): as JVMs (core, keycloak) e o
 #   RabbitMQ dimensionam heap/alarme por ele; sem limite, calculariam sobre a RAM do servidor.
-#   Soma dos limites: ~4,6 GB.
+#   Soma dos limites: ~5 GB.
 # - Variáveis: as do .env.example, cadastradas na aba Environment Variables do recurso.
 #   WEB_URL e SMTP_* são lidos pelo realm só no primeiro deploy (banco vazio).
 services:
@@ -128,6 +128,7 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
       CORE_MINIO_PASSWORD: ${CORE_MINIO_PASSWORD:?defina CORE_MINIO_PASSWORD}
+      EXTRACTION_MINIO_PASSWORD: ${EXTRACTION_MINIO_PASSWORD:?defina EXTRACTION_MINIO_PASSWORD}
     depends_on:
       minio:
         condition: service_healthy
@@ -167,6 +168,39 @@ services:
       resources:
         limits:
           memory: 1G
+    restart: unless-stopped
+
+  # worker da LLM (Claude): sai para a internet (API da Anthropic), daí o DNS próprio
+  extraction:
+    build:
+      context: ./services/extraction
+      target: prod
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
+    environment:
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      RABBITMQ_VHOST: ${RABBITMQ_VHOST:-/}
+      MINIO_URL: http://minio:9000
+      MINIO_ACCESS_KEY: extraction
+      MINIO_SECRET_KEY: ${EXTRACTION_MINIO_PASSWORD:?defina EXTRACTION_MINIO_PASSWORD}
+      # a chave da Anthropic existe só neste serviço
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?defina ANTHROPIC_API_KEY}
+      CLAUDE_MODEL: ${CLAUDE_MODEL:-claude-opus-5-5}
+    depends_on:
+      rabbitmq-init:
+        condition: service_completed_successfully
+      minio-init:
+        condition: service_completed_successfully
+    # um pedido por vez (prefetch 1), com os PDFs em memória (até 30 MB cada)
+    deploy:
+      resources:
+        limits:
+          memory: 384M
     restart: unless-stopped
 
   keycloak:

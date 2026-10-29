@@ -107,6 +107,7 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
       CORE_MINIO_PASSWORD: ${CORE_MINIO_PASSWORD:?defina CORE_MINIO_PASSWORD no .env}
+      EXTRACTION_MINIO_PASSWORD: ${EXTRACTION_MINIO_PASSWORD:?defina EXTRACTION_MINIO_PASSWORD no .env}
     depends_on:
       minio:
         condition: service_healthy
@@ -134,6 +135,39 @@ services:
       rabbitmq:
         condition: service_healthy
       rabbitmq-init:
+        condition: service_completed_successfully
+    restart: "no"
+
+  # worker da LLM: lê os PDFs do MinIO, chama o Claude e devolve o resultado por evento
+  extraction:
+    build:
+      context: ./services/extraction
+      target: dev
+    image: gabarit/extraction:dev
+    container_name: gabarit_extraction
+    # só o que o worker usa (sem env_file): a chave da Anthropic existe só aqui, nunca no core
+    environment:
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      RABBITMQ_VHOST: ${RABBITMQ_VHOST:-/}
+      MINIO_URL: http://minio:9000
+      MINIO_ACCESS_KEY: extraction
+      MINIO_SECRET_KEY: ${EXTRACTION_MINIO_PASSWORD:?defina EXTRACTION_MINIO_PASSWORD no .env}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?defina ANTHROPIC_API_KEY no .env}
+      CLAUDE_MODEL: ${CLAUDE_MODEL:-claude-opus-5-5}
+    volumes:
+      - ./services/extraction:/app
+      # schemas compartilhados, usados nos testes de contrato
+      - ./contracts:/contracts:ro
+    depends_on:
+      # a fila extraction.requests é declarada pela infra, não pelo worker
+      rabbitmq-init:
+        condition: service_completed_successfully
+      # usuário extraction criado pela infra
+      minio-init:
         condition: service_completed_successfully
     restart: "no"
 

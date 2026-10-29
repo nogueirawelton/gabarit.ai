@@ -33,7 +33,7 @@ class StudyDocumentControllerTest {
 	static final UUID PAPER = UUID.fromString("0193a1f0-0000-7000-8000-000000000003");
 
 	static final DocumentView UPLOADING = new DocumentView(DOCUMENT, StudyDocument.Kind.EDITAL, "edital.pdf",
-			StudyDocument.Status.UPLOADING, null, null, null, Instant.parse("2026-11-10T12:00:00Z"), null);
+			StudyDocument.Status.UPLOADING, null, null, null, Instant.parse("2026-11-10T12:00:00Z"), null, null);
 
 	@Autowired
 	MockMvc mvc;

@@ -59,8 +59,11 @@ export function StudyTargetPage() {
       </div>
       <h1 className="mt-3 text-2xl font-bold tracking-tight text-balance sm:text-3xl">{data.title}</h1>
 
-      {/* key: ao trocar de concurso (ou depois de salvar), o formulário recomeça do que está salvo */}
-      <DetailsForm key={`${data.id}-${data.positionName}-${data.examDate}`} target={data} />
+      {/* key: ao trocar de concurso (ou depois de salvar ou aplicar o edital), o formulário recomeça do que está salvo */}
+      <DetailsForm
+        key={[data.id, data.organ, data.board, data.year, data.positionName, data.examDate].join("|")}
+        target={data}
+      />
 
       <StudyDocuments targetId={data.id} />
 

@@ -4,6 +4,9 @@ import com.gabarit.core.MinioTestConfiguration;
 import com.gabarit.core.PostgresTestConfiguration;
 import com.gabarit.core.document.DocumentService;
 import com.gabarit.core.exam.CatalogPositionService;
+import com.gabarit.core.extraction.Extraction;
+import com.gabarit.core.extraction.ExtractionService;
+import com.gabarit.core.extraction.ExtractionTask;
 import com.gabarit.core.exam.ExamService;
 import com.gabarit.core.shared.BadRequestException;
 import com.gabarit.core.shared.ClockConfig;
@@ -20,8 +23,14 @@ import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabas
 import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.IntStream;
 
@@ -30,6 +39,14 @@ import static com.gabarit.core.document.TestPdfs.pdf;
 import static com.gabarit.core.document.TestPdfs.put;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 /** Envio ponta a ponta: começar, PUT no MinIO (como o navegador), confirmar. */
 @DataJpaTest
@@ -48,6 +65,12 @@ class StudyDocumentServiceTest {
 	@Autowired
 	TestEntityManager em;
 
+	// a leitura pela LLM (fila) é do pacote extraction; aqui só importa que seja pedida e vinculada
+	@MockitoBean
+	ExtractionService extractions;
+
+	static final UUID READING = UUID.fromString("0193a1f0-0000-7000-8000-0000000000aa");
+
 	@Autowired
 	JdbcTemplate jdbc;
 
@@ -56,6 +79,16 @@ class StudyDocumentServiceTest {
 	@BeforeEach
 	void concurso() {
 		targetId = targets.addCustom("maria", "TJ-SP 2023").id();
+		// a linha de verdade (o vínculo tem FK); o resto do pacote extraction fica no mock
+		jdbc.update("""
+				INSERT INTO extraction (id, task, inputs_hash, prompt_version, inputs, status, created_at, requested_at)
+				VALUES (?, 'EDITAL_OVERVIEW', 'teste', 'v1', '{}', 'PENDING', now(), now())
+				ON CONFLICT DO NOTHING
+				""", READING);
+		Extraction pending = mock(Extraction.class);
+		given(pending.getId()).willReturn(READING);
+		given(pending.getStatus()).willReturn(Extraction.Status.PENDING);
+		given(extractions.request(any(), anyList(), anyMap())).willReturn(pending);
 	}
 
 	StudyDocumentService.DocumentView send(Kind kind, UUID paperId, byte[] content) {
@@ -234,6 +267,49 @@ class StudyDocumentServiceTest {
 
 		assertThat(jdbc.queryForObject("SELECT count(*) FROM study_document", Integer.class)).isZero();
 		assertThat(jdbc.queryForObject("SELECT count(*) FROM study_paper", Integer.class)).isZero();
+	}
+
+	@Test
+	void editalDoConcursoAprovadoPedeALeitura() {
+		byte[] content = pdf(30, "edital");
+
+		var edital = send(Kind.EDITAL, null, content);
+
+		verify(extractions).request(ExtractionTask.EDITAL_OVERVIEW, List.of(sha256(content)), Map.of());
+		assertThat(edital.reading().status()).isEqualTo(Extraction.Status.PENDING);
+		em.flush();
+		assertThat(jdbc.queryForObject("SELECT extraction_id FROM study_document WHERE id = ?", UUID.class, edital.id()))
+			.isEqualTo(READING);
+	}
+
+	@Test
+	void editalDeProvaRelacionadaNaoELido() {
+		UUID paperId = paper(false);
+
+		send(Kind.EDITAL, paperId, pdf(10, "edital 2019"));
+		var prova = send(Kind.PROVA, paperId, pdf(4, "prova"));
+
+		verify(extractions, never()).request(any(), anyList(), anyMap());
+		assertThatThrownBy(() -> service.read("maria", targetId, prova.id())).isInstanceOf(BadRequestException.class);
+	}
+
+	@Test
+	void lerDeNovoPedeALeituraDoEdital() {
+		var edital = send(Kind.EDITAL, null, pdf(30, "edital"));
+
+		var read = service.read("maria", targetId, edital.id());
+
+		assertThat(read.reading().status()).isEqualTo(Extraction.Status.PENDING);
+		verify(extractions, times(2)).request(any(), anyList(), anyMap());
+	}
+
+	static String sha256(byte[] content) {
+		try {
+			return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(content));
+		}
+		catch (NoSuchAlgorithmException e) {
+			throw new IllegalStateException(e);
+		}
 	}
 
 }

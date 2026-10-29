@@ -185,6 +185,40 @@ export type StudyDocument = {
   pages: number | null;
   createdAt: string;
   url: string | null;
+  /** Leitura do edital pela IA (só no edital do concurso; null se nunca foi pedida). */
+  reading: EditalReading | null;
+};
+
+/**
+ * Leitura do edital: `PENDING` (na fila ou lendo) → `DONE` com a visão geral, ou `FAILED` com o motivo
+ * (`retryable`: pedir de novo pode dar certo).
+ */
+export type EditalReading = {
+  status: "PENDING" | "DONE" | "FAILED";
+  overview: EditalOverview | null;
+  failureReason: string | null;
+  retryable: boolean;
+};
+
+/** O que a IA leu do edital: sugestão para conferir e aplicar. Ausente no edital = null. */
+export type EditalOverview = {
+  organ: string | null;
+  board: string | null;
+  year: number | null;
+  registrationStart: string | null;
+  registrationEnd: string | null;
+  examDate: string | null;
+  positions: EditalPosition[];
+};
+
+/** `openings` e `salary` como o edital escreve ("3 + CR", "R$ 8.529,67"). */
+export type EditalPosition = {
+  name: string;
+  specialty: string | null;
+  educationLevel: EducationLevel | null;
+  openings: string | null;
+  salary: string | null;
+  page: number | null;
 };
 
 /**

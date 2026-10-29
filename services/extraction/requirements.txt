@@ -1,0 +1,13 @@
+# Dependências diretas. A imagem instala o requirements.lock (versões fixas, gerado com `make lock`).
+# Mudou algo aqui? Rode `make lock` e commite os dois arquivos.
+# Core & Async
+pydantic
+pydantic-settings
+aio-pika
+
+# Infra & Utils
+python-dotenv
+# cliente S3 oficial do MinIO (síncrono: roda em thread, ver infrastructure/storage)
+minio
+# SDK oficial do Claude
+anthropic

@@ -1,0 +1,50 @@
+{
+  "year": 2025,
+  "board": "FGV",
+  "organ": "Ministério Público do Estado do Rio de Janeiro",
+  "exam_date": null,
+  "positions": [
+    {
+      "name": "Analista do Ministério Público",
+      "page": 2,
+      "salary": "R$ 9.534,57",
+      "openings": "10",
+      "specialty": "Administrativa",
+      "education_level": "SUPERIOR"
+    },
+    {
+      "name": "Analista do Ministério Público",
+      "page": 2,
+      "salary": "R$ 9.534,57",
+      "openings": "8",
+      "specialty": "Administrativa – Tecnologia da Informação",
+      "education_level": "SUPERIOR"
+    },
+    {
+      "name": "Analista do Ministério Público",
+      "page": 2,
+      "salary": "R$ 9.534,57",
+      "openings": "14",
+      "specialty": "Processual",
+      "education_level": "SUPERIOR"
+    },
+    {
+      "name": "Técnico do Ministério Público",
+      "page": 2,
+      "salary": "R$ 5.853,42",
+      "openings": "54",
+      "specialty": "Administrativa",
+      "education_level": "MEDIO"
+    },
+    {
+      "name": "Técnico do Ministério Público",
+      "page": 2,
+      "salary": "R$ 5.853,42",
+      "openings": "1",
+      "specialty": "Notificação e Atos Intimatórios",
+      "education_level": "MEDIO"
+    }
+  ],
+  "registration_end": "2025-03-06",
+  "registration_start": "2025-02-05"
+}

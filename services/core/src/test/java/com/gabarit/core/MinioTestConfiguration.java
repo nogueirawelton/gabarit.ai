@@ -23,7 +23,9 @@ public class MinioTestConfiguration {
 			.asCompatibleSubstituteFor("minio/minio"))
 			.withCopyFileToContainer(MountableFile.forHostPath(RepoFiles.path("infra/minio/init.sh"), 0755), "/init.sh")
 			.withCopyFileToContainer(MountableFile.forHostPath(RepoFiles.path("infra/minio/policies/core.json")),
-					"/policies/core.json");
+					"/policies/core.json")
+			.withCopyFileToContainer(MountableFile.forHostPath(RepoFiles.path("infra/minio/policies/extraction.json")),
+					"/policies/extraction.json");
 		minio.start();
 		runInit(minio);
 		return minio;
@@ -44,7 +46,8 @@ public class MinioTestConfiguration {
 	private static void runInit(MinIOContainer minio) throws IOException, InterruptedException {
 		ExecResult result = minio.execInContainer("env", "MINIO_URL=http://localhost:9000",
 				"MINIO_ROOT_USER=" + minio.getUserName(), "MINIO_ROOT_PASSWORD=" + minio.getPassword(),
-				"CORE_MINIO_PASSWORD=" + CORE_PASSWORD, "MC_CONFIG_DIR=/tmp/.mc", "/init.sh");
+				"CORE_MINIO_PASSWORD=" + CORE_PASSWORD, "EXTRACTION_MINIO_PASSWORD=extraction-test-password",
+				"MC_CONFIG_DIR=/tmp/.mc", "/init.sh");
 		if (result.getExitCode() != 0) {
 			throw new IllegalStateException("falha no init do MinIO: " + result.getStdout() + result.getStderr());
 		}

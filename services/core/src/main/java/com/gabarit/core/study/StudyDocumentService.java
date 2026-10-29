@@ -1,11 +1,15 @@
 package com.gabarit.core.study;
 
 import com.gabarit.core.document.DocumentService;
+import com.gabarit.core.extraction.Extraction;
+import com.gabarit.core.extraction.ExtractionService;
+import com.gabarit.core.extraction.ExtractionTask;
 import com.gabarit.core.shared.BadRequestException;
 import com.gabarit.core.shared.NotFoundException;
 import com.gabarit.core.study.StudyDocument.Kind;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.amqp.AmqpException;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,6 +20,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -39,9 +44,27 @@ public class StudyDocumentService {
 	/** Envios por usuário em 24h: contém abuso (cada arquivo, depois, custa leitura da LLM). */
 	public static final int MAX_UPLOADS_PER_DAY = 50;
 
-	/** Arquivo. {@code url}: para abrir o PDF (só aprovados, expira em 1h). */
+	/**
+	 * Arquivo. {@code url}: para abrir o PDF (só aprovados, expira em 1h). {@code reading}: a leitura
+	 * do edital pela LLM (só no edital do concurso-alvo; nula se nunca foi pedida).
+	 */
 	public record DocumentView(UUID id, Kind kind, String originalName, StudyDocument.Status status,
-			String rejectionReason, Long sizeBytes, Integer pages, Instant createdAt, URI url) {
+			String rejectionReason, Long sizeBytes, Integer pages, Instant createdAt, URI url, Reading reading) {
+	}
+
+	/**
+	 * Leitura do edital: {@code PENDING} (na fila ou lendo) → {@code DONE} com a visão geral, ou
+	 * {@code FAILED} com o motivo ({@code retryable}: pedir de novo pode dar certo).
+	 */
+	public record Reading(Extraction.Status status, EditalOverview overview, String failureReason,
+			boolean retryable) {
+
+		static Reading of(Extraction extraction) {
+			return new Reading(extraction.getStatus(),
+					extraction.getStatus() == Extraction.Status.DONE ? EditalOverview.parse(extraction.getResult()) : null,
+					extraction.getFailureReason(), extraction.isRetryable());
+		}
+
 	}
 
 	/**
@@ -68,14 +91,17 @@ public class StudyDocumentService {
 
 	private final DocumentService documents;
 
+	private final ExtractionService extractions;
+
 	private final Clock clock;
 
 	StudyDocumentService(StudyDocumentRepository repository, StudyPaperRepository papers,
-			StudyTargetRepository targets, DocumentService documents, Clock clock) {
+			StudyTargetRepository targets, DocumentService documents, ExtractionService extractions, Clock clock) {
 		this.repository = repository;
 		this.papers = papers;
 		this.targets = targets;
 		this.documents = documents;
+		this.extractions = extractions;
 		this.clock = clock;
 	}
 
@@ -84,13 +110,17 @@ public class StudyDocumentService {
 	public Materials materials(String userId, UUID targetId) {
 		checkTarget(userId, targetId);
 		List<StudyDocument> all = repository.findByStudyTargetIdOrderByCreatedAtAscIdAsc(targetId);
+		Map<UUID, Extraction> readings = extractions.find(all.stream()
+			.map(StudyDocument::getExtractionId)
+			.filter(Objects::nonNull)
+			.toList());
 		Map<UUID, Map<Kind, StudyDocument>> byPaper = all.stream()
 			.filter(d -> d.getPaperId() != null)
 			.collect(Collectors.groupingBy(StudyDocument::getPaperId,
 					Collectors.toMap(StudyDocument::getKind, Function.identity())));
 		List<DocumentView> editais = all.stream()
-			.filter(d -> d.getKind() == Kind.EDITAL && d.getPaperId() == null)
-			.map(this::view)
+			.filter(StudyDocument::isTargetEdital)
+			.map(d -> view(d, readings))
 			.toList();
 		List<PaperView> paperViews = papers.findByStudyTargetIdOrderByCreatedAtAscIdAsc(targetId)
 			.stream()
@@ -183,8 +213,41 @@ public class StudyDocumentService {
 		catch (BadRequestException e) {
 			// recusado não é erro da requisição: o arquivo fica na lista com o motivo
 			document.reject(e.getBody().getDetail());
+			return view(document);
+		}
+		if (document.isTargetEdital()) {
+			try {
+				return view(document, requestReading(document));
+			}
+			catch (AmqpException e) {
+				// o envio do arquivo deu certo; a leitura fica para o "ler de novo"
+				log.warn("leitura do edital {} não pedida", document.getId(), e);
+			}
 		}
 		return view(document);
+	}
+
+	/**
+	 * Pede (de novo) a leitura do edital do concurso-alvo: edital enviado antes da leitura existir,
+	 * ou leitura que falhou por erro passageiro. Leitura pronta ou em andamento é só devolvida.
+	 *
+	 * @throws BadRequestException arquivo que não é edital do concurso ou ainda não aprovado
+	 */
+	@Transactional
+	public DocumentView read(String userId, UUID targetId, UUID documentId) {
+		StudyDocument document = find(userId, targetId, documentId);
+		if (!document.isTargetEdital() || document.getStatus() != StudyDocument.Status.READY) {
+			throw new BadRequestException("só o edital do concurso, já enviado, pode ser lido");
+		}
+		return view(document, requestReading(document));
+	}
+
+	/** Mesmo edital (de qualquer pessoa) = mesma leitura: o ExtractionService devolve a existente. */
+	private Map<UUID, Extraction> requestReading(StudyDocument document) {
+		Extraction extraction = extractions.request(ExtractionTask.EDITAL_OVERVIEW, List.of(document.getBlobSha256()),
+				Map.of());
+		document.reading(extraction.getId());
+		return Map.of(extraction.getId(), extraction);
 	}
 
 	/** O blob continua (pode ser de outra pessoa também); só some o vínculo. */
@@ -246,9 +309,16 @@ public class StudyDocumentService {
 	}
 
 	private DocumentView view(StudyDocument d) {
+		return view(d, Map.of());
+	}
+
+	/** @param readings leituras já buscadas, por id (a do arquivo pode não estar: fica sem leitura) */
+	private DocumentView view(StudyDocument d, Map<UUID, Extraction> readings) {
 		URI url = d.getStatus() == StudyDocument.Status.READY ? documents.viewUrl(d.getBlobSha256()) : null;
+		Extraction extraction = d.getExtractionId() == null ? null : readings.get(d.getExtractionId());
 		return new DocumentView(d.getId(), d.getKind(), d.getOriginalName(), d.getStatus(), d.getRejectionReason(),
-				d.getSizeBytes(), d.getPages(), d.getCreatedAt(), url);
+				d.getSizeBytes(), d.getPages(), d.getCreatedAt(), url,
+				extraction == null ? null : Reading.of(extraction));
 	}
 
 	private static String blankToNull(String text) {

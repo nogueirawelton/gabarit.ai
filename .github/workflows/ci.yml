@@ -13,11 +13,17 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  scraper:
+  # serviços Python: mesmo pipeline para cada um
+  python:
+    name: ${{ matrix.service }}
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [scraper, extraction]
     defaults:
       run:
-        working-directory: services/scraper
+        working-directory: services/${{ matrix.service }}
     steps:
       - uses: actions/checkout@v5
 

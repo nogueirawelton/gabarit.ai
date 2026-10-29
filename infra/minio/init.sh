@@ -37,4 +37,9 @@ mc admin policy create gabarit core /policies/core.json
 mc admin user add gabarit core "$CORE_MINIO_PASSWORD"
 mc admin policy attach gabarit core --user core
 
+# extraction: só lê os PDFs já conferidos (documents/blobs/), nada mais
+mc admin policy create gabarit extraction /policies/extraction.json
+mc admin user add gabarit extraction "$EXTRACTION_MINIO_PASSWORD"
+mc admin policy attach gabarit extraction --user extraction
+
 echo "buckets e acessos prontos"

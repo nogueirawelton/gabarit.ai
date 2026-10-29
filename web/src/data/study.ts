@@ -95,6 +95,9 @@ export function useStudyMaterials(targetId: string) {
     queryFn: ({ signal }) =>
       apiGet<StudyMaterials>(`/me/study-targets/${targetId}/materials`, requireToken(accessToken), signal),
     enabled: Boolean(accessToken),
+    // edital sendo lido pela IA: confere de tempos em tempos até a leitura terminar
+    refetchInterval: (query) =>
+      query.state.data?.editais.some((edital) => edital.reading?.status === "PENDING") ? 5000 : false,
   });
 }
 
@@ -171,6 +174,21 @@ export function useUploadDocument(targetId: string) {
       );
     },
     onSettled: invalidate,
+  });
+}
+
+/** Pede (de novo) a leitura do edital do concurso pela IA. */
+export function useReadEdital(targetId: string) {
+  const { accessToken } = useSession();
+  const invalidate = useInvalidateMaterials(targetId);
+  return useMutation({
+    mutationFn: (documentId: string) =>
+      apiPostJson<StudyDocument>(
+        `/me/study-targets/${targetId}/documents/${documentId}/reading`,
+        requireToken(accessToken),
+        undefined,
+      ),
+    onSuccess: invalidate,
   });
 }
 
