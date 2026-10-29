@@ -7,6 +7,7 @@ import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
 import { NewStudyTargetPage } from "./pages/NewStudyTargetPage";
 import { ProfilePage } from "./pages/ProfilePage";
+import { SimulationPage } from "./pages/SimulationPage";
 import { StudiesPage } from "./pages/StudiesPage";
 import { StudyTargetPage } from "./pages/StudyTargetPage";
 
@@ -30,6 +31,7 @@ export function App() {
         {/* endereços antigos (links salvos, avisos já lidos) */}
         <Route path="/estudos" element={<Navigate to="/meus-concursos" replace />} />
         <Route path="/estudos/:id" element={<OldStudyRedirect />} />
+        <Route path="/simulados/:id" element={<SimulationPage />} />
         <Route path="/perfil" element={<ProfilePage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

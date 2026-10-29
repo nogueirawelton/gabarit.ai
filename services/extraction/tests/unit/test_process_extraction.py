@@ -8,6 +8,9 @@ from src.application.messages import ExtractionRequested
 from src.application.tasks import LLM_TASKS
 from src.application.tasks.edital_overview import EditalOverviewV1
 from src.application.tasks.edital_syllabus import EditalSyllabusV1
+from src.application.tasks.exam_paper import ExamPaperV1
+from src.application.tasks.question_topics import QuestionTopicsV1
+from src.application.tasks.topic_questions import TopicQuestionsV1
 from src.application.use_cases.process_extraction import ProcessExtraction
 from src.domain.errors import TransientError
 from src.domain.extraction import Task
@@ -214,3 +217,89 @@ async def test_conteudo_programatico_sem_cargo_valido_e_falha_definitiva(params:
     assert event_type == "extraction.failed"
     assert "parâmetros inválidos" in event["data"]["reason"]
     assert event["data"]["retryable"] is False
+
+
+GABARITO = b"%PDF-1.7 gabarito"
+GABARITO_SHA = hashlib.sha256(GABARITO).hexdigest()
+GABARITO_KEY = f"blobs/{GABARITO_SHA}.pdf"
+
+
+async def test_prova_com_gabarito_separado_manda_os_dois_e_o_tipo() -> None:
+    publisher = FakePublisher()
+    llm = FakeLlm({"variant": "Tipo 1", "answer_key_found": True, "texts": [], "questions": []})
+    store = FakeDocumentStore({KEY: PDF, GABARITO_KEY: GABARITO})
+
+    await ProcessExtraction(store, llm, publisher, FakePdf()).execute(
+        command(
+            task="EXAM_PAPER",
+            documents=[{"sha256": SHA, "key": KEY}, {"sha256": GABARITO_SHA, "key": GABARITO_KEY}],
+            params={"variant": "Tipo 1"},
+        )
+    )
+
+    [(shas, instructions, output_model, _)] = llm.calls
+    # prova inteira (sem recorte) e o gabarito, na ordem
+    assert shas == [SHA, GABARITO_SHA]
+    assert output_model is ExamPaperV1
+    assert '"variant": "Tipo 1"' in instructions
+    event_type, _ = only_event(publisher)
+    assert event_type == "extraction.completed"
+
+
+async def test_prova_aceita_um_ou_dois_documentos() -> None:
+    publisher = FakePublisher()
+    three = [{"sha256": SHA, "key": KEY}] * 3
+
+    await ProcessExtraction(FakeDocumentStore({KEY: PDF}), FakeLlm(), publisher, FakePdf()).execute(
+        command(task="EXAM_PAPER", documents=three, params={})
+    )
+
+    _, event = only_event(publisher)
+    assert "recebe 1 a 2 documento(s), vieram 3" in event["data"]["reason"]
+
+
+async def test_topicos_das_questoes_vai_sem_documento() -> None:
+    publisher = FakePublisher()
+    llm = FakeLlm({"classifications": [{"ordinal": 0, "topic": "1.2"}]})
+    params = {
+        "exam_reading_id": "e1",
+        "syllabus_reading_id": "s1",
+        "topics": [{"code": "1.2", "subject": "Português", "text": "Crase."}],
+        "questions": [
+            {"ordinal": 0, "subject": "Português", "statement": "Assinale", "options": ["a", "b"]}
+        ],
+    }
+
+    await ProcessExtraction(FakeDocumentStore(), llm, publisher, FakePdf()).execute(
+        command(task="QUESTION_TOPICS", documents=[], params=params)
+    )
+
+    [(shas, instructions, output_model, _)] = llm.calls
+    assert shas == []
+    assert output_model is QuestionTopicsV1
+    assert '"code": "1.2"' in instructions
+    _, event = only_event(publisher)
+    assert event["data"]["result"]["classifications"] == [{"ordinal": 0, "topic": "1.2"}]
+
+
+async def test_questoes_do_topico_sem_documento_com_a_banca() -> None:
+    publisher = FakePublisher()
+    llm = FakeLlm({"questions": []})
+    params = {
+        "board": "FGV",
+        "answer_format": "MULTIPLE_CHOICE",
+        "options_count": 5,
+        "subject": "Língua Portuguesa",
+        "topic": "Crase.",
+        "count": 5,
+    }
+
+    await ProcessExtraction(FakeDocumentStore(), llm, publisher, FakePdf()).execute(
+        command(task="TOPIC_QUESTIONS", documents=[], params=params)
+    )
+
+    [(shas, instructions, output_model, effort)] = llm.calls
+    assert shas == []
+    assert output_model is TopicQuestionsV1
+    assert effort == "high"
+    assert '"board": "FGV"' in instructions

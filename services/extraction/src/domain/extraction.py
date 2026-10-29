@@ -11,6 +11,12 @@ class Task(StrEnum):
     EDITAL_OVERVIEW = "EDITAL_OVERVIEW"
     # conteúdo programático do edital + cargo escolhido → disciplinas e tópicos daquele cargo
     EDITAL_SYLLABUS = "EDITAL_SYLLABUS"
+    # prova (+ gabarito, se separado) → questões com alternativas e resposta
+    EXAM_PAPER = "EXAM_PAPER"
+    # questões já lidas + conteúdo de um cargo → o tópico de cada questão (sem documento)
+    QUESTION_TOPICS = "QUESTION_TOPICS"
+    # tópico + banca → questões inéditas no estilo dela (sem documento)
+    TOPIC_QUESTIONS = "TOPIC_QUESTIONS"
 
 
 class DocumentRef(BaseModel):

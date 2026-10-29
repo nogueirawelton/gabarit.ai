@@ -65,6 +65,12 @@ class StudyDocumentController {
 				request.answersIncluded());
 	}
 
+	/** Pede a leitura das questões da prova relacionada (prova + gabarito); 200 com a prova e a leitura. */
+	@PostMapping("/me/study-targets/{targetId}/papers/{paperId}/reading")
+	PaperView readPaper(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID targetId, @PathVariable UUID paperId) {
+		return service.readPaper(jwt.getSubject(), targetId, paperId);
+	}
+
 	@DeleteMapping("/me/study-targets/{targetId}/papers/{paperId}")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	void removePaper(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID targetId, @PathVariable UUID paperId) {

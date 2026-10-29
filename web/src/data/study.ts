@@ -99,7 +99,7 @@ export function useStudyMaterials(targetId: string) {
     refetchInterval: (query) =>
       query.state.data?.editais.some(
         (edital) => edital.reading?.status === "PENDING" || edital.syllabus?.status === "PENDING",
-      )
+      ) || query.state.data?.papers.some((paper) => paper.reading?.status === "PENDING")
         ? 5000
         : false,
   });
@@ -231,6 +231,17 @@ export function useReadSyllabus(targetId: string) {
         requireToken(accessToken),
         undefined,
       ),
+    onSuccess: invalidate,
+  });
+}
+
+/** Pede a leitura das questões da prova relacionada (prova + gabarito), ou de novo. */
+export function useReadPaper(targetId: string) {
+  const { accessToken } = useSession();
+  const invalidate = useInvalidateMaterials(targetId);
+  return useMutation({
+    mutationFn: (paperId: string) =>
+      apiPostJson<StudyPaper>(`/me/study-targets/${targetId}/papers/${paperId}/reading`, requireToken(accessToken), undefined),
     onSuccess: invalidate,
   });
 }

@@ -86,6 +86,8 @@ class StudyDocumentServiceTest {
 
 	static final UUID SYLLABUS = UUID.fromString("0193a1f0-0000-7000-8000-0000000000cc");
 
+	static final UUID PAPER_READING = UUID.fromString("0193a1f0-0000-7000-8000-0000000000dd");
+
 	@Autowired
 	JdbcTemplate jdbc;
 
@@ -105,14 +107,27 @@ class StudyDocumentServiceTest {
 				VALUES (?, 'EDITAL_SYLLABUS', 'teste', 'v1', '{}', 'PENDING', now(), now())
 				ON CONFLICT DO NOTHING
 				""", SYLLABUS);
-		Extraction pending = mock(Extraction.class);
-		given(pending.getId()).willReturn(READING);
-		given(pending.getStatus()).willReturn(Extraction.Status.PENDING);
+		Extraction pending = extraction(READING, ExtractionTask.EDITAL_OVERVIEW, Extraction.Status.PENDING);
 		given(extractions.request(any(), anyList(), anyMap())).willReturn(pending);
-		Extraction syllabusPending = mock(Extraction.class);
-		given(syllabusPending.getId()).willReturn(SYLLABUS);
-		given(syllabusPending.getStatus()).willReturn(Extraction.Status.PENDING);
+		Extraction syllabusPending = extraction(SYLLABUS, ExtractionTask.EDITAL_SYLLABUS, Extraction.Status.PENDING);
 		given(extractions.request(eq(ExtractionTask.EDITAL_SYLLABUS), anyList(), anyMap())).willReturn(syllabusPending);
+		jdbc.update("""
+				INSERT INTO extraction (id, task, inputs_hash, prompt_version, inputs, status, created_at, requested_at)
+				VALUES (?, 'EXAM_PAPER', 'teste', 'v1', '{}', 'PENDING', now(), now())
+				ON CONFLICT DO NOTHING
+				""", PAPER_READING);
+		Extraction paperPending = extraction(PAPER_READING, ExtractionTask.EXAM_PAPER, Extraction.Status.PENDING);
+		given(extractions.request(eq(ExtractionTask.EXAM_PAPER), anyList(), anyMap())).willReturn(paperPending);
+	}
+
+	/** Leitura do pacote extraction (mock), feita com o prompt atual da tarefa. */
+	static Extraction extraction(UUID id, ExtractionTask task, Extraction.Status status) {
+		Extraction extraction = mock(Extraction.class);
+		given(extraction.getId()).willReturn(id);
+		given(extraction.getTask()).willReturn(task);
+		given(extraction.getPromptVersion()).willReturn(task.promptVersion());
+		given(extraction.getStatus()).willReturn(status);
+		return extraction;
 	}
 
 	StudyDocumentService.DocumentView send(Kind kind, UUID paperId, byte[] content) {
@@ -370,9 +385,7 @@ class StudyDocumentServiceTest {
 
 	/** A leitura READING pronta, com a visão geral acima. */
 	void leituraPronta() {
-		Extraction done = mock(Extraction.class);
-		given(done.getId()).willReturn(READING);
-		given(done.getStatus()).willReturn(Extraction.Status.DONE);
+		Extraction done = extraction(READING, ExtractionTask.EDITAL_OVERVIEW, Extraction.Status.DONE);
 		given(done.getResult()).willReturn(OVERVIEW);
 		given(extractions.find(anyCollection())).willReturn(Map.of(READING, done));
 	}
@@ -435,7 +448,7 @@ class StudyDocumentServiceTest {
 	}
 
 	@Test
-	void outraLeituraDoEditalDesfazAEscolha() {
+	void outraLeituraDoEditalMantemOCargoEOConteudo() {
 		var edital = lido(pdf(30, "edital"));
 		leituraPronta();
 		service.choosePosition("maria", targetId, edital.id(), "Escrevente", null);
@@ -446,17 +459,77 @@ class StudyDocumentServiceTest {
 				INSERT INTO extraction (id, task, inputs_hash, prompt_version, inputs, status, created_at, requested_at)
 				VALUES (?, 'EDITAL_OVERVIEW', 'teste', 'v2', '{}', 'PENDING', now(), now())
 				""", nova);
-		Extraction pending = mock(Extraction.class);
-		given(pending.getId()).willReturn(nova);
-		given(pending.getStatus()).willReturn(Extraction.Status.PENDING);
+		Extraction pending = extraction(nova, ExtractionTask.EDITAL_OVERVIEW, Extraction.Status.PENDING);
 		given(extractions.request(any(), anyList(), anyMap())).willReturn(pending);
 
 		var read = service.read("maria", targetId, edital.id());
-		assertThat(read.position()).isNull();
+
+		// os cargos são os mesmos na prática; o conteúdo é pedido pelo nome do cargo
+		assertThat(read.position()).isEqualTo(new StudyDocumentService.Position("Escrevente", null));
 		em.flush();
+		assertThat(jdbc.queryForObject("SELECT extraction_id FROM study_document WHERE id = ?", UUID.class, edital.id()))
+			.isEqualTo(nova);
 		assertThat(jdbc.queryForObject("SELECT syllabus_extraction_id FROM study_document WHERE id = ?", UUID.class,
 				edital.id()))
-			.isNull();
+			.isEqualTo(SYLLABUS);
+	}
+
+	@Test
+	void leituraDeUmPromptAntigoEstaDesatualizada() {
+		var edital = lido(pdf(30, "edital"));
+		Extraction old = extraction(READING, ExtractionTask.EDITAL_OVERVIEW, Extraction.Status.DONE);
+		given(old.getPromptVersion()).willReturn("v1");
+		given(old.getResult()).willReturn(OVERVIEW);
+		given(extractions.find(anyCollection())).willReturn(Map.of(READING, old));
+
+		var materials = service.materials("maria", targetId);
+
+		assertThat(materials.editais()).singleElement().satisfies(d -> {
+			assertThat(d.id()).isEqualTo(edital.id());
+			assertThat(d.reading().outdated()).isTrue();
+		});
+	}
+
+	@Test
+	void provaSoELidaComAProvaEOGabarito() {
+		UUID paperId = paper(false);
+		assertThatThrownBy(() -> service.readPaper("maria", targetId, paperId)).isInstanceOf(BadRequestException.class);
+		byte[] exam = pdf(4, "prova");
+		byte[] answerKey = pdf(1, "gabarito");
+		send(Kind.PROVA, paperId, exam);
+		// só a prova não basta: sem gabarito não há correção
+		assertThatThrownBy(() -> service.readPaper("maria", targetId, paperId)).isInstanceOf(BadRequestException.class);
+		send(Kind.GABARITO, paperId, answerKey);
+
+		var read = service.readPaper("maria", targetId, paperId);
+
+		assertThat(read.reading().status()).isEqualTo(Extraction.Status.PENDING);
+		verify(extractions).request(ExtractionTask.EXAM_PAPER, List.of(sha256(exam), sha256(answerKey)),
+				Map.of("variant", "Tipo 1"));
+	}
+
+	@Test
+	void provaComGabaritoNoMesmoArquivoMandaSoAProva() {
+		UUID paperId = paper(true);
+		byte[] exam = pdf(4, "prova com gabarito");
+		send(Kind.PROVA, paperId, exam);
+
+		service.readPaper("maria", targetId, paperId);
+
+		verify(extractions).request(ExtractionTask.EXAM_PAPER, List.of(sha256(exam)), Map.of("variant", "Tipo 1"));
+	}
+
+	@Test
+	void trocarOPdfDaProvaDesfazALeitura() {
+		UUID paperId = paper(false);
+		var exam = send(Kind.PROVA, paperId, pdf(4, "prova"));
+		send(Kind.GABARITO, paperId, pdf(1, "gabarito"));
+		service.readPaper("maria", targetId, paperId);
+
+		service.remove("maria", targetId, exam.id());
+
+		em.flush();
+		assertThat(jdbc.queryForObject("SELECT extraction_id FROM study_paper WHERE id = ?", UUID.class, paperId)).isNull();
 	}
 
 }

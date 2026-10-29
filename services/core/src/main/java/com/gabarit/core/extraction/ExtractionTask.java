@@ -9,11 +9,20 @@ public enum ExtractionTask {
 	/** Lê os documentos e devolve os parâmetros, sem LLM: testa o caminho core → worker → core. */
 	ECHO("v1"),
 
-	/** Edital inteiro → órgão, banca, ano, datas e cargos. */
-	EDITAL_OVERVIEW("v1"),
+	/** Edital inteiro → órgão, banca, ano, datas, cargos e (v2) o quadro de provas. */
+	EDITAL_OVERVIEW("v2"),
 
 	/** Edital + cargo (params.position: nome e especialidade da EDITAL_OVERVIEW) → disciplinas e tópicos. */
-	EDITAL_SYLLABUS("v2");
+	EDITAL_SYLLABUS("v2"),
+
+	/** Prova (+ gabarito, se separado; params.variant: tipo/cor) → questões, alternativas, resposta, anuladas. */
+	EXAM_PAPER("v1"),
+
+	/** Sem documento: questões já lidas + tópicos do conteúdo de um cargo (params) → o tópico de cada questão. */
+	QUESTION_TOPICS("v1"),
+
+	/** Sem documento: tópico + banca + formato (params) → questões inéditas no estilo da banca, com comentário. */
+	TOPIC_QUESTIONS("v1");
 
 	private final String promptVersion;
 

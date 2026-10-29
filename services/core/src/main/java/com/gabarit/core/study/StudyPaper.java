@@ -37,6 +37,9 @@ public class StudyPaper {
 	@Column(nullable = false)
 	private boolean answersIncluded;
 
+	// leitura da prova pela LLM (pacote extraction): as questões
+	private UUID extractionId;
+
 	@Column(nullable = false, updatable = false)
 	private Instant createdAt;
 
@@ -50,6 +53,11 @@ public class StudyPaper {
 		this.year = year;
 		this.variant = variant;
 		this.answersIncluded = answersIncluded;
+	}
+
+	/** Leitura das questões; nulo quando o PDF da prova ou do gabarito muda (a leitura era de outro). */
+	void reading(UUID extractionId) {
+		this.extractionId = extractionId;
 	}
 
 	@PrePersist
@@ -71,6 +79,10 @@ public class StudyPaper {
 
 	public boolean isAnswersIncluded() {
 		return answersIncluded;
+	}
+
+	public UUID getExtractionId() {
+		return extractionId;
 	}
 
 	public Instant getCreatedAt() {

@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -58,14 +59,19 @@ public class StudyDocumentService {
 
 	/** Leitura do conteúdo programático do cargo: mesmos estados da {@link Reading}. */
 	public record SyllabusReading(Extraction.Status status, EditalSyllabus syllabus, String failureReason,
-			boolean retryable) {
+			boolean retryable, boolean outdated) {
 
 		static SyllabusReading of(Extraction extraction) {
 			return new SyllabusReading(extraction.getStatus(),
 					extraction.getStatus() == Extraction.Status.DONE ? EditalSyllabus.parse(extraction.getResult()) : null,
-					extraction.getFailureReason(), extraction.isRetryable());
+					extraction.getFailureReason(), extraction.isRetryable(), isOutdated(extraction));
 		}
 
+	}
+
+	/** Prompt da leitura mais antigo que o que o core pede hoje para a tarefa. */
+	private static boolean isOutdated(Extraction extraction) {
+		return !extraction.getPromptVersion().equals(extraction.getTask().promptVersion());
 	}
 
 	/** Cargo como o edital escreve; {@code specialty} nula = cargo sem áreas. */
@@ -74,15 +80,16 @@ public class StudyDocumentService {
 
 	/**
 	 * Leitura do edital: {@code PENDING} (na fila ou lendo) → {@code DONE} com a visão geral, ou
-	 * {@code FAILED} com o motivo ({@code retryable}: pedir de novo pode dar certo).
+	 * {@code FAILED} com o motivo ({@code retryable}: pedir de novo pode dar certo). {@code outdated}:
+	 * feita com um prompt mais antigo que o atual (pedir de novo lê com o novo).
 	 */
 	public record Reading(Extraction.Status status, EditalOverview overview, String failureReason,
-			boolean retryable) {
+			boolean retryable, boolean outdated) {
 
 		static Reading of(Extraction extraction) {
 			return new Reading(extraction.getStatus(),
 					extraction.getStatus() == Extraction.Status.DONE ? EditalOverview.parse(extraction.getResult()) : null,
-					extraction.getFailureReason(), extraction.isRetryable());
+					extraction.getFailureReason(), extraction.isRetryable(), isOutdated(extraction));
 		}
 
 	}
@@ -92,7 +99,20 @@ public class StudyDocumentService {
 	 * {@code edital}: o edital daquela prova (opcional; sem ele, vale o edital do concurso-alvo).
 	 */
 	public record PaperView(UUID id, Integer year, String variant, boolean answersIncluded, Instant createdAt,
-			DocumentView exam, DocumentView answerKey, DocumentView edital) {
+			DocumentView exam, DocumentView answerKey, DocumentView edital, PaperReading reading) {
+	}
+
+	/** Leitura das questões da prova: mesmos estados da {@link Reading}, com o resumo quando pronta. */
+	public record PaperReading(Extraction.Status status, ExamPaper.Summary summary, String failureReason,
+			boolean retryable, boolean outdated) {
+
+		static PaperReading of(Extraction extraction) {
+			return new PaperReading(extraction.getStatus(),
+					extraction.getStatus() == Extraction.Status.DONE ? ExamPaper.parse(extraction.getResult()).summary()
+							: null,
+					extraction.getFailureReason(), extraction.isRetryable(), isOutdated(extraction));
+		}
+
 	}
 
 	/** Tudo do concurso, para a página de estudo. {@code editais}: os do concurso-alvo (fora das provas). */
@@ -130,8 +150,10 @@ public class StudyDocumentService {
 	public Materials materials(String userId, UUID targetId) {
 		checkTarget(userId, targetId);
 		List<StudyDocument> all = repository.findByStudyTargetIdOrderByCreatedAtAscIdAsc(targetId);
-		Map<UUID, Extraction> readings = extractions.find(all.stream()
-			.flatMap(d -> Stream.of(d.getExtractionId(), d.getSyllabusExtractionId()))
+		List<StudyPaper> targetPapers = papers.findByStudyTargetIdOrderByCreatedAtAscIdAsc(targetId);
+		Map<UUID, Extraction> readings = extractions.find(Stream.concat(
+				all.stream().flatMap(d -> Stream.of(d.getExtractionId(), d.getSyllabusExtractionId())),
+				targetPapers.stream().map(StudyPaper::getExtractionId))
 			.filter(Objects::nonNull)
 			.toList());
 		Map<UUID, Map<Kind, StudyDocument>> byPaper = all.stream()
@@ -142,9 +164,8 @@ public class StudyDocumentService {
 			.filter(StudyDocument::isTargetEdital)
 			.map(d -> view(d, readings))
 			.toList();
-		List<PaperView> paperViews = papers.findByStudyTargetIdOrderByCreatedAtAscIdAsc(targetId)
-			.stream()
-			.map(p -> paperView(p, byPaper.getOrDefault(p.getId(), Map.of())))
+		List<PaperView> paperViews = targetPapers.stream()
+			.map(p -> paperView(p, byPaper.getOrDefault(p.getId(), Map.of()), readings))
 			.toList();
 		return new Materials(editais, paperViews);
 	}
@@ -162,7 +183,7 @@ public class StudyDocumentService {
 					"este concurso já tem %d provas: remova alguma para adicionar outra".formatted(MAX_PAPERS_PER_TARGET));
 		}
 		StudyPaper paper = papers.save(new StudyPaper(userId, targetId, year, blankToNull(variant), answersIncluded));
-		return paperView(paper, Map.of());
+		return paperView(paper, Map.of(), Map.of());
 	}
 
 	/** Remove a prova relacionada com os arquivos dela (os blobs continuam: podem ser de outra pessoa). */
@@ -241,9 +262,10 @@ public class StudyDocumentService {
 	}
 
 	/**
-	 * Pede a leitura do edital do concurso-alvo (a pessoa pede depois de enviar), ou de novo, se
-	 * falhou por erro passageiro. Leitura pronta ou em andamento é só devolvida (mesmo edital enviado
-	 * por outra pessoa: a leitura dela, sem custo).
+	 * Pede a leitura do edital do concurso-alvo (a pessoa pede depois de enviar), de novo, se falhou
+	 * por erro passageiro, ou com o prompt atual, se a que existe é de um prompt antigo. Leitura
+	 * pronta ou em andamento é só devolvida (mesmo edital enviado por outra pessoa: a leitura dela,
+	 * sem custo).
 	 *
 	 * @throws BadRequestException arquivo que não é edital do concurso ou ainda não aprovado
 	 */
@@ -290,8 +312,8 @@ public class StudyDocumentService {
 	}
 
 	/**
-	 * Pede a leitura do conteúdo programático do cargo escolhido, ou de novo, se falhou por erro
-	 * passageiro. Pronta ou em andamento é só devolvida (mesmo edital e cargo de outra pessoa: a
+	 * Pede a leitura do conteúdo programático do cargo escolhido, de novo, se falhou por erro
+	 * passageiro, ou com o prompt atual, se a que existe é de um prompt antigo. Pronta ou em andamento é só devolvida (mesmo edital e cargo de outra pessoa: a
 	 * leitura dela, sem custo).
 	 *
 	 * @throws BadRequestException nenhum cargo escolhido neste edital
@@ -344,7 +366,140 @@ public class StudyDocumentService {
 	/** O blob continua (pode ser de outra pessoa também); só some o vínculo. */
 	@Transactional
 	public void remove(String userId, UUID targetId, UUID documentId) {
-		repository.delete(find(userId, targetId, documentId));
+		StudyDocument document = find(userId, targetId, documentId);
+		if (document.getPaperId() != null && document.getKind() != Kind.EDITAL) {
+			// a leitura das questões era deste PDF de prova ou gabarito
+			papers.findById(document.getPaperId()).ifPresent(paper -> paper.reading(null));
+		}
+		repository.delete(document);
+	}
+
+	/**
+	 * Pede a leitura das questões da prova relacionada (prova + gabarito, ou só a prova quando o
+	 * gabarito vem nela), de novo se falhou por erro passageiro, ou com o prompt atual. Pronta ou em
+	 * andamento é só devolvida (mesma prova, gabarito e tipo de outra pessoa: a leitura dela, sem
+	 * custo).
+	 *
+	 * @throws BadRequestException falta o PDF da prova ou do gabarito
+	 */
+	@Transactional
+	public PaperView readPaper(String userId, UUID targetId, UUID paperId) {
+		StudyPaper paper = findPaper(userId, targetId, paperId);
+		Map<Kind, StudyDocument> slots = repository.findByPaperId(paperId)
+			.stream()
+			.collect(Collectors.toMap(StudyDocument::getKind, Function.identity()));
+		StudyDocument exam = ready(slots.get(Kind.PROVA));
+		StudyDocument answerKey = paper.isAnswersIncluded() ? null : ready(slots.get(Kind.GABARITO));
+		if (exam == null || (!paper.isAnswersIncluded() && answerKey == null)) {
+			throw new BadRequestException("envie o PDF da prova e o do gabarito antes de pedir a leitura");
+		}
+		List<String> documents = answerKey == null ? List.of(exam.getBlobSha256())
+				: List.of(exam.getBlobSha256(), answerKey.getBlobSha256());
+		// HashMap: o tipo da prova pode ser nulo
+		Map<String, Object> params = new HashMap<>();
+		params.put("variant", paper.getVariant());
+		Extraction extraction = extractions.request(ExtractionTask.EXAM_PAPER, documents, params);
+		paper.reading(extraction.getId());
+		return paperView(paper, slots, Map.of(extraction.getId(), extraction));
+	}
+
+	/** Questões de uma prova relacionada lida, para o simulado: a leitura, um título e o conteúdo. */
+	public record PaperQuestions(UUID extractionId, String title, ExamPaper paper) {
+	}
+
+	/**
+	 * A leitura pronta das questões da prova relacionada (para o pacote simulation).
+	 *
+	 * @throws NotFoundException prova que não é do usuário
+	 * @throws BadRequestException questões ainda não lidas
+	 */
+	@Transactional(readOnly = true)
+	public PaperQuestions paperQuestions(String userId, UUID targetId, UUID paperId) {
+		StudyPaper paper = findPaper(userId, targetId, paperId);
+		Extraction reading = paper.getExtractionId() == null ? null
+				: extractions.find(List.of(paper.getExtractionId())).get(paper.getExtractionId());
+		if (reading == null || reading.getStatus() != Extraction.Status.DONE) {
+			throw new BadRequestException("leia as questões da prova antes de começar o simulado");
+		}
+		String title = Stream.of(paper.getYear() == null ? "Prova" : "Prova de " + paper.getYear(), paper.getVariant())
+			.filter(Objects::nonNull)
+			.collect(Collectors.joining(" · "));
+		return new PaperQuestions(reading.getId(), title, ExamPaper.parse(reading.getResult()));
+	}
+
+	/** O conteúdo programático lido do cargo escolhido no edital do concurso. */
+	public record TargetSyllabus(UUID extractionId, EditalSyllabus syllabus) {
+	}
+
+	/**
+	 * O conteúdo pronto do cargo do concurso (o do edital com o cargo escolhido), para o pacote
+	 * simulation ligar questões a tópicos. Vazio se ainda não há.
+	 *
+	 * @throws NotFoundException concurso que não é do usuário
+	 */
+	@Transactional(readOnly = true)
+	public Optional<TargetSyllabus> targetSyllabus(String userId, UUID targetId) {
+		checkTarget(userId, targetId);
+		List<UUID> ids = repository.findByStudyTargetIdOrderByCreatedAtAscIdAsc(targetId)
+			.stream()
+			.filter(d -> d.isTargetEdital() && d.getSyllabusExtractionId() != null)
+			.map(StudyDocument::getSyllabusExtractionId)
+			.toList();
+		Map<UUID, Extraction> readings = ids.isEmpty() ? Map.of() : extractions.find(ids);
+		return ids.stream()
+			.map(readings::get)
+			.filter(e -> e != null && e.getStatus() == Extraction.Status.DONE)
+			.map(e -> new TargetSyllabus(e.getId(), EditalSyllabus.parse(e.getResult())))
+			.filter(t -> t.syllabus().positionFound())
+			.findFirst();
+	}
+
+	/**
+	 * A prova do cargo escolhido no quadro de provas (leitura do edital v2 em diante), para o plano
+	 * pesar as disciplinas. Vazio se não há cargo escolhido, leitura pronta ou quadro.
+	 *
+	 * @throws NotFoundException concurso que não é do usuário
+	 */
+	@Transactional(readOnly = true)
+	public Optional<EditalOverview.Exam> targetExam(String userId, UUID targetId) {
+		checkTarget(userId, targetId);
+		List<StudyDocument> chosen = repository.findByStudyTargetIdOrderByCreatedAtAscIdAsc(targetId)
+			.stream()
+			.filter(d -> d.isTargetEdital() && d.getPositionName() != null && d.getExtractionId() != null)
+			.toList();
+		Map<UUID, Extraction> readings = chosen.isEmpty() ? Map.of()
+				: extractions.find(chosen.stream().map(StudyDocument::getExtractionId).toList());
+		for (StudyDocument document : chosen) {
+			Extraction reading = readings.get(document.getExtractionId());
+			if (reading == null || reading.getStatus() != Extraction.Status.DONE) {
+				continue;
+			}
+			EditalOverview overview = EditalOverview.parse(reading.getResult());
+			Optional<EditalOverview.Exam> exam = overview.positions()
+				.stream()
+				.filter(p -> p.name().equals(document.getPositionName())
+						&& Objects.equals(p.specialty(), document.getPositionSpecialty()) && p.examId() != null)
+				.findFirst()
+				.flatMap(p -> overview.exams().stream().filter(e -> e.id() == p.examId()).findFirst());
+			if (exam.isPresent()) {
+				return exam;
+			}
+		}
+		return Optional.empty();
+	}
+
+	/** A leitura atual das questões de cada prova relacionada do concurso (prova → leitura; sem leitura fica de fora). */
+	@Transactional(readOnly = true)
+	public Map<UUID, UUID> paperReadings(String userId, UUID targetId) {
+		checkTarget(userId, targetId);
+		return papers.findByStudyTargetIdOrderByCreatedAtAscIdAsc(targetId)
+			.stream()
+			.filter(p -> p.getExtractionId() != null)
+			.collect(Collectors.toMap(StudyPaper::getId, StudyPaper::getExtractionId));
+	}
+
+	private static StudyDocument ready(StudyDocument document) {
+		return document != null && document.getStatus() == StudyDocument.Status.READY ? document : null;
 	}
 
 	/** Todo dia de madrugada: envios começados e nunca confirmados somem. */
@@ -390,9 +545,11 @@ public class StudyDocumentService {
 			.orElseThrow(() -> new NotFoundException("arquivo %s não encontrado".formatted(documentId)));
 	}
 
-	private PaperView paperView(StudyPaper p, Map<Kind, StudyDocument> slots) {
+	private PaperView paperView(StudyPaper p, Map<Kind, StudyDocument> slots, Map<UUID, Extraction> readings) {
+		Extraction reading = p.getExtractionId() == null ? null : readings.get(p.getExtractionId());
 		return new PaperView(p.getId(), p.getYear(), p.getVariant(), p.isAnswersIncluded(), p.getCreatedAt(),
-				viewOrNull(slots.get(Kind.PROVA)), viewOrNull(slots.get(Kind.GABARITO)), viewOrNull(slots.get(Kind.EDITAL)));
+				viewOrNull(slots.get(Kind.PROVA)), viewOrNull(slots.get(Kind.GABARITO)), viewOrNull(slots.get(Kind.EDITAL)),
+				reading == null ? null : PaperReading.of(reading));
 	}
 
 	private DocumentView viewOrNull(StudyDocument d) {

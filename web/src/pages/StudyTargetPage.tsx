@@ -12,13 +12,25 @@ import {
 import { type FormEvent, type ReactNode, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 
-import { ApiError, isUuid, type StudyDocument, type StudyTargetDetail, type StudyTargetUpdate } from "../api";
+import {
+  ApiError,
+  type EditalOverview,
+  isUuid,
+  type StudyDocument,
+  type StudyPaper,
+  type StudyTargetDetail,
+  type StudyTargetUpdate,
+} from "../api";
 import { displayPositionName } from "../brazil";
 import { EditalPositions } from "../components/EditalReading";
 import { EditalSyllabus } from "../components/EditalSyllabus";
 import { StatusBadge } from "../components/ExamCard";
 import { ExamDetailSkeleton } from "../components/Skeleton";
 import { EditalFiles, RelatedPapers } from "../components/StudyDocuments";
+import { PlanForm, PlanPanel } from "../components/StudyPlan";
+import { usePlan } from "../data/plans";
+import { useSimulations, useStartSimulation } from "../data/simulations";
+import { useTopicPractice, useTopics } from "../data/topics";
 import { useRemoveStudyTarget, useStudyMaterials, useStudyTarget, useUpdateStudyTarget } from "../data/study";
 import { primaryButton, secondaryButton } from "./StudiesPage";
 
@@ -69,6 +81,8 @@ export function StudyTargetPage() {
   const id = useParams().id ?? "";
   const target = useStudyTarget(id);
   const materials = useStudyMaterials(id);
+  const topics = useTopics(id);
+  const topicPractice = useTopicPractice(id);
   const [params, setParams] = useSearchParams();
 
   if (!isUuid(id) || (target.error instanceof ApiError && target.error.status === 404)) {
@@ -170,11 +184,23 @@ export function StudyTargetPage() {
           {current === "cargo" && mainEdital?.reading?.overview && (
             <>
               <EditalPositions targetId={data.id} document={mainEdital} overview={mainEdital.reading.overview} />
-              <EditalSyllabus targetId={data.id} document={mainEdital} />
+              <EditalSyllabus
+                targetId={data.id}
+                document={mainEdital}
+                exam={examOf(mainEdital.reading.overview, mainEdital.position)}
+                frequency={topics.data?.frequency ?? []}
+                practice={topicPractice.data ?? []}
+              />
             </>
           )}
           {current === "provas" && <RelatedPapers targetId={data.id} papers={papers} />}
-          {current === "estudar" && <StudyActions edital={mainEdital} papers={papers.length} onGo={go} />}
+          {current === "estudar" && <StudyActions
+              targetId={data.id}
+              examDate={data.examDate}
+              edital={mainEdital}
+              readPapers={papers.filter((paper) => paper.reading?.status === "DONE")}
+              onGo={go}
+            />}
         </div>
 
         <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-5 dark:border-slate-800">
@@ -199,6 +225,14 @@ export function StudyTargetPage() {
       </section>
     </>
   );
+}
+
+/** A prova (quadro de provas) do cargo escolhido, quando a leitura do edital traz. */
+function examOf(overview: EditalOverview, position: StudyDocument["position"]) {
+  const chosen = overview.positions.find(
+    (candidate) => candidate.name === position?.name && candidate.specialty === position?.specialty,
+  );
+  return overview.exams.find((exam) => exam.id === chosen?.examId) ?? null;
 }
 
 function lockedHint(step: StepId) {
@@ -265,31 +299,49 @@ function Stepper({
  * dizem do que cada um depende (o conteúdo do cargo; as provas relacionadas para o simulado).
  */
 function StudyActions({
+  targetId,
+  examDate,
   edital,
-  papers,
+  readPapers,
   onGo,
 }: {
+  targetId: string;
+  examDate: string | null;
   edital: StudyDocument | undefined;
-  papers: number;
+  readPapers: StudyPaper[];
   onGo: (step: StepId) => void;
 }) {
+  const [startingSimulation, setStartingSimulation] = useState(false);
+  const [editingPlan, setEditingPlan] = useState(false);
+  const plan = usePlan(targetId);
   const syllabus = edital?.syllabus;
   const syllabusReady = syllabus?.status === "DONE" && syllabus.syllabus?.positionFound;
-  const actions: { icon: LucideIcon; title: string; description: string; needs?: ReactNode }[] = [
+  const actions: {
+    icon: LucideIcon;
+    title: string;
+    description: string;
+    needs?: ReactNode;
+    // sem ação: "Em breve"
+    action?: { label: string; onClick: () => void };
+  }[] = [
     {
       icon: CalendarCheck,
       title: "Plano de estudos",
       description: "Agenda até a data da prova, com as disciplinas do seu cargo na ordem que mais rende.",
       needs: !syllabusReady && "Precisa do conteúdo programático do cargo.",
+      action: syllabusReady
+        ? { label: plan.data ? "Refazer plano" : "Montar plano", onClick: () => setEditingPlan(true) }
+        : undefined,
     },
     {
       icon: Timer,
       title: "Simulado",
       description: "Uma prova relacionada inteira, com tempo de prova e correção pelo gabarito.",
+      action: readPapers.length > 0 ? { label: "Começar simulado", onClick: () => setStartingSimulation(true) } : undefined,
       needs:
-        papers === 0 ? (
+        readPapers.length === 0 ? (
           <>
-            Precisa de uma prova relacionada.{" "}
+            Precisa de uma prova relacionada com as questões lidas.{" "}
             <button type="button" onClick={() => onGo("provas")} className="font-semibold text-indigo-700 hover:underline dark:text-indigo-300">
               Adicionar
             </button>
@@ -314,8 +366,9 @@ function StudyActions({
           </button>
         </p>
       )}
+      {plan.data && !editingPlan && <PlanPanel plan={plan.data} onRedo={() => setEditingPlan(true)} />}
       <ul className="grid gap-3 sm:grid-cols-3">
-        {actions.map(({ icon: Icon, title, description, needs }) => (
+        {actions.map(({ icon: Icon, title, description, needs, action }) => (
           <li
             key={title}
             className="flex flex-col rounded-xl border border-slate-200 p-4 dark:border-slate-800"
@@ -328,10 +381,143 @@ function StudyActions({
             {needs && <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{needs}</p>}
             {/* mt-auto: botões alinhados no fim dos cartões; pt-4: nunca colado no texto */}
             <div className="mt-auto pt-4">
-              <button type="button" disabled className={`${primaryButton} w-full justify-center`}>
-                Em breve
+              <button
+                type="button"
+                onClick={action?.onClick}
+                disabled={!action}
+                className={`${primaryButton} w-full justify-center`}
+              >
+                {action?.label ?? "Em breve"}
               </button>
             </div>
+          </li>
+        ))}
+      </ul>
+      {editingPlan && (
+        <PlanForm targetId={targetId} plan={plan.data ?? null} examDate={examDate} onDone={() => setEditingPlan(false)} />
+      )}
+      {startingSimulation && (
+        <StartSimulationForm targetId={targetId} papers={readPapers} onCancel={() => setStartingSimulation(false)} />
+      )}
+      <SimulationHistory targetId={targetId} />
+    </div>
+  );
+}
+
+const TIME_LIMITS: { minutes: number | null; label: string }[] = [
+  { minutes: null, label: "Sem limite de tempo" },
+  ...[1, 2, 3, 4, 5].map((hours) => ({ minutes: hours * 60, label: `${hours} ${hours === 1 ? "hora" : "horas"}` })),
+];
+
+function paperTitle(paper: StudyPaper) {
+  return [paper.year ? `Prova de ${paper.year}` : "Prova", paper.variant].filter(Boolean).join(" · ");
+}
+
+/** Escolher a prova (entre as já lidas) e o tempo, e começar. */
+function StartSimulationForm({
+  targetId,
+  papers,
+  onCancel,
+}: {
+  targetId: string;
+  papers: StudyPaper[];
+  onCancel: () => void;
+}) {
+  const start = useStartSimulation(targetId);
+  const navigate = useNavigate();
+  const [paperId, setPaperId] = useState(papers[0]?.id ?? "");
+  const [minutes, setMinutes] = useState<number | null>(240);
+
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    start.mutate(
+      { paperId, timeLimitMinutes: minutes },
+      { onSuccess: (simulation) => void navigate(`/simulados/${simulation.id}`) },
+    );
+  }
+
+  return (
+    <form onSubmit={submit} className="mt-4 rounded-xl border border-indigo-200 bg-indigo-50/40 p-4 dark:border-indigo-500/30 dark:bg-indigo-500/5">
+      <p className="font-semibold">Novo simulado</p>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <Field label="Prova">
+          <select value={paperId} onChange={(e) => setPaperId(e.target.value)} className={inputClass}>
+            {papers.map((paper) => (
+              <option key={paper.id} value={paper.id}>
+                {paperTitle(paper)}
+                {paper.reading?.summary ? ` (${paper.reading.summary.questions} questões)` : ""}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Tempo">
+          <select
+            value={minutes ?? ""}
+            onChange={(e) => setMinutes(e.target.value ? Number(e.target.value) : null)}
+            className={inputClass}
+          >
+            {TIME_LIMITS.map(({ minutes: value, label }) => (
+              <option key={label} value={value ?? ""}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </Field>
+      </div>
+      <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+        O gabarito só aparece depois de entregar. Com tempo, a prova é entregue sozinha quando ele acaba.
+      </p>
+      {start.isError && (
+        <p role="alert" className="mt-2 text-sm text-red-700 dark:text-red-300">
+          {start.error instanceof ApiError && start.error.detail ? start.error.detail : "Não foi possível começar agora."}
+        </p>
+      )}
+      <div className="mt-4 flex gap-2">
+        <button type="submit" disabled={!paperId || start.isPending} className={primaryButton}>
+          {start.isPending ? "Começando…" : "Começar"}
+        </button>
+        <button type="button" onClick={onCancel} className={secondaryButton}>
+          Cancelar
+        </button>
+      </div>
+    </form>
+  );
+}
+
+const dateTimeFormat = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" });
+
+/** Simulados já feitos (ou em andamento) deste concurso. */
+function SimulationHistory({ targetId }: { targetId: string }) {
+  const simulations = useSimulations(targetId);
+  if (!simulations.data || simulations.data.length === 0) {
+    return null;
+  }
+  return (
+    <div className="mt-6">
+      <h3 className="text-sm font-semibold">Seus simulados</h3>
+      <ul className="mt-2 divide-y divide-slate-100 rounded-xl border border-slate-200 dark:divide-slate-800 dark:border-slate-800">
+        {simulations.data.map((simulation) => (
+          <li key={simulation.id}>
+            <Link
+              to={`/simulados/${simulation.id}`}
+              className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm transition hover:bg-slate-50 dark:hover:bg-slate-800/50"
+            >
+              <span>
+                <span className="font-medium">{simulation.title}</span>
+                <span className="block text-xs text-slate-500 dark:text-slate-400">
+                  {dateTimeFormat.format(new Date(simulation.startedAt))}
+                </span>
+              </span>
+              {simulation.finished ? (
+                <span className="font-semibold tabular-nums">
+                  {simulation.correct}/{simulation.total} certas
+                </span>
+              ) : (
+                <span className="font-semibold text-indigo-700 dark:text-indigo-300">
+                  Continuar ({simulation.answered}/{simulation.total})
+                </span>
+              )}
+            </Link>
           </li>
         ))}
       </ul>

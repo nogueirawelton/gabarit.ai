@@ -63,6 +63,7 @@ Itens com 🛠️ são infra: peça para o Claude fazer.
 ## Fase 3: tarefas do edital
 
 - [x] **`EDITAL_OVERVIEW` v1**: órgão, banca, ano, inscrições, data da prova e cargos (nome, especialidade, escolaridade, vagas e salário como o edital escreve, página do quadro de vagas). Um item por especialidade; mesmo cargo em várias cidades vira um item.
+  - **v2** (atual): + quadro de provas: `exams` (uma por estrutura distinta, não por cargo: a quem vale, formato, total, discursiva, disciplinas com questões e peso) e `exam_id` em cada cargo. Mesmas partes do edital (o quadro fica no corpo); só a saída cresce.
 - [x] **`EDITAL_SYLLABUS` v1** (`edital_parts={SYLLABUS}`; sem achar o anexo, o PDF inteiro): conteúdo programático de **um cargo** (`params.position` = nome e especialidade da visão geral, validados por `EditalSyllabusParamsV1` e anexados às instruções como dados). Disciplinas comuns + específicas, bloco, tópicos de primeiro nível (subtópicos no texto), página; `position_found=false` em vez de usar o conteúdo de outro cargo. `effort=medium`. Número de questões por disciplina fica no corpo do edital (quadro de provas): fora desta tarefa.
   - **v2** (atual): a v1 juntava os tópicos numerados emendados no mesmo parágrafo ("1. … 2. … 3. …") num item só (INB: Português com 1 tópico em vez de 7) e chamava a disciplina pelo nome do cargo quando o bloco específico só tem esse título. Conferido no edital da INB 2026: 7/4/6/13 tópicos, iguais ao PDF.
 - **Pronto quando:** a avaliação dessas duas tarefas passa no critério combinado (ex.: cargos 100%, conteúdo ≥ 95% dos tópicos) e o custo por edital é conhecido.
@@ -71,7 +72,10 @@ Itens com 🛠️ são infra: peça para o Claude fazer.
 
 ## Fase 4: provas
 
-- [ ] **`EXAM_PAPER`**: questões estruturadas. Pontos que derrubam a qualidade:
+- [x] **`EXAM_PAPER` v1**: prova (+ gabarito, se separado: `max_documents=2`) + `params.variant` → questões, alternativas, resposta, anuladas, textos-base (`texts` + `text_id`), `has_image`, página; `effort=medium`. Os pontos abaixo continuam valendo; falta medir na avaliação e dividir prova longa.
+- [x] **`TOPIC_QUESTIONS` v1**: sem documento; `params` só de conteúdo (banca, formato MULTIPLE_CHOICE/TRUE_FALSE, número de alternativas, disciplina, tópico, quantidade) → questões inéditas com gabarito e comentário. `effort=high` (criar alternativas plausíveis com uma só certa e sem erro de conteúdo é onde o raciocínio mais pesa). O prompt proíbe citar lei ou jurisprudência sem certeza.
+- [x] **`QUESTION_TOPICS` v1**: sem documento (`documents=0`); `params` com as questões (ordinal, disciplina, enunciado e alternativas cortados) e os tópicos do conteúdo (código "disciplina.tópico") → `classifications` (ordinal → código ou null). Um tópico por questão, o mais específico; questão que o cargo não estuda fica null.
+- [ ] **`EXAM_PAPER`** (o que falta): questões estruturadas. Pontos que derrubam a qualidade:
   - **tipo/cor da prova:** o gabarito tem uma coluna por tipo; usar a coluna do tipo informado (ou detectado no cabeçalho da prova);
   - **formatos:** A–E, A–D, certo/errado (Cebraspe), discursivas e redação (marcar e pular no simulado);
   - **anuladas e alteradas** pelo gabarito definitivo;

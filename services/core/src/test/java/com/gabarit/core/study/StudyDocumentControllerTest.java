@@ -81,7 +81,7 @@ class StudyDocumentControllerTest {
 	void novaProvaAnterior() throws Exception {
 		given(service.addPaper("kc-maria", TARGET, 2019, "Tipo 1", true))
 			.willReturn(new StudyDocumentService.PaperView(PAPER, 2019, "Tipo 1", true, Instant.parse("2026-11-10T12:00:00Z"),
-					null, null, null));
+					null, null, null, null));
 
 		mvc.perform(post("/me/study-targets/" + TARGET + "/papers").with(jwt().jwt(t -> t.subject("kc-maria")))
 			.contentType(MediaType.APPLICATION_JSON)

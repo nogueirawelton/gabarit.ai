@@ -3,9 +3,13 @@ import { useState } from "react";
 import { Link } from "react-router";
 
 import type { StudyTargetSummary } from "../api";
+import { useAgendaSessions } from "../data/plans";
+import { addDays, isoDate, todayIso } from "../dates";
 import { daysUntil, formatDate } from "../exams";
+import { SessionItem } from "./StudyPlan";
 
-type EventKind = "REGISTRATION_START" | "REGISTRATION_END" | "EXAM";
+// STUDY: dia com sessão do plano de estudos (só a marca no mês)
+type EventKind = "REGISTRATION_START" | "REGISTRATION_END" | "EXAM" | "STUDY";
 
 type AgendaEvent = { date: string; kind: EventKind; target: StudyTargetSummary };
 
@@ -13,21 +17,12 @@ const KIND: Record<EventKind, { label: string; dot: string }> = {
   REGISTRATION_START: { label: "Inscrições abrem", dot: "bg-sky-500" },
   REGISTRATION_END: { label: "Inscrições terminam", dot: "bg-amber-500" },
   EXAM: { label: "Prova", dot: "bg-indigo-600 dark:bg-indigo-400" },
+  STUDY: { label: "Estudo", dot: "bg-emerald-500" },
 };
 
 const WEEKDAYS = ["D", "S", "T", "Q", "Q", "S", "S"];
 
 const monthFormat = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric", timeZone: "UTC" });
-
-/** Hoje no fuso do navegador, como data pura ("2026-10-29"). */
-function todayIso() {
-  const now = new Date();
-  return isoDate(now.getFullYear(), now.getMonth(), now.getDate());
-}
-
-function isoDate(year: number, month: number, day: number) {
-  return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-}
 
 /** Inscrições (só de concurso da lista: as datas vêm dela) e prova de cada concurso, de hoje em diante. */
 function upcomingEvents(targets: StudyTargetSummary[], today: string): AgendaEvent[] {
@@ -60,6 +55,13 @@ export function StudyAgenda({ targets }: { targets: StudyTargetSummary[] }) {
   const today = todayIso();
   const events = upcomingEvents(targets, today);
   const withoutDate = targets.filter((target) => !target.examDate);
+  // sessões dos planos de estudos: os próximos dois meses (o mês pequeno navega até eles)
+  const sessions = useAgendaSessions(today, addDays(today, 61));
+  const studyDays = [...new Set((sessions.data ?? []).map((session) => session.date))].map((date) => ({
+    date,
+    kind: "STUDY" as const,
+  }));
+  const todaySessions = (sessions.data ?? []).filter((session) => session.date === today);
 
   return (
     <aside className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
@@ -70,8 +72,20 @@ export function StudyAgenda({ targets }: { targets: StudyTargetSummary[] }) {
 
       {/* largura toda (embaixo da lista): mês à esquerda e datas à direita; no celular, um embaixo do outro */}
       <div className="grid gap-x-10 md:grid-cols-[18rem_minmax(0,1fr)]">
-        <MonthGrid events={events} today={today} />
+        <MonthGrid events={[...events, ...studyDays]} today={today} />
         <div>
+          {todaySessions.length > 0 && (
+            <>
+              <h3 className="mt-5 text-xs font-semibold tracking-wide text-slate-500 uppercase md:mt-4 dark:text-slate-400">
+                Estudar hoje
+              </h3>
+              <ul className="mt-1 divide-y divide-slate-100 dark:divide-slate-800">
+                {todaySessions.map((session) => (
+                  <SessionItem key={session.id} session={session} context={session.targetTitle} />
+                ))}
+              </ul>
+            </>
+          )}
           <h3 className="mt-5 text-xs md:mt-4 font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
             Próximas datas
           </h3>
@@ -124,7 +138,7 @@ export function StudyAgenda({ targets }: { targets: StudyTargetSummary[] }) {
 }
 
 /** Mês com marcas (uma cor por tipo de evento) nos dias com evento; começa no mês atual. */
-function MonthGrid({ events, today }: { events: AgendaEvent[]; today: string }) {
+function MonthGrid({ events, today }: { events: { date: string; kind: EventKind }[]; today: string }) {
   const [year, month] = today.split("-").map(Number);
   const [offset, setOffset] = useState(0);
   const first = new Date(Date.UTC(year, month - 1 + offset, 1));

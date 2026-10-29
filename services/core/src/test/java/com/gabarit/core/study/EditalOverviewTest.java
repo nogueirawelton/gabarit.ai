@@ -34,6 +34,31 @@ class EditalOverviewTest {
 			assertThat(p.educationLevel()).isEqualTo("SUPERIOR");
 			assertThat(p.openings()).isEqualTo("10");
 		});
+		// leitura v1: sem quadro de provas
+		assertThat(overview.exams()).isEmpty();
+	}
+
+	@Test
+	void v2TrazOQuadroDeProvasEAProvaDeCadaCargo() {
+		EditalOverview overview = EditalOverview.parse("""
+				{"organ": "INB", "board": "Consulplan", "year": 2026, "registration_start": null,
+				 "registration_end": null, "exam_date": null,
+				 "positions": [{"name": "Analista de Sistemas", "specialty": null, "education_level": "SUPERIOR",
+				   "openings": "1", "salary": null, "page": 3, "exam_id": 1}],
+				 "exams": [{"id": 1, "applies_to": "Cargos de nível superior", "answer_format": "MULTIPLE_CHOICE",
+				   "total_questions": 60, "essay": true, "sections": [
+				     {"block": "Conhecimentos Básicos", "subject": "Língua Portuguesa", "questions": 10, "weight": 1.0},
+				     {"block": "Conhecimentos Específicos", "subject": "Conhecimentos Específicos", "questions": 40,
+				      "weight": 2.5}]}]}
+				""");
+
+		assertThat(overview.positions().getFirst().examId()).isEqualTo(1);
+		assertThat(overview.exams()).singleElement().satisfies(exam -> {
+			assertThat(exam.appliesTo()).isEqualTo("Cargos de nível superior");
+			assertThat(exam.totalQuestions()).isEqualTo(60);
+			assertThat(exam.essay()).isTrue();
+			assertThat(exam.sections()).extracting(EditalOverview.Section::questions).containsExactly(10, 40);
+		});
 	}
 
 	@Test

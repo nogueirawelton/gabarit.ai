@@ -71,7 +71,16 @@ export function EditalReading({ targetId, document }: { targetId: string; docume
       </div>
     );
   } else if (reading.overview) {
-    body = <Overview targetId={targetId} overview={reading.overview} />;
+    body = (
+      <>
+        {reading.outdated && (
+          <p className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg bg-indigo-50 px-3 py-2 text-indigo-900 dark:bg-indigo-500/10 dark:text-indigo-200">
+            Saiu uma versão melhor da leitura (agora com o quadro de provas). {retry("Ler de novo")}
+          </p>
+        )}
+        <Overview targetId={targetId} overview={reading.overview} />
+      </>
+    );
   }
 
   return (
@@ -202,6 +211,13 @@ export function EditalPositions({
           "Escolha o seu para montarmos o conteúdo dele."
         )}
       </p>
+      {chosenPosition &&
+        !overview.positions.some((p) => p.name === chosenPosition.name && p.specialty === chosenPosition.specialty) && (
+          // a leitura nova do edital (prompt novo) mantém a escolha; se o cargo mudou de nome nela, avisa
+          <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-amber-800 dark:bg-amber-400/10 dark:text-amber-300">
+            Seu cargo não aparece com esse nome na leitura atual do edital. Escolha de novo na lista.
+          </p>
+        )}
       {/* lista longa (editais com dezenas de cargos): rola dentro, a página não cresce */}
       <ul className="scroll-thin mt-2 max-h-80 divide-y divide-slate-100 overflow-y-auto overscroll-contain rounded-lg border border-slate-200 dark:divide-slate-800 dark:border-slate-800">
         {overview.positions.map((position, index) => {

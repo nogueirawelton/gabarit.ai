@@ -19,6 +19,8 @@ interface StudyDocumentRepository extends JpaRepository<StudyDocument, UUID> {
 
 	Optional<StudyDocument> findByPaperIdAndKind(UUID paperId, StudyDocument.Kind kind);
 
+	List<StudyDocument> findByPaperId(UUID paperId);
+
 	Optional<StudyDocument> findByIdAndStudyTargetIdAndUserId(UUID id, UUID studyTargetId, String userId);
 
 	long countByStudyTargetIdAndStatusNot(UUID studyTargetId, StudyDocument.Status status);

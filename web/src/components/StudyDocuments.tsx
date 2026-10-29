@@ -1,14 +1,16 @@
-import { FileText, Plus, Trash2, Upload } from "lucide-react";
+import { Check, FileText, ListChecks, LoaderCircle, Plus, RotateCw, Sparkles, Trash2, Upload } from "lucide-react";
 import { type ChangeEvent, type FormEvent, useRef, useState } from "react";
 
 import { ApiError, type StudyDocument, type StudyDocumentKind, type StudyPaper } from "../api";
 import {
   MAX_DOCUMENT_BYTES,
   useAddPaper,
+  useReadPaper,
   useRemoveDocument,
   useRemovePaper,
   useUploadDocument,
 } from "../data/study";
+import { useClassifyPaper, useTopics } from "../data/topics";
 import { EditalReading } from "./EditalReading";
 
 const sizeFormat = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
@@ -183,6 +185,128 @@ function PaperCard({ targetId, paper }: { targetId: string; paper: StudyPaper })
           document={paper.edital}
         />
       </div>
+      <PaperReadingPanel targetId={targetId} paper={paper} />
+    </div>
+  );
+}
+
+/**
+ * Leitura das questões da prova pela IA: pedir (com a prova e o gabarito enviados; nada é lido
+ * sozinho), lendo, falhou ou pronta, com o resumo (quantas, anuladas, por disciplina) e os avisos
+ * que impedem o simulado de corrigir (gabarito não achado, questões sem resposta).
+ */
+function PaperReadingPanel({ targetId, paper }: { targetId: string; paper: StudyPaper }) {
+  const read = useReadPaper(targetId);
+  const reading = paper.reading;
+  const filesReady =
+    paper.exam?.status === "READY" && (paper.answersIncluded || paper.answerKey?.status === "READY");
+
+  const action = (label: string, primary = false) => (
+    <button
+      type="button"
+      onClick={() => read.mutate(paper.id)}
+      disabled={read.isPending}
+      className={primary ? `${primarySmallButton} gap-1.5` : linkButton}
+    >
+      {primary ? <Sparkles className="size-4" aria-hidden="true" /> : <RotateCw className="size-3.5" aria-hidden="true" />}
+      {read.isPending ? "Pedindo…" : label}
+    </button>
+  );
+
+  let body;
+  if (!filesReady) {
+    body = (
+      <p className="text-slate-500 dark:text-slate-400">
+        Envie {paper.answersIncluded ? "o PDF da prova" : "a prova e o gabarito"} para lermos as questões.
+      </p>
+    );
+  } else if (!reading) {
+    body = (
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <p className="text-slate-600 dark:text-slate-400">
+          Confira os arquivos e peça a leitura: a IA separa as questões com as alternativas e a resposta do gabarito.
+        </p>
+        {action("Ler as questões", true)}
+      </div>
+    );
+  } else if (reading.status === "PENDING") {
+    body = (
+      <p className="flex items-center gap-2 text-slate-600 dark:text-slate-400" role="status">
+        <LoaderCircle className="size-4 animate-spin text-indigo-600 dark:text-indigo-400" aria-hidden="true" />
+        Lendo as questões… pode levar alguns minutos.
+      </p>
+    );
+  } else if (reading.status === "FAILED" || !reading.summary) {
+    body = (
+      <div className="text-slate-600 dark:text-slate-400">
+        <p>Não conseguimos ler as questões desta prova{reading.retryable ? " agora" : ""}.</p>
+        {reading.retryable ? (
+          <div className="mt-1">{action("Tentar de novo")}</div>
+        ) : (
+          <p className="mt-1 text-xs">Confira se o PDF é a prova completa e legível, ou envie outro arquivo.</p>
+        )}
+      </div>
+    );
+  } else {
+    const summary = reading.summary;
+    const warnings = [
+      !summary.answerKeyFound && "Não achamos o gabarito desta prova: o simulado não terá correção.",
+      summary.withoutAnswer > 0 &&
+        `${summary.withoutAnswer} ${summary.withoutAnswer === 1 ? "questão ficou" : "questões ficaram"} sem resposta no gabarito.`,
+      paper.variant &&
+        summary.variant &&
+        summary.variant.toLowerCase() !== paper.variant.toLowerCase() &&
+        `A prova diz "${summary.variant}", mas você informou "${paper.variant}". Confira o tipo.`,
+    ].filter((warning): warning is string => Boolean(warning));
+    body = (
+      <div>
+        {reading.outdated && (
+          <p className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg bg-indigo-50 px-3 py-2 text-indigo-900 dark:bg-indigo-500/10 dark:text-indigo-200">
+            Saiu uma versão melhor da leitura. {action("Ler de novo")}
+          </p>
+        )}
+        <p className="font-medium">
+          {summary.questions} {summary.questions === 1 ? "questão" : "questões"}
+          {summary.annulled > 0 && (
+            <span className="font-normal text-slate-500 dark:text-slate-400">
+              {" "}
+              · {summary.annulled} {summary.annulled === 1 ? "anulada" : "anuladas"}
+            </span>
+          )}
+        </p>
+        {summary.bySubject.length > 0 && (
+          <ul className="mt-2 flex flex-wrap gap-1.5">
+            {summary.bySubject.map(({ subject, questions }) => (
+              <li
+                key={subject}
+                className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+              >
+                {subject} · {questions}
+              </li>
+            ))}
+          </ul>
+        )}
+        {warnings.map((warning) => (
+          <p
+            key={warning}
+            className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-amber-800 dark:bg-amber-400/10 dark:text-amber-300"
+          >
+            {warning}
+          </p>
+        ))}
+        <PaperTopicsRow targetId={targetId} paperId={paper.id} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-3 border-t border-slate-100 pt-3 text-sm dark:border-slate-800">
+      <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold tracking-wide text-indigo-700 uppercase dark:text-indigo-300">
+        <ListChecks className="size-3.5" aria-hidden="true" />
+        Questões
+      </p>
+      {body}
+      {read.isError && <p className="mt-2 text-red-700 dark:text-red-300">{errorMessage(read.error, "Não foi possível pedir agora.")}</p>}
     </div>
   );
 }
@@ -399,6 +523,82 @@ const inputClass =
 
 const smallButton =
   "inline-flex h-9 items-center gap-2 rounded-[10px] border border-slate-200 bg-white px-3.5 text-sm font-semibold text-slate-800 transition hover:border-slate-400 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-600";
+
+/**
+ * Ligação das questões da prova aos tópicos do conteúdo do cargo (o que mais cai): pedir, ligando,
+ * falhou ou ligada. Sem o conteúdo do cargo lido, só avisa onde fazer.
+ */
+function PaperTopicsRow({ targetId, paperId }: { targetId: string; paperId: string }) {
+  const topics = useTopics(targetId);
+  const classify = useClassifyPaper(targetId);
+  if (!topics.data) {
+    return null;
+  }
+  const state = topics.data.papers.find((paper) => paper.paperId === paperId);
+  const button = (label: string, primary = false) => (
+    <button
+      type="button"
+      onClick={() => classify.mutate(paperId)}
+      disabled={classify.isPending}
+      className={primary ? `${smallButton} gap-1.5` : linkButton}
+    >
+      {primary ? <Sparkles className="size-4" aria-hidden="true" /> : <RotateCw className="size-3.5" aria-hidden="true" />}
+      {classify.isPending ? "Pedindo…" : label}
+    </button>
+  );
+
+  let body;
+  if (!topics.data.syllabusReady) {
+    body = (
+      <p className="text-slate-500 dark:text-slate-400">
+        Para ver em que tópicos do seu cargo estas questões caem, leia o conteúdo programático no passo Cargo.
+      </p>
+    );
+  } else if (!state) {
+    body = (
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <p className="text-slate-600 dark:text-slate-400">Ligue as questões aos tópicos do seu cargo para ver o que mais cai.</p>
+        {button("Ligar aos tópicos", true)}
+      </div>
+    );
+  } else if (state.status === "PENDING") {
+    body = (
+      <p className="flex items-center gap-2 text-slate-600 dark:text-slate-400" role="status">
+        <LoaderCircle className="size-4 animate-spin text-indigo-600 dark:text-indigo-400" aria-hidden="true" />
+        Ligando as questões aos tópicos…
+      </p>
+    );
+  } else if (state.status === "FAILED") {
+    body = (
+      <p className="flex flex-wrap items-center gap-x-3 text-slate-600 dark:text-slate-400">
+        Não conseguimos ligar as questões aos tópicos{state.retryable ? " agora" : ""}.
+        {state.retryable && button("Tentar de novo")}
+      </p>
+    );
+  } else {
+    body = (
+      <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-slate-600 dark:text-slate-400">
+        <span className="inline-flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400">
+          <Check className="size-4" aria-hidden="true" />
+          Questões ligadas aos tópicos do seu cargo (veja no passo Cargo).
+        </span>
+        {state.outdated && button("Ligar de novo")}
+      </p>
+    );
+  }
+
+  return (
+    <div className="mt-3 border-t border-slate-100 pt-3 dark:border-slate-800">
+      {body}
+      {classify.isError && (
+        <p className="mt-2 text-red-700 dark:text-red-300">{errorMessage(classify.error, "Não foi possível pedir agora.")}</p>
+      )}
+    </div>
+  );
+}
+
+const linkButton =
+  "inline-flex items-center gap-1.5 text-sm font-semibold text-indigo-700 hover:underline disabled:opacity-60 dark:text-indigo-300";
 
 const primarySmallButton =
   "inline-flex h-9 items-center rounded-[10px] bg-indigo-600 px-4 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-progress disabled:opacity-70 dark:bg-indigo-500 dark:hover:bg-indigo-400";

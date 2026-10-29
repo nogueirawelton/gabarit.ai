@@ -105,11 +105,12 @@ public class StudyDocument {
 		this.pages = pages;
 	}
 
-	/** Outra leitura (prompt novo): o cargo escolhido pode não estar nela, a escolha é desfeita. */
+	/**
+	 * Outra leitura do mesmo edital (prompt novo) mantém o cargo escolhido: os cargos são os mesmos
+	 * na prática, e o conteúdo dele não depende da visão geral (é pedido pelo nome do cargo). O web
+	 * avisa se o cargo não aparece na leitura nova.
+	 */
 	void reading(UUID extractionId) {
-		if (!extractionId.equals(this.extractionId)) {
-			choosePosition(null, null);
-		}
 		this.extractionId = extractionId;
 	}
 

@@ -84,10 +84,14 @@ class ProcessExtraction:
         versions = LLM_TASKS[command.task]
         self._check_version(command, versions)
         prompt = versions[command.prompt_version]
-        if len(command.documents) != prompt.documents:
+        if not prompt.accepts(len(command.documents)):
+            expected = (
+                f"{prompt.documents} a {prompt.max_documents}"
+                if prompt.max_documents
+                else prompt.documents
+            )
             raise InvalidInputError(
-                f"{command.task} recebe {prompt.documents} documento(s), "
-                f"vieram {len(command.documents)}"
+                f"{command.task} recebe {expected} documento(s), vieram {len(command.documents)}"
             )
         instructions = prompt.instructions
         if prompt.params_model is not None:

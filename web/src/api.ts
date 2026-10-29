@@ -205,6 +205,8 @@ export type EditalReading = {
   overview: EditalOverview | null;
   failureReason: string | null;
   retryable: boolean;
+  /** Feita com um prompt mais antigo que o atual: pedir de novo lê com o novo. */
+  outdated: boolean;
 };
 
 /** Leitura do conteúdo programático do cargo: mesmos estados da leitura do edital. */
@@ -213,6 +215,7 @@ export type SyllabusReading = {
   syllabus: EditalSyllabus | null;
   failureReason: string | null;
   retryable: boolean;
+  outdated: boolean;
 };
 
 /** Disciplinas e tópicos do cargo. `positionFound` false: o edital não traz o conteúdo do cargo. */
@@ -238,6 +241,18 @@ export type EditalOverview = {
   registrationEnd: string | null;
   examDate: string | null;
   positions: EditalPosition[];
+  /** Quadro de provas (leitura v2 em diante; vazio na v1). */
+  exams: EditalExam[];
+};
+
+/** Uma prova objetiva do quadro, comum a vários cargos. `essay`: tem discursiva ou redação. */
+export type EditalExam = {
+  id: number;
+  appliesTo: string;
+  answerFormat: "MULTIPLE_CHOICE" | "TRUE_FALSE" | null;
+  totalQuestions: number | null;
+  sections: { block: string | null; subject: string; questions: number | null; weight: number | null }[];
+  essay: boolean;
 };
 
 /** `openings` e `salary` como o edital escreve ("3 + CR", "R$ 8.529,67"). */
@@ -248,6 +263,8 @@ export type EditalPosition = {
   openings: string | null;
   salary: string | null;
   page: number | null;
+  /** A prova (em `exams`) que vale para o cargo. */
+  examId: number | null;
 };
 
 /**
@@ -264,10 +281,162 @@ export type StudyPaper = {
   exam: StudyDocument | null;
   answerKey: StudyDocument | null;
   edital: StudyDocument | null;
+  /** Leitura das questões pela IA (null se nunca foi pedida, ou se o PDF da prova ou do gabarito mudou). */
+  reading: PaperReading | null;
+};
+
+/** Leitura das questões da prova: mesmos estados da leitura do edital, com o resumo quando pronta. */
+export type PaperReading = {
+  status: "PENDING" | "DONE" | "FAILED";
+  summary: {
+    questions: number;
+    annulled: number;
+    /** Sem resposta no gabarito (fora anuladas e discursivas). */
+    withoutAnswer: number;
+    answerKeyFound: boolean;
+    variant: string | null;
+    bySubject: { subject: string; questions: number }[];
+  } | null;
+  failureReason: string | null;
+  retryable: boolean;
+  outdated: boolean;
 };
 
 /** Materiais de um concurso da carteira (GET /me/study-targets/{id}/materials). `editais`: os do concurso-alvo. */
 export type StudyMaterials = {
   editais: StudyDocument[];
   papers: StudyPaper[];
+};
+
+/** Simulado (GET /me/simulations/{id}). `answer`, `annulled`, `correct` e `result` só depois de terminar. */
+export type Simulation = {
+  id: string;
+  studyTargetId: string;
+  title: string;
+  startedAt: string;
+  /** Sem limite de tempo: null. */
+  deadline: string | null;
+  finishedAt: string | null;
+  finished: boolean;
+  questions: SimulationQuestion[];
+  result: SimulationResult | null;
+};
+
+export type SimulationQuestion = {
+  id: string;
+  number: number;
+  subject: string | null;
+  kind: "MULTIPLE_CHOICE" | "TRUE_FALSE";
+  /** Texto-base compartilhado com outras questões. */
+  baseText: string | null;
+  statement: string;
+  options: { letter: string; text: string }[];
+  hasImage: boolean;
+  page: number | null;
+  /** Resposta marcada (letra, ou C/E). */
+  chosen: string | null;
+  answer: string | null;
+  annulled: boolean | null;
+  /** null: em branco ou sem resposta no gabarito. */
+  correct: boolean | null;
+  /** Tópico do conteúdo do cargo (depois de entregar, se a prova foi ligada aos tópicos). */
+  topic: TopicRef | null;
+  /** Inédita, gerada por IA para o tópico (não é de prova real). */
+  generated: boolean;
+  /** Comentário da resposta (questão gerada, depois de entregar). */
+  explanation: string | null;
+};
+
+export type TopicRef = { subject: string; topic: string };
+
+/** Anulada conta como certa. `net`: certas menos erradas, só em prova de certo/errado. */
+export type SimulationResult = {
+  total: number;
+  correct: number;
+  wrong: number;
+  blank: number;
+  annulled: number;
+  unscored: number;
+  net: number | null;
+  bySubject: { subject: string; total: number; correct: number; wrong: number; blank: number }[];
+  /** Onde mais errou primeiro. Vazio se a prova não foi ligada aos tópicos. */
+  byTopic: { topic: TopicRef; total: number; correct: number; wrong: number; blank: number }[];
+};
+
+export type SimulationSummary = {
+  id: string;
+  title: string;
+  startedAt: string;
+  finishedAt: string | null;
+  finished: boolean;
+  answered: number;
+  total: number;
+  correct: number | null;
+};
+
+/** Questões das provas relacionadas ligadas aos tópicos do conteúdo do cargo (GET /me/study-targets/{id}/topics). */
+export type TopicsOverview = {
+  /** Há conteúdo do cargo lido para ligar. */
+  syllabusReady: boolean;
+  papers: PaperTopics[];
+  /** Questões por tópico (ordinais a partir de 0, na ordem do conteúdo). */
+  frequency: TopicFrequency[];
+};
+
+/** `outdated`: feita com outro prompt, outra leitura da prova ou outro conteúdo (ligar de novo atualiza). */
+export type PaperTopics = {
+  paperId: string;
+  status: "PENDING" | "DONE" | "FAILED";
+  failureReason: string | null;
+  retryable: boolean;
+  outdated: boolean;
+};
+
+export type TopicFrequency = { subjectOrdinal: number; topicOrdinal: number; questions: number };
+
+/** Plano de estudos de um concurso (GET /me/study-targets/{id}/plan; 204 = sem plano). */
+export type StudyPlan = {
+  id: string;
+  studyTargetId: string;
+  /** A data da prova (o plano vai até a véspera). */
+  endDate: string;
+  /** Minutos por dia da semana, segunda primeiro. */
+  dailyMinutes: number[];
+  updatedAt: string;
+  subjects: { subject: string; minutes: number; doneMinutes: number }[];
+  sessions: PlanSession[];
+};
+
+export type PlanSessionKind = "STUDY" | "REVIEW" | "SIMULATION";
+
+export type PlanSession = {
+  id: string;
+  date: string;
+  kind: PlanSessionKind;
+  /** null na revisão da semana e no simulado. */
+  subject: string | null;
+  topics: string[];
+  minutes: number;
+  done: boolean;
+  /** Questões das provas relacionadas dos tópicos da sessão (só no plano; a agenda não traz). */
+  practice?: number;
+};
+
+/** Sessão na agenda de todos os concursos. */
+export type AgendaSession = PlanSession & { studyTargetId: string; targetTitle: string };
+
+/** Um tópico do conteúdo (ordinais a partir de 0): questões para praticar (reais e geradas) e a geração. */
+export type TopicPractice = {
+  subjectOrdinal: number;
+  topicOrdinal: number;
+  practice: number;
+  generation: GenerationState | null;
+};
+
+/** `outdated`: gerada com um prompt mais antigo. */
+export type GenerationState = {
+  status: "PENDING" | "DONE" | "FAILED";
+  failureReason: string | null;
+  retryable: boolean;
+  outdated: boolean;
 };
