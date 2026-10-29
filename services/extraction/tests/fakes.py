@@ -3,7 +3,7 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from src.domain.errors import DocumentNotFoundError, TransientError
+from src.domain.errors import DocumentNotFoundError, TransientError, UnreadablePdfError
 from src.domain.extraction import Document, ExtractionOutput, Usage
 
 
@@ -49,3 +49,21 @@ class FakeLlm:
             usage=Usage(input_tokens=1000, output_tokens=200, cache_read_input_tokens=900),
             model="claude-opus-5-5",
         )
+
+
+class FakePdf:
+    """Texto de cada página configurado; o recorte é um PDF falso com os números das páginas."""
+
+    def __init__(self, pages: list[str] | None = None, *, broken: bool = False) -> None:
+        self._pages = pages or []
+        self._broken = broken
+        self.subsets: list[list[int]] = []
+
+    async def texts(self, content: bytes) -> list[str]:
+        if self._broken:
+            raise UnreadablePdfError("PDF protegido")
+        return self._pages
+
+    async def subset(self, content: bytes, pages: Sequence[int]) -> bytes:
+        self.subsets.append(list(pages))
+        return b"%PDF recorte " + ",".join(map(str, pages)).encode()

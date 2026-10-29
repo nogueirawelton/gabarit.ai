@@ -9,6 +9,8 @@ class Task(StrEnum):
     ECHO = "ECHO"
     # edital inteiro → órgão, banca, ano, data da prova, cargos
     EDITAL_OVERVIEW = "EDITAL_OVERVIEW"
+    # conteúdo programático do edital + cargo escolhido → disciplinas e tópicos daquele cargo
+    EDITAL_SYLLABUS = "EDITAL_SYLLABUS"
 
 
 class DocumentRef(BaseModel):

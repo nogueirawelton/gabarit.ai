@@ -35,7 +35,7 @@ Boas práticas esperadas:
 
 **gabarit-ai** — plataforma de estudo para concursos: coleta editais/provas (scraping), extrai conteúdo, monta planos de estudo e notifica o usuário. Arquitetura de microsserviços orientada a mensagens.
 
-> Os serviços estão sendo criados um a um: hoje existem o `scraper`, o `core`, o `web` e o `extraction` (worker da LLM: Claude; por enquanto só a tarefa `ECHO`, sem LLM). Roteiro de cada um no `GUIA.md` do serviço; as fases de estudo (carteira, documentos, simulado, plano) estão no GUIA do `core`. Confira o estado atual antes de assumir que algo existe.
+> Os serviços estão sendo criados um a um: hoje existem o `scraper`, o `core`, o `web` e o `extraction` (worker da LLM: Claude; hoje lê a visão geral do edital, `EDITAL_OVERVIEW`). Roteiro de cada um no `GUIA.md` do serviço; as fases de estudo (carteira, documentos, simulado, plano) estão no GUIA do `core`. Confira o estado atual antes de assumir que algo existe.
 
 ### Serviços planejados (ver `Makefile`)
 | Serviço | Stack | Papel |
@@ -50,7 +50,7 @@ Boas práticas esperadas:
 - **RabbitMQ 3.13 (management)** — mensageria entre serviços.
 - **MinIO** (`infra/minio`, imagem `coollabsio/minio` com tag fixa: a MinIO não publica mais imagens community) — armazenamento de arquivos (fotos de perfil; depois PDFs de provas/editais). O one-shot `minio-init` cria buckets, policies e um usuário por serviço (`core` lê e escreve em `avatars` e `documents`; `extraction` só lê `documents/blobs/`); buckets privados, navegador lê por URL pré-assinada pelo core com `MINIO_PUBLIC_URL`. Dev: API `http://localhost:9000`, console `http://localhost:9001`.
 - **Topologia do RabbitMQ** compartilhada em `infra/rabbitmq/definitions.json`, importada pelo one-shot `rabbitmq-init` antes dos serviços subirem (filas de consumidores precisam existir antes de alguém publicar).
-- **Keycloak 26** (`infra/keycloak`) — autenticação. Realm `gabarit` versionado em `infra/keycloak/realm/` (importado só se não existir) e tema de login próprio em `infra/keycloak/themes/gabarit` (mesmo visual do web). O web usa Authorization Code + PKCE (client público `web`); a senha só é digitada no Keycloak. Dev: `http://localhost:8180` (admin em `/admin`). URLs do web e SMTP vêm de variáveis de ambiente no primeiro import do realm.
+- **Keycloak 26** (`infra/keycloak`) — autenticação. Realm `gabaritai` versionado em `infra/keycloak/realm/` (importado só se não existir) e tema de login próprio em `infra/keycloak/themes/gabarit` (mesmo visual do web). O web usa Authorization Code + PKCE (client público `web`); a senha só é digitada no Keycloak. Dev: `http://localhost:8180` (admin em `/admin`). URLs do web e SMTP vêm de variáveis de ambiente no primeiro import do realm.
 - **API do `core` exige token do Keycloak** (Bearer JWT): `iss` = URL pública do Keycloak, `aud` contém `core`, chaves buscadas pela rede interna (`keycloak:8080`). O web lê URLs da API e do Keycloak de `config.js`, gerado no boot do container (mesma imagem para qualquer ambiente).
 - **E-mail:** o `core` manda o resumo diário de concursos pelo mesmo SMTP do Keycloak (`SMTP_*`); em dev vai para o **Mailpit** (`http://localhost:8025`), nunca para o SMTP real.
 - **Limites de memória** em todos os serviços do `docker-compose.prod.yml`: as JVMs (`core`, Keycloak) e o RabbitMQ dimensionam heap/alarme por eles.

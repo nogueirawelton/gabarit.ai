@@ -10,6 +10,7 @@ import jakarta.persistence.Table;
 import org.hibernate.annotations.UuidGenerator;
 
 import java.time.Instant;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -73,6 +74,14 @@ public class StudyDocument {
 	// leitura do edital pela LLM (pacote extraction); só no edital do concurso-alvo
 	private UUID extractionId;
 
+	// cargo escolhido entre os da leitura, como o edital escreve (especialidade nula = cargo sem áreas)
+	private String positionName;
+
+	private String positionSpecialty;
+
+	// leitura do conteúdo programático do cargo escolhido (pacote extraction)
+	private UUID syllabusExtractionId;
+
 	@Column(nullable = false, updatable = false)
 	private Instant createdAt;
 
@@ -96,8 +105,25 @@ public class StudyDocument {
 		this.pages = pages;
 	}
 
+	/** Outra leitura (prompt novo): o cargo escolhido pode não estar nela, a escolha é desfeita. */
 	void reading(UUID extractionId) {
+		if (!extractionId.equals(this.extractionId)) {
+			choosePosition(null, null);
+		}
 		this.extractionId = extractionId;
+	}
+
+	/** Outro cargo: o conteúdo lido era do anterior, a leitura dele deixa de valer. */
+	void choosePosition(String name, String specialty) {
+		if (!Objects.equals(name, positionName) || !Objects.equals(specialty, positionSpecialty)) {
+			this.syllabusExtractionId = null;
+		}
+		this.positionName = name;
+		this.positionSpecialty = specialty;
+	}
+
+	void syllabus(UUID extractionId) {
+		this.syllabusExtractionId = extractionId;
 	}
 
 	/** Edital do concurso-alvo (não o de uma prova relacionada): o que a LLM lê para preencher o concurso. */
@@ -122,6 +148,14 @@ public class StudyDocument {
 
 	public UUID getId() {
 		return id;
+	}
+
+	public String getUserId() {
+		return userId;
+	}
+
+	public UUID getStudyTargetId() {
+		return studyTargetId;
 	}
 
 	public Kind getKind() {
@@ -158,6 +192,18 @@ public class StudyDocument {
 
 	public UUID getExtractionId() {
 		return extractionId;
+	}
+
+	public String getPositionName() {
+		return positionName;
+	}
+
+	public String getPositionSpecialty() {
+		return positionSpecialty;
+	}
+
+	public UUID getSyllabusExtractionId() {
+		return syllabusExtractionId;
 	}
 
 	public Instant getCreatedAt() {

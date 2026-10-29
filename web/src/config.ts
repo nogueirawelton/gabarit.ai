@@ -19,7 +19,7 @@ const runtime = window.__GABARIT_CONFIG__ ?? {};
 
 export const config: RuntimeConfig = {
   keycloakUrl: runtime.keycloakUrl ?? "http://localhost:8180",
-  keycloakRealm: runtime.keycloakRealm ?? "gabarit",
+  keycloakRealm: runtime.keycloakRealm ?? "gabaritai",
   keycloakClientId: runtime.keycloakClientId ?? "web",
   apiUrl: runtime.apiUrl ?? "http://localhost:8080",
 };

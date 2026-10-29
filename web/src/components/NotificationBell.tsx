@@ -6,6 +6,12 @@ import { useMarkAllRead, useMarkRead, useNotifications, useUnreadCount } from ".
 import { statusBadge } from "../exams";
 import { useMenu } from "./useMenu";
 
+const KIND_LABEL: Record<AppNotification["type"], string> = {
+  NEW_EXAM: "Concurso novo",
+  EDITAL_READ: "Edital lido",
+  EDITAL_FAILED: "Edital",
+};
+
 const relative = new Intl.RelativeTimeFormat("pt-BR", { numeric: "auto" });
 
 /** "há 5 minutos", "ontem", "há 3 dias". */
@@ -21,7 +27,7 @@ function timeAgo(iso: string): string {
 }
 
 /**
- * Sininho: avisos de concurso novo para os cargos do usuário. O contador atualiza sozinho; a lista
+ * Sininho: avisos de concurso novo para os cargos do usuário e de leitura do edital dos concursos da carteira. O contador atualiza sozinho; a lista
  * só é buscada ao abrir. Abrir um aviso marca como lido e vai para o concurso.
  */
 export function NotificationBell() {
@@ -37,7 +43,9 @@ export function NotificationBell() {
     if (!notification.read) {
       markRead.mutate(notification.id);
     }
-    void navigate(`/concursos/${notification.exam.id}`);
+    void navigate(
+      notification.type === "NEW_EXAM" ? `/concursos/${notification.exam.id}` : `/meus-concursos/${notification.studyTarget.id}`,
+    );
   }
 
   return (
@@ -118,16 +126,20 @@ export function NotificationBell() {
                       />
                       <span className="min-w-0">
                         <span className="block text-xs text-slate-500 dark:text-slate-400">
-                          Concurso novo · {timeAgo(notification.createdAt)}
+                          {KIND_LABEL[notification.type]} · {timeAgo(notification.createdAt)}
                           {!notification.read && <span className="sr-only"> (não lido)</span>}
                         </span>
                         <span
                           className={`mt-0.5 line-clamp-2 block text-sm ${notification.read ? "text-slate-600 dark:text-slate-400" : "font-semibold text-slate-900 dark:text-slate-100"}`}
                         >
-                          {notification.exam.title}
+                          {notification.type === "NEW_EXAM" ? notification.exam.title : notification.studyTarget.title}
                         </span>
                         <span className="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">
-                          {notification.exam.uf ?? "Nacional"} · {statusBadge(notification.exam).label}
+                          {notification.type === "NEW_EXAM"
+                            ? `${notification.exam.uf ?? "Nacional"} · ${statusBadge(notification.exam).label}`
+                            : notification.type === "EDITAL_READ"
+                              ? "Confira os dados e escolha o seu cargo"
+                              : "Não conseguimos ler o edital. Veja na página do concurso"}
                         </span>
                       </span>
                     </button>

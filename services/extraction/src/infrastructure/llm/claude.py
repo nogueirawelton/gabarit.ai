@@ -1,9 +1,10 @@
 """LlmClient com a API do Claude (SDK oficial `anthropic`).
 
-- PDF pela Files API: sobe uma vez por conteúdo (sha256) e reaproveita o file_id entre tarefas; o
-  arquivo expira sozinho na Anthropic (`expires_in_seconds`), sem limpeza nossa.
-- Cache de prompt no documento: prefixo = prompt de sistema (igual em todas as tarefas) + PDF. A
-  segunda tarefa sobre o mesmo edital lê o PDF do cache (usage.cache_read_input_tokens > 0).
+- PDF pela Files API: sobe uma vez por conteúdo (sha256) e reaproveita o file_id; o arquivo expira
+  sozinho na Anthropic (`expires_in_seconds`), sem limpeza nossa.
+- Sem cache de prompt: cada tarefa manda só as páginas do edital que usa (recortes diferentes), e
+  gravar no cache custa mais que mandar o PDF sem ele. Só compensa com duas tarefas sobre o mesmo
+  arquivo em poucos minutos; se aparecer uma, `cache_control` no último documento.
 - Saída estruturada pelo modelo pydantic da tarefa (`output_format`), em streaming (edital grande =
   resposta longa; sem streaming a requisição estoura o timeout HTTP).
 - `fallbacks="default"`: se o modelo recusar por engano (classificadores de segurança), a própria
@@ -59,8 +60,6 @@ class ClaudeClient:
         for document in documents:
             file_id = await self._file_id(document)
             content.append({"type": "document", "source": {"type": "file", "file_id": file_id}})
-        # cache até o último documento; as instruções da tarefa vêm depois, fora do prefixo
-        content[-1]["cache_control"] = {"type": "ephemeral"}
         content.append({"type": "text", "text": instructions})
 
         try:

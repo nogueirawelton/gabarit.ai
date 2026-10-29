@@ -15,3 +15,10 @@ class TransientError(ExtractionError):
 
 class DocumentNotFoundError(InvalidInputError):
     """O documento pedido não existe no armazenamento."""
+
+
+class UnreadablePdfError(ExtractionError):
+    """O worker não conseguiu abrir o PDF (corrompido, protegido, formato estranho).
+
+    Não é falha da tarefa: o PDF vai inteiro para a LLM, que lê o que der.
+    """

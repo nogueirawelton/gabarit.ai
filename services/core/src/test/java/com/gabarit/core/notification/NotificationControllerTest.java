@@ -48,13 +48,15 @@ class NotificationControllerTest {
 		var exam = new ExamSummary(UUID.randomUUID(), "Prefeitura de Santos - SP", "SP", null, null, null, null, null, null,
 				ExamStatus.OPEN, "https://example.com/7", List.of());
 		given(service.list("kc-maria", 0, 20)).willReturn(new PageImpl<>(
-				List.of(new NotificationService.NotificationView(ID, Instant.parse("2026-11-10T11:00:00Z"), false, exam)),
+				List.of(new NotificationService.NotificationView(ID, Instant.parse("2026-11-10T11:00:00Z"), false,
+						Notification.Type.NEW_EXAM, exam, null)),
 				PageRequest.of(0, 20), 1));
 
 		mvc.perform(get("/me/notifications").with(jwt().jwt(t -> t.subject("kc-maria"))))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.items[0].id").value(ID.toString()))
 			.andExpect(jsonPath("$.items[0].read").value(false))
+			.andExpect(jsonPath("$.items[0].type").value("NEW_EXAM"))
 			.andExpect(jsonPath("$.items[0].exam.title").value("Prefeitura de Santos - SP"))
 			.andExpect(jsonPath("$.totalElements").value(1));
 	}

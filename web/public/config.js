@@ -2,7 +2,7 @@
 // gerado no boot do container a partir das variáveis de ambiente (config.js.template).
 window.__GABARIT_CONFIG__ = {
   keycloakUrl: "http://localhost:8180",
-  keycloakRealm: "gabarit",
+  keycloakRealm: "gabaritai",
   keycloakClientId: "web",
   apiUrl: "http://localhost:8080",
 };

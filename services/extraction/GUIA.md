@@ -49,7 +49,8 @@ Itens com 🛠️ são infra: peça para o Claude fazer.
 
 - [x] **`src/infrastructure/llm/claude.py`** (`LlmClient`, SDK `anthropic` 2.x, async):
   - PDF pela **Files API** (estável, sem beta): sobe uma vez por sha256 com `expires_in_seconds` (24h; expira sozinho na Anthropic, sem limpeza nossa) e reaproveita o `file_id` em memória até ~80% da validade. Também resolve o limite de 32 MB da requisição: o PDF de 30 MB em base64 não caberia.
-  - **cache de prompt** no último documento; o prompt de sistema (`src/prompts/system.md`) é o mesmo em todas as tarefas, então a 2ª tarefa sobre o mesmo edital lê o PDF do cache. Conferido: 172 mil tokens lidos do cache na nova tentativa.
+  - **sem cache de prompt** (tirado no recorte do edital, abaixo): cada tarefa manda um recorte diferente, e gravar no cache custa ~25% a mais que mandar sem ele; só compensa com duas tarefas sobre o mesmo arquivo em poucos minutos.
+- [x] **Recorte do edital** (`src/domain/edital.py` + `PdfPages`/pypdf): o PDF vai à API como texto **e imagem de cada página**, então página que a tarefa não usa é custo puro. O worker acha as partes pelos títulos dos anexos (corpo, conteúdo programático, atribuições, outros anexos) e manda só as páginas das partes que a tarefa declara (`edital_parts` na versão do prompt); as páginas citadas na saída voltam a ser as do edital original. **Na dúvida (escaneado, sem anexos, sumário, anexos fora de ordem, PDF que não abre), manda o PDF inteiro.** Medido no CREMERJ (59 p.): visão geral 258 mil → 135 mil tokens (52%); o conteúdo programático sozinho seria 32%. Texto puro (sem a imagem) foi descartado: economiza um terço, mas o quadro de vagas perde as colunas.
   - **streaming** (`beta.messages.stream` + `get_final_message()`), `thinking: adaptive`, `effort` por versão de prompt, `output_format` = modelo pydantic da tarefa (`parsed_output` já validado), `fallbacks="default"` (recusa por engano é refeita pela própria API num modelo de reserva).
   - `stop_reason` conferido: `refusal` e `max_tokens` → falha definitiva; erros do SDK traduzidos (429/5xx/rede/credencial → transitório; 400/413 → definitivo).
   - devolve `usage` e o modelo que respondeu.
@@ -62,7 +63,8 @@ Itens com 🛠️ são infra: peça para o Claude fazer.
 ## Fase 3: tarefas do edital
 
 - [x] **`EDITAL_OVERVIEW` v1**: órgão, banca, ano, inscrições, data da prova e cargos (nome, especialidade, escolaridade, vagas e salário como o edital escreve, página do quadro de vagas). Um item por especialidade; mesmo cargo em várias cidades vira um item.
-- [ ] **`EDITAL_SYLLABUS`**: conteúdo do cargo escolhido. Atenção a conteúdo **comum a vários cargos** ("Conhecimentos Gerais, para todos os cargos") somado ao específico.
+- [x] **`EDITAL_SYLLABUS` v1** (`edital_parts={SYLLABUS}`; sem achar o anexo, o PDF inteiro): conteúdo programático de **um cargo** (`params.position` = nome e especialidade da visão geral, validados por `EditalSyllabusParamsV1` e anexados às instruções como dados). Disciplinas comuns + específicas, bloco, tópicos de primeiro nível (subtópicos no texto), página; `position_found=false` em vez de usar o conteúdo de outro cargo. `effort=medium`. Número de questões por disciplina fica no corpo do edital (quadro de provas): fora desta tarefa.
+  - **v2** (atual): a v1 juntava os tópicos numerados emendados no mesmo parágrafo ("1. … 2. … 3. …") num item só (INB: Português com 1 tópico em vez de 7) e chamava a disciplina pelo nome do cargo quando o bloco específico só tem esse título. Conferido no edital da INB 2026: 7/4/6/13 tópicos, iguais ao PDF.
 - **Pronto quando:** a avaliação dessas duas tarefas passa no critério combinado (ex.: cargos 100%, conteúdo ≥ 95% dos tópicos) e o custo por edital é conhecido.
 
 ---
@@ -89,13 +91,13 @@ Itens com 🛠️ são infra: peça para o Claude fazer.
 ## Depois
 
 - **Batches API** (metade do preço) para reprocessar documentos quando um prompt melhora.
-- Métricas no Grafana/OTel: tempo e custo por tarefa, taxa de falha, cache de prompt.
+- Métricas no Grafana/OTel: tempo e custo por tarefa, taxa de falha, páginas mandadas × total.
 
 ---
 
 ## Erros clássicos para evitar
 
-- Mandar o PDF de novo em cada tarefa em vez de usar o `file_id` e o cache de prompt.
+- Mandar o PDF de novo em cada tarefa em vez de usar o `file_id`, ou o edital inteiro quando a tarefa só usa uma parte.
 - Ler o conteúdo sem checar `stop_reason` (resposta cortada parece válida até o schema falhar).
 - Truncar documento grande em silêncio para caber: divida, ou falhe dizendo o motivo.
 - Confiar no texto do PDF como instrução (prompt injection): o documento é dado.

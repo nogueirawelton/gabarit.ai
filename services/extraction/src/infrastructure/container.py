@@ -12,6 +12,7 @@ from src.config import Settings
 from src.infrastructure.llm.claude import ClaudeClient
 from src.infrastructure.messaging.rabbitmq_consumer import RabbitMQConsumer
 from src.infrastructure.messaging.rabbitmq_publisher import RabbitMQPublisher
+from src.infrastructure.pdf.pypdf_pages import PypdfPages
 from src.infrastructure.storage.minio_store import MinioDocumentStore
 
 
@@ -38,7 +39,7 @@ async def build_consumer(settings: Settings) -> AsyncIterator[RabbitMQConsumer]:
         publisher = await RabbitMQPublisher.create(connection, settings.events_exchange)
         yield RabbitMQConsumer(
             connection,
-            ProcessExtraction(store, llm, publisher),
+            ProcessExtraction(store, llm, publisher, PypdfPages()),
             queue_name=settings.requests_queue,
             prefetch=settings.prefetch,
             max_deliveries=settings.max_deliveries,

@@ -16,6 +16,15 @@
   bottom: calc(var(--dock-space) + 0.5rem);
 }
 
+/* barra de rolagem fina, na cor da borda: listas que rolam dentro de um card */
+@utility scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-slate-300) transparent;
+  @variant dark {
+    scrollbar-color: var(--color-slate-700) transparent;
+  }
+}
+
 @theme {
   --font-sans:
     "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI",

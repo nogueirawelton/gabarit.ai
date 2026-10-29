@@ -2,6 +2,7 @@ import { ArrowRight, Check, ShieldCheck } from "lucide-react";
 import { useAuth } from "react-oidc-context";
 import { Navigate, useLocation } from "react-router";
 
+import { isLoginRequired, returnUrl } from "../auth/oidc";
 import { Logo } from "../components/Logo";
 import { LoginSkeleton } from "../components/Skeleton";
 
@@ -18,11 +19,14 @@ const HIGHLIGHTS = [
 export function LoginPage() {
   const auth = useAuth();
   const location = useLocation();
-  const redirectError = (location.state as { error?: string } | null)?.error;
-  const error = auth.error?.message ?? redirectError;
+  const state = location.state as { error?: string; returnTo?: string } | null;
+  // sem sessão no Keycloak (aba nova, tentativa sem tela) não é erro: é só entrar
+  const error = (auth.error && !isLoginRequired(auth.error) ? auth.error.message : undefined) ?? state?.error;
+  // depois do login, volta para a página que a pessoa abriu
+  const returnTo = state?.returnTo ?? "/";
 
   if (auth.isAuthenticated) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={returnTo} replace />;
   }
 
   const busy = Boolean(auth.activeNavigator);
@@ -57,7 +61,7 @@ export function LoginPage() {
             <button
               type="button"
               disabled={busy}
-              onClick={() => void auth.signinRedirect()}
+              onClick={() => void auth.signinRedirect({ redirect_uri: returnUrl(returnTo) })}
               className="group inline-flex h-11 items-center justify-center gap-2 rounded-[10px] bg-indigo-600 px-4 font-semibold text-white transition hover:bg-indigo-700 focus-visible:ring-4 focus-visible:ring-indigo-600/25 focus-visible:outline-none disabled:cursor-progress disabled:opacity-70 dark:bg-indigo-500 dark:hover:bg-indigo-400"
             >
               Entrar
@@ -66,7 +70,7 @@ export function LoginPage() {
             <button
               type="button"
               disabled={busy}
-              onClick={() => void auth.signinRedirect({ prompt: "create" })}
+              onClick={() => void auth.signinRedirect({ prompt: "create", redirect_uri: returnUrl(returnTo) })}
               className="inline-flex h-11 items-center justify-center rounded-[10px] border border-slate-200 bg-white px-4 font-semibold text-slate-900 transition hover:border-slate-400 focus-visible:ring-4 focus-visible:ring-indigo-600/25 focus-visible:outline-none disabled:cursor-progress disabled:opacity-70 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 dark:hover:border-slate-600"
             >
               Criar conta grátis

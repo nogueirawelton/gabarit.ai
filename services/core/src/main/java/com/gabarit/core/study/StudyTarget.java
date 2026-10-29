@@ -76,6 +76,11 @@ public class StudyTarget {
 		this.examDate = details.examDate();
 	}
 
+	/** Concurso cadastrado à mão: o cargo escolhido no edital vira o cargo do concurso. */
+	void positionName(String positionName) {
+		this.positionName = positionName;
+	}
+
 	@PrePersist
 	void onCreate() {
 		createdAt = Instant.now();

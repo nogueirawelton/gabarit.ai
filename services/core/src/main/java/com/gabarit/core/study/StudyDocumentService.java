@@ -9,7 +9,6 @@ import com.gabarit.core.shared.NotFoundException;
 import com.gabarit.core.study.StudyDocument.Kind;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.amqp.AmqpException;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,12 +17,14 @@ import java.net.URI;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Materiais de um concurso da carteira: editais e provas relacionadas (cada uma com o espaço da prova
@@ -46,10 +47,29 @@ public class StudyDocumentService {
 
 	/**
 	 * Arquivo. {@code url}: para abrir o PDF (só aprovados, expira em 1h). {@code reading}: a leitura
-	 * do edital pela LLM (só no edital do concurso-alvo; nula se nunca foi pedida).
+	 * do edital pela LLM (só no edital do concurso-alvo; nula se nunca foi pedida). {@code position}:
+	 * o cargo escolhido entre os da leitura (nulo se nenhum); {@code syllabus}: a leitura do conteúdo
+	 * programático desse cargo.
 	 */
 	public record DocumentView(UUID id, Kind kind, String originalName, StudyDocument.Status status,
-			String rejectionReason, Long sizeBytes, Integer pages, Instant createdAt, URI url, Reading reading) {
+			String rejectionReason, Long sizeBytes, Integer pages, Instant createdAt, URI url, Reading reading,
+			Position position, SyllabusReading syllabus) {
+	}
+
+	/** Leitura do conteúdo programático do cargo: mesmos estados da {@link Reading}. */
+	public record SyllabusReading(Extraction.Status status, EditalSyllabus syllabus, String failureReason,
+			boolean retryable) {
+
+		static SyllabusReading of(Extraction extraction) {
+			return new SyllabusReading(extraction.getStatus(),
+					extraction.getStatus() == Extraction.Status.DONE ? EditalSyllabus.parse(extraction.getResult()) : null,
+					extraction.getFailureReason(), extraction.isRetryable());
+		}
+
+	}
+
+	/** Cargo como o edital escreve; {@code specialty} nula = cargo sem áreas. */
+	public record Position(String name, String specialty) {
 	}
 
 	/**
@@ -111,7 +131,7 @@ public class StudyDocumentService {
 		checkTarget(userId, targetId);
 		List<StudyDocument> all = repository.findByStudyTargetIdOrderByCreatedAtAscIdAsc(targetId);
 		Map<UUID, Extraction> readings = extractions.find(all.stream()
-			.map(StudyDocument::getExtractionId)
+			.flatMap(d -> Stream.of(d.getExtractionId(), d.getSyllabusExtractionId()))
 			.filter(Objects::nonNull)
 			.toList());
 		Map<UUID, Map<Kind, StudyDocument>> byPaper = all.stream()
@@ -215,21 +235,15 @@ public class StudyDocumentService {
 			document.reject(e.getBody().getDetail());
 			return view(document);
 		}
-		if (document.isTargetEdital()) {
-			try {
-				return view(document, requestReading(document));
-			}
-			catch (AmqpException e) {
-				// o envio do arquivo deu certo; a leitura fica para o "ler de novo"
-				log.warn("leitura do edital {} não pedida", document.getId(), e);
-			}
-		}
+		// a leitura do edital não é pedida aqui: a pessoa confere se enviou o arquivo certo e pede
+		// (cada leitura custa LLM)
 		return view(document);
 	}
 
 	/**
-	 * Pede (de novo) a leitura do edital do concurso-alvo: edital enviado antes da leitura existir,
-	 * ou leitura que falhou por erro passageiro. Leitura pronta ou em andamento é só devolvida.
+	 * Pede a leitura do edital do concurso-alvo (a pessoa pede depois de enviar), ou de novo, se
+	 * falhou por erro passageiro. Leitura pronta ou em andamento é só devolvida (mesmo edital enviado
+	 * por outra pessoa: a leitura dela, sem custo).
 	 *
 	 * @throws BadRequestException arquivo que não é edital do concurso ou ainda não aprovado
 	 */
@@ -240,6 +254,83 @@ public class StudyDocumentService {
 			throw new BadRequestException("só o edital do concurso, já enviado, pode ser lido");
 		}
 		return view(document, requestReading(document));
+	}
+
+	/**
+	 * Escolhe o cargo da pessoa entre os da leitura do edital. Só grava: o conteúdo programático é
+	 * pedido à parte ({@link #readSyllabus}), quando a pessoa confere o cargo (cada leitura custa
+	 * LLM). No concurso cadastrado à mão vira também o cargo do concurso; no da lista, o cargo do
+	 * concurso continua o coletado (os nomes não batem com os do edital).
+	 *
+	 * @throws BadRequestException leitura não está pronta ou o cargo não está nela
+	 */
+	@Transactional
+	public DocumentView choosePosition(String userId, UUID targetId, UUID documentId, String name,
+			String specialty) {
+		StudyDocument document = find(userId, targetId, documentId);
+		Map<UUID, Extraction> readings = readings(document);
+		Extraction reading = readings.get(document.getExtractionId());
+		if (!document.isTargetEdital() || reading == null || reading.getStatus() != Extraction.Status.DONE) {
+			throw new BadRequestException("o cargo é escolhido na leitura pronta do edital do concurso");
+		}
+		boolean found = EditalOverview.parse(reading.getResult())
+			.positions()
+			.stream()
+			.anyMatch(p -> name.equals(p.name()) && Objects.equals(specialty, p.specialty()));
+		if (!found) {
+			throw new BadRequestException("cargo não está na leitura do edital: " + label(name, specialty));
+		}
+		document.choosePosition(name, specialty);
+		StudyTarget target = targets.findByIdAndUserId(targetId, userId).orElseThrow();
+		if (target.getExamId() == null) {
+			target.positionName(label(name, specialty));
+		}
+		// outro cargo desfaz o vínculo com o conteúdo do anterior (StudyDocument.choosePosition)
+		return view(document, readings);
+	}
+
+	/**
+	 * Pede a leitura do conteúdo programático do cargo escolhido, ou de novo, se falhou por erro
+	 * passageiro. Pronta ou em andamento é só devolvida (mesmo edital e cargo de outra pessoa: a
+	 * leitura dela, sem custo).
+	 *
+	 * @throws BadRequestException nenhum cargo escolhido neste edital
+	 */
+	@Transactional
+	public DocumentView readSyllabus(String userId, UUID targetId, UUID documentId) {
+		StudyDocument document = find(userId, targetId, documentId);
+		if (document.getPositionName() == null) {
+			throw new BadRequestException("escolha o cargo antes de pedir o conteúdo programático");
+		}
+		Map<UUID, Extraction> views = new HashMap<>(readings(document));
+		Extraction syllabus = requestSyllabus(document);
+		views.put(syllabus.getId(), syllabus);
+		return view(document, views);
+	}
+
+	/** Leitura do edital e do conteúdo do arquivo, numa query. */
+	private Map<UUID, Extraction> readings(StudyDocument document) {
+		List<UUID> ids = Stream.of(document.getExtractionId(), document.getSyllabusExtractionId())
+			.filter(Objects::nonNull)
+			.toList();
+		return ids.isEmpty() ? Map.of() : extractions.find(ids);
+	}
+
+	/** Mesmo edital e mesmo cargo (de qualquer pessoa) = mesma leitura. */
+	private Extraction requestSyllabus(StudyDocument document) {
+		// HashMap: a especialidade pode ser nula (cargo sem áreas)
+		Map<String, Object> position = new HashMap<>();
+		position.put("name", document.getPositionName());
+		position.put("specialty", document.getPositionSpecialty());
+		Extraction extraction = extractions.request(ExtractionTask.EDITAL_SYLLABUS,
+				List.of(document.getBlobSha256()), Map.of("position", position));
+		document.syllabus(extraction.getId());
+		return extraction;
+	}
+
+	/** "Analista Judiciário – Direito": o mesmo rótulo que o web mostra. */
+	private static String label(String name, String specialty) {
+		return specialty == null ? name : name + " – " + specialty;
 	}
 
 	/** Mesmo edital (de qualquer pessoa) = mesma leitura: o ExtractionService devolve a existente. */
@@ -316,9 +407,12 @@ public class StudyDocumentService {
 	private DocumentView view(StudyDocument d, Map<UUID, Extraction> readings) {
 		URI url = d.getStatus() == StudyDocument.Status.READY ? documents.viewUrl(d.getBlobSha256()) : null;
 		Extraction extraction = d.getExtractionId() == null ? null : readings.get(d.getExtractionId());
+		Extraction syllabus = d.getSyllabusExtractionId() == null ? null : readings.get(d.getSyllabusExtractionId());
 		return new DocumentView(d.getId(), d.getKind(), d.getOriginalName(), d.getStatus(), d.getRejectionReason(),
 				d.getSizeBytes(), d.getPages(), d.getCreatedAt(), url,
-				extraction == null ? null : Reading.of(extraction));
+				extraction == null ? null : Reading.of(extraction),
+				d.getPositionName() == null ? null : new Position(d.getPositionName(), d.getPositionSpecialty()),
+				syllabus == null ? null : SyllabusReading.of(syllabus));
 	}
 
 	private static String blankToNull(String text) {

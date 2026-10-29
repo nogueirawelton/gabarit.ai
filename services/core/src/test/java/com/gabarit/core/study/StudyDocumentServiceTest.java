@@ -5,6 +5,7 @@ import com.gabarit.core.PostgresTestConfiguration;
 import com.gabarit.core.document.DocumentService;
 import com.gabarit.core.exam.CatalogPositionService;
 import com.gabarit.core.extraction.Extraction;
+import com.gabarit.core.extraction.ExtractionFinishedEvent;
 import com.gabarit.core.extraction.ExtractionService;
 import com.gabarit.core.extraction.ExtractionTask;
 import com.gabarit.core.exam.ExamService;
@@ -24,10 +25,13 @@ import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.event.ApplicationEvents;
+import org.springframework.test.context.event.RecordApplicationEvents;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
@@ -40,8 +44,10 @@ import static com.gabarit.core.document.TestPdfs.put;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -52,9 +58,16 @@ import static org.mockito.Mockito.verify;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Import({ PostgresTestConfiguration.class, MinioTestConfiguration.class, DocumentService.class, ObjectStorage.class,
-		ClockConfig.class, ExamService.class, StudyTargetService.class, StudyDocumentService.class,
+		ClockConfig.class, ExamService.class, StudyTargetService.class, StudyDocumentService.class, EditalReadingListener.class,
 		UserProfileService.class, CatalogPositionService.class })
+@RecordApplicationEvents
 class StudyDocumentServiceTest {
+
+	@Autowired
+	EditalReadingListener readingListener;
+
+	@Autowired
+	ApplicationEvents events;
 
 	@Autowired
 	StudyDocumentService service;
@@ -71,6 +84,8 @@ class StudyDocumentServiceTest {
 
 	static final UUID READING = UUID.fromString("0193a1f0-0000-7000-8000-0000000000aa");
 
+	static final UUID SYLLABUS = UUID.fromString("0193a1f0-0000-7000-8000-0000000000cc");
+
 	@Autowired
 	JdbcTemplate jdbc;
 
@@ -85,10 +100,19 @@ class StudyDocumentServiceTest {
 				VALUES (?, 'EDITAL_OVERVIEW', 'teste', 'v1', '{}', 'PENDING', now(), now())
 				ON CONFLICT DO NOTHING
 				""", READING);
+		jdbc.update("""
+				INSERT INTO extraction (id, task, inputs_hash, prompt_version, inputs, status, created_at, requested_at)
+				VALUES (?, 'EDITAL_SYLLABUS', 'teste', 'v1', '{}', 'PENDING', now(), now())
+				ON CONFLICT DO NOTHING
+				""", SYLLABUS);
 		Extraction pending = mock(Extraction.class);
 		given(pending.getId()).willReturn(READING);
 		given(pending.getStatus()).willReturn(Extraction.Status.PENDING);
 		given(extractions.request(any(), anyList(), anyMap())).willReturn(pending);
+		Extraction syllabusPending = mock(Extraction.class);
+		given(syllabusPending.getId()).willReturn(SYLLABUS);
+		given(syllabusPending.getStatus()).willReturn(Extraction.Status.PENDING);
+		given(extractions.request(eq(ExtractionTask.EDITAL_SYLLABUS), anyList(), anyMap())).willReturn(syllabusPending);
 	}
 
 	StudyDocumentService.DocumentView send(Kind kind, UUID paperId, byte[] content) {
@@ -270,10 +294,14 @@ class StudyDocumentServiceTest {
 	}
 
 	@Test
-	void editalDoConcursoAprovadoPedeALeitura() {
+	void editalDoConcursoSoELidoQuandoAPessoaPede() {
 		byte[] content = pdf(30, "edital");
+		var sent = send(Kind.EDITAL, null, content);
+		// arquivo errado não gasta leitura: nada é pedido no envio
+		assertThat(sent.reading()).isNull();
+		verify(extractions, never()).request(any(), anyList(), anyMap());
 
-		var edital = send(Kind.EDITAL, null, content);
+		var edital = service.read("maria", targetId, sent.id());
 
 		verify(extractions).request(ExtractionTask.EDITAL_OVERVIEW, List.of(sha256(content)), Map.of());
 		assertThat(edital.reading().status()).isEqualTo(Extraction.Status.PENDING);
@@ -295,12 +323,17 @@ class StudyDocumentServiceTest {
 
 	@Test
 	void lerDeNovoPedeALeituraDoEdital() {
-		var edital = send(Kind.EDITAL, null, pdf(30, "edital"));
+		var edital = lido(pdf(30, "edital"));
 
 		var read = service.read("maria", targetId, edital.id());
 
 		assertThat(read.reading().status()).isEqualTo(Extraction.Status.PENDING);
 		verify(extractions, times(2)).request(any(), anyList(), anyMap());
+	}
+
+	/** Edital do concurso enviado e com a leitura pedida. */
+	StudyDocumentService.DocumentView lido(byte[] content) {
+		return service.read("maria", targetId, send(Kind.EDITAL, null, content).id());
 	}
 
 	static String sha256(byte[] content) {
@@ -310,6 +343,120 @@ class StudyDocumentServiceTest {
 		catch (NoSuchAlgorithmException e) {
 			throw new IllegalStateException(e);
 		}
+	}
+
+	@Test
+	void leituraProntaAvisaOConcursoQueTemOEdital() {
+		lido(pdf(30, "edital"));
+		// concurso de outra pessoa, sem esse edital: não é avisado
+		targets.addCustom("joao", "TJ-SP 2023 (João)");
+		em.flush();
+
+		readingListener
+			.onExtractionFinished(new ExtractionFinishedEvent(READING, ExtractionTask.EDITAL_OVERVIEW, Extraction.Status.DONE));
+
+		assertThat(events.stream(EditalReadEvent.class))
+			.containsExactly(new EditalReadEvent("maria", targetId, "TJ-SP 2023", true));
+	}
+
+	static final String OVERVIEW = """
+			{"organ": "TJ-SP", "board": "Vunesp", "year": 2026, "registration_start": null,
+			 "registration_end": null, "exam_date": null, "positions": [
+			  {"name": "Analista Judiciário", "specialty": "Direito", "education_level": "SUPERIOR",
+			   "openings": "3", "salary": null, "page": 4},
+			  {"name": "Escrevente", "specialty": null, "education_level": "MEDIO",
+			   "openings": "10", "salary": null, "page": 5}]}
+			""";
+
+	/** A leitura READING pronta, com a visão geral acima. */
+	void leituraPronta() {
+		Extraction done = mock(Extraction.class);
+		given(done.getId()).willReturn(READING);
+		given(done.getStatus()).willReturn(Extraction.Status.DONE);
+		given(done.getResult()).willReturn(OVERVIEW);
+		given(extractions.find(anyCollection())).willReturn(Map.of(READING, done));
+	}
+
+	@Test
+	void cargoEscolhidoFicaNoEditalEOConteudoSoELidoQuandoAPessoaPede() {
+		byte[] content = pdf(30, "edital");
+		var edital = lido(content);
+		leituraPronta();
+
+		var chosen = service.choosePosition("maria", targetId, edital.id(), "Analista Judiciário", "Direito");
+
+		assertThat(chosen.position()).isEqualTo(new StudyDocumentService.Position("Analista Judiciário", "Direito"));
+		// escolher só grava: cargo errado não gasta leitura
+		assertThat(chosen.syllabus()).isNull();
+		verify(extractions, never()).request(eq(ExtractionTask.EDITAL_SYLLABUS), anyList(), anyMap());
+		// concurso à mão: vira também o cargo do concurso
+		assertThat(targets.get("maria", targetId).positionName()).isEqualTo("Analista Judiciário – Direito");
+
+		var read = service.readSyllabus("maria", targetId, edital.id());
+
+		assertThat(read.syllabus().status()).isEqualTo(Extraction.Status.PENDING);
+		verify(extractions).request(ExtractionTask.EDITAL_SYLLABUS, List.of(sha256(content)),
+				Map.of("position", Map.of("name", "Analista Judiciário", "specialty", "Direito")));
+		em.flush();
+		assertThat(jdbc.queryForObject("SELECT syllabus_extraction_id FROM study_document WHERE id = ?", UUID.class,
+				edital.id()))
+			.isEqualTo(SYLLABUS);
+
+		// outro cargo desfaz o vínculo com o conteúdo do anterior
+		var other = service.choosePosition("maria", targetId, edital.id(), "Escrevente", null);
+		assertThat(other.position().specialty()).isNull();
+		assertThat(other.syllabus()).isNull();
+		// sem especialidade, o cargo sem áreas (vai nula no pedido)
+		service.readSyllabus("maria", targetId, edital.id());
+		Map<String, Object> escrevente = new HashMap<>();
+		escrevente.put("name", "Escrevente");
+		escrevente.put("specialty", null);
+		verify(extractions).request(ExtractionTask.EDITAL_SYLLABUS, List.of(sha256(content)),
+				Map.of("position", escrevente));
+	}
+
+	@Test
+	void cargoForaDaLeituraOuLeituraNaoProntaNaoEEscolhido() {
+		var edital = lido(pdf(30, "edital"));
+
+		// leitura ainda pendente
+		assertThatThrownBy(() -> service.choosePosition("maria", targetId, edital.id(), "Escrevente", null))
+			.isInstanceOf(BadRequestException.class);
+		leituraPronta();
+		// a especialidade faz parte do cargo
+		assertThatThrownBy(() -> service.choosePosition("maria", targetId, edital.id(), "Analista Judiciário", null))
+			.isInstanceOf(BadRequestException.class)
+			.hasMessageContaining("Analista Judiciário");
+		assertThatThrownBy(() -> service.readSyllabus("maria", targetId, edital.id()))
+			.as("conteúdo sem cargo escolhido")
+			.isInstanceOf(BadRequestException.class);
+		assertThatThrownBy(() -> service.choosePosition("joao", targetId, edital.id(), "Escrevente", null))
+			.isInstanceOf(NotFoundException.class);
+	}
+
+	@Test
+	void outraLeituraDoEditalDesfazAEscolha() {
+		var edital = lido(pdf(30, "edital"));
+		leituraPronta();
+		service.choosePosition("maria", targetId, edital.id(), "Escrevente", null);
+		service.readSyllabus("maria", targetId, edital.id());
+		// prompt novo: outra leitura do mesmo PDF
+		UUID nova = UUID.fromString("0193a1f0-0000-7000-8000-0000000000bb");
+		jdbc.update("""
+				INSERT INTO extraction (id, task, inputs_hash, prompt_version, inputs, status, created_at, requested_at)
+				VALUES (?, 'EDITAL_OVERVIEW', 'teste', 'v2', '{}', 'PENDING', now(), now())
+				""", nova);
+		Extraction pending = mock(Extraction.class);
+		given(pending.getId()).willReturn(nova);
+		given(pending.getStatus()).willReturn(Extraction.Status.PENDING);
+		given(extractions.request(any(), anyList(), anyMap())).willReturn(pending);
+
+		var read = service.read("maria", targetId, edital.id());
+		assertThat(read.position()).isNull();
+		em.flush();
+		assertThat(jdbc.queryForObject("SELECT syllabus_extraction_id FROM study_document WHERE id = ?", UUID.class,
+				edital.id()))
+			.isNull();
 	}
 
 }

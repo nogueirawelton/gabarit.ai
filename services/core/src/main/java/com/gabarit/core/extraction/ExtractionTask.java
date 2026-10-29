@@ -10,7 +10,10 @@ public enum ExtractionTask {
 	ECHO("v1"),
 
 	/** Edital inteiro → órgão, banca, ano, datas e cargos. */
-	EDITAL_OVERVIEW("v1");
+	EDITAL_OVERVIEW("v1"),
+
+	/** Edital + cargo (params.position: nome e especialidade da EDITAL_OVERVIEW) → disciplinas e tópicos. */
+	EDITAL_SYLLABUS("v2");
 
 	private final String promptVersion;
 

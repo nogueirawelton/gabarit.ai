@@ -7,7 +7,6 @@ import {
   useAddPaper,
   useRemoveDocument,
   useRemovePaper,
-  useStudyMaterials,
   useUploadDocument,
 } from "../data/study";
 import { EditalReading } from "./EditalReading";
@@ -22,52 +21,18 @@ function errorMessage(error: unknown, fallback: string) {
   return error instanceof ApiError && error.detail ? error.detail : fallback;
 }
 
-/**
- * Materiais do concurso: editais e provas relacionadas. Cada prova relacionada tem o espaço da prova e o
- * do gabarito dela, para o par ficar explícito. O PDF vai do navegador direto para o armazenamento e
- * o servidor confere (é PDF? abre? tamanho e páginas no limite); recusado mostra o motivo.
- */
-export function StudyDocuments({ targetId }: { targetId: string }) {
-  const materials = useStudyMaterials(targetId);
+// Arquivos do concurso, nos passos "Edital" e "Provas relacionadas". Cada prova relacionada tem o
+// espaço da prova e o do gabarito dela, para o par ficar explícito. O PDF vai do navegador direto
+// para o armazenamento e o servidor confere (é PDF? abre? tamanho e páginas no limite); recusado
+// mostra o motivo.
 
+/** Edital do concurso e retificações, cada um com a leitura pela IA embaixo. */
+export function EditalFiles({ targetId, editais }: { targetId: string; editais: StudyDocument[] }) {
   return (
-    <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 dark:border-slate-800 dark:bg-slate-900">
-      <h2 className="text-lg font-semibold">Edital e provas relacionadas</h2>
-      <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-        PDF de até 30 MB. A partir desses arquivos vamos montar o conteúdo do seu cargo, os simulados e o plano de
-        estudos.
-      </p>
-
-      {materials.isError ? (
-        <p className="mt-6 text-sm text-red-700 dark:text-red-300">Não foi possível carregar os arquivos agora.</p>
-      ) : materials.isPending ? (
-        <p className="mt-6 text-sm text-slate-500 dark:text-slate-400" role="status">
-          Carregando…
-        </p>
-      ) : (
-        <>
-          <Editais targetId={targetId} editais={materials.data.editais} />
-          <Papers targetId={targetId} papers={materials.data.papers} />
-        </>
-      )}
-    </section>
-  );
-}
-
-function Editais({ targetId, editais }: { targetId: string; editais: StudyDocument[] }) {
-  return (
-    <div className="mt-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h3 className="font-medium">Edital do concurso</h3>
-          <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
-            O edital do concurso que você vai prestar e as retificações, se houver.
-          </p>
-        </div>
-        <UploadButton targetId={targetId} kind="EDITAL" label="Enviar edital" />
-      </div>
+    <div>
+      <UploadButton targetId={targetId} kind="EDITAL" label={editais.length > 0 ? "Enviar outro (retificação)" : "Enviar edital"} />
       {editais.length > 0 && (
-        <ul className="mt-3 divide-y divide-slate-100 rounded-xl border border-slate-200 dark:divide-slate-800 dark:border-slate-800">
+        <ul className="mt-4 divide-y divide-slate-100 rounded-xl border border-slate-200 dark:divide-slate-800 dark:border-slate-800">
           {editais.map((document) => (
             <li key={document.id}>
               <DocumentRow targetId={targetId} document={document} />
@@ -80,31 +45,23 @@ function Editais({ targetId, editais }: { targetId: string; editais: StudyDocume
   );
 }
 
-function Papers({ targetId, papers }: { targetId: string; papers: StudyPaper[] }) {
+/** Provas de outros concursos do mesmo cargo ou banca, cada uma com gabarito e (opcional) edital. */
+export function RelatedPapers({ targetId, papers }: { targetId: string; papers: StudyPaper[] }) {
   const [adding, setAdding] = useState(false);
 
   return (
-    <div className="mt-8">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h3 className="font-medium">Provas relacionadas</h3>
-          <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
-            Provas de outros concursos do mesmo cargo ou banca (ou de edições passadas deste), cada uma com o
-            seu gabarito e, se tiver, o edital dela.
-          </p>
-        </div>
-        {!adding && (
-          <button type="button" onClick={() => setAdding(true)} className={smallButton}>
-            <Plus className="size-4" aria-hidden="true" />
-            Adicionar prova
-          </button>
-        )}
-      </div>
+    <div>
+      {!adding && (
+        <button type="button" onClick={() => setAdding(true)} className={smallButton}>
+          <Plus className="size-4" aria-hidden="true" />
+          Adicionar prova
+        </button>
+      )}
 
       {adding && <AddPaperForm targetId={targetId} onDone={() => setAdding(false)} />}
 
       {papers.length > 0 && (
-        <ul className="mt-3 grid gap-3">
+        <ul className="mt-4 grid gap-3">
           {papers.map((paper) => (
             <li key={paper.id}>
               <PaperCard targetId={targetId} paper={paper} />

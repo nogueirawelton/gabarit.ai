@@ -9,6 +9,7 @@ import { ExamCard } from "../components/ExamCard";
 import { ExamListSkeleton, InterestsSkeleton, Loading } from "../components/Skeleton";
 import { type ExamScope, useExamList } from "../data/exams";
 import { useProfile } from "../data/profile";
+import { useDebounced } from "../useDebounced";
 
 /** Área logada: saudação, interesses do perfil e os concursos (para você ou todos). */
 export function HomePage() {
@@ -107,16 +108,6 @@ function Interests({ query }: { query: ReturnType<typeof useProfile> }) {
       </div>
     </section>
   );
-}
-
-/** Texto que só vale depois que a pessoa para de digitar: não busca a cada letra. */
-function useDebounced(value: string, delayMs = 300) {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(value), delayMs);
-    return () => clearTimeout(timer);
-  }, [value, delayMs]);
-  return debounced;
 }
 
 const SCOPES: { value: ExamScope; label: string }[] = [

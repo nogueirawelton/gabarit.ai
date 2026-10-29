@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -39,6 +40,10 @@ class StudyDocumentController {
 	/** Edital do concurso-alvo: sem {@code paperId}. Prova, gabarito e edital da prova: o espaço da prova relacionada. */
 	record StartRequest(@NotNull StudyDocument.Kind kind, UUID paperId, @NotBlank @Size(max = 255) String name,
 			@NotNull @Positive Long size) {
+	}
+
+	/** Um dos cargos da leitura do edital, exatamente como ela traz. */
+	record PositionRequest(@NotBlank @Size(max = 300) String name, @Size(max = 300) String specialty) {
 	}
 
 	private final StudyDocumentService service;
@@ -85,6 +90,20 @@ class StudyDocumentController {
 	@PostMapping("/me/study-targets/{targetId}/documents/{documentId}/reading")
 	DocumentView read(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID targetId, @PathVariable UUID documentId) {
 		return service.read(jwt.getSubject(), targetId, documentId);
+	}
+
+	/** Escolhe o cargo entre os da leitura do edital; 200 com o arquivo. */
+	@PutMapping("/me/study-targets/{targetId}/documents/{documentId}/position")
+	DocumentView choosePosition(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID targetId,
+			@PathVariable UUID documentId, @Valid @RequestBody PositionRequest request) {
+		return service.choosePosition(jwt.getSubject(), targetId, documentId, request.name(), request.specialty());
+	}
+
+	/** Pede a leitura do conteúdo programático do cargo escolhido; 200 com o arquivo e a leitura. */
+	@PostMapping("/me/study-targets/{targetId}/documents/{documentId}/syllabus")
+	DocumentView readSyllabus(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID targetId,
+			@PathVariable UUID documentId) {
+		return service.readSyllabus(jwt.getSubject(), targetId, documentId);
 	}
 
 	@DeleteMapping("/me/study-targets/{targetId}/documents/{documentId}")

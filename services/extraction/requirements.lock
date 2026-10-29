@@ -58,6 +58,8 @@ pydantic-core==2.50.1
     # via pydantic
 pydantic-settings==2.16.2
     # via -r requirements.txt
+pypdf==6.21.4
+    # via -r requirements.txt
 python-dotenv==1.2.4
     # via
     #   -r requirements.txt

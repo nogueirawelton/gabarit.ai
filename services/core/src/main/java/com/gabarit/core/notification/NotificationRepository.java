@@ -24,7 +24,11 @@ interface NotificationRepository extends JpaRepository<Notification, UUID> {
 	@Query("update Notification n set n.readAt = :at where n.userId = :userId and n.readAt is null")
 	int markAllRead(String userId, Instant at);
 
-	@Query("select distinct n.userId from Notification n where n.emailedAt is null and n.createdAt >= :since")
+	// resumo por e-mail: só concurso novo
+	@Query("""
+			select distinct n.userId from Notification n
+			where n.type = com.gabarit.core.notification.Notification.Type.NEW_EXAM
+			and n.emailedAt is null and n.createdAt >= :since""")
 	List<String> findUsersWithPendingEmail(Instant since);
 
 	/**
@@ -33,7 +37,7 @@ interface NotificationRepository extends JpaRepository<Notification, UUID> {
 	 */
 	@Query(value = """
 			SELECT * FROM notification
-			WHERE user_id = :userId AND emailed_at IS NULL AND created_at >= :since
+			WHERE user_id = :userId AND type = 'NEW_EXAM' AND emailed_at IS NULL AND created_at >= :since
 			ORDER BY created_at, id
 			FOR UPDATE SKIP LOCKED
 			""", nativeQuery = true)

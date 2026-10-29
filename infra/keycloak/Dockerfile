@@ -17,7 +17,7 @@ RUN /opt/keycloak/bin/kc.sh build
 FROM ${KEYCLOAK_IMAGE}
 COPY --from=builder /opt/keycloak/ /opt/keycloak/
 # importado no boot só se o realm ainda não existir (não sobrescreve mudanças feitas no admin)
-COPY realm/gabarit-realm.json /opt/keycloak/data/import/gabarit-realm.json
+COPY realm/gabaritai-realm.json /opt/keycloak/data/import/gabaritai-realm.json
 # a imagem oficial já roda como usuário não-root (uid 1000)
 ENTRYPOINT ["/opt/keycloak/bin/kc.sh"]
 CMD ["start", "--optimized", "--import-realm"]

@@ -107,12 +107,12 @@ function StudyButton({ examId }: { examId: string }) {
     <div>
       <button
         type="button"
-        onClick={() => add.mutate({ examId }, { onSuccess: (target) => void navigate(`/estudos/${target.id}`) })}
+        onClick={() => add.mutate({ examId }, { onSuccess: (target) => void navigate(`/meus-concursos/${target.id}`) })}
         disabled={add.isPending}
         className="inline-flex h-11 items-center gap-2 rounded-[10px] bg-indigo-600 px-5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-progress disabled:opacity-70 dark:bg-indigo-500 dark:hover:bg-indigo-400"
       >
         <BookOpen className="size-4" aria-hidden="true" />
-        {add.isPending ? "Adicionando…" : "Estudar para este concurso"}
+        {add.isPending ? "Adicionando…" : "Adicionar aos meus concursos"}
       </button>
       {add.isError && (
         <p className="mt-2 text-sm text-red-700 dark:text-red-300">

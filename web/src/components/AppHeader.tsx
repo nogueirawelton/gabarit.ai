@@ -10,10 +10,10 @@ import { useMenu } from "./useMenu";
 
 const NAV: { to: string; label: string; icon: LucideIcon }[] = [
   { to: "/", label: "Início", icon: House },
-  { to: "/estudos", label: "Estudos", icon: BookOpen },
+  { to: "/meus-concursos", label: "Meus concursos", icon: BookOpen },
 ];
 
-/** Item ativo também nas subpáginas (/estudos/5 acende "Estudos"); o início só na própria raiz. */
+/** Item ativo também nas subpáginas (/meus-concursos/5 acende "Meus concursos"); o início só na própria raiz. */
 function isActive(to: string, pathname: string) {
   return to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(`${to}/`);
 }

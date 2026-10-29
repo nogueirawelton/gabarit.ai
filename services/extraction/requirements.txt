@@ -11,3 +11,5 @@ python-dotenv
 minio
 # SDK oficial do Claude
 anthropic
+# texto das páginas e recorte do PDF (só as partes do edital que a tarefa usa). Python puro
+pypdf

@@ -95,9 +95,13 @@ export function useStudyMaterials(targetId: string) {
     queryFn: ({ signal }) =>
       apiGet<StudyMaterials>(`/me/study-targets/${targetId}/materials`, requireToken(accessToken), signal),
     enabled: Boolean(accessToken),
-    // edital sendo lido pela IA: confere de tempos em tempos até a leitura terminar
+    // edital (ou o conteúdo do cargo) sendo lido pela IA: confere de tempos em tempos até terminar
     refetchInterval: (query) =>
-      query.state.data?.editais.some((edital) => edital.reading?.status === "PENDING") ? 5000 : false,
+      query.state.data?.editais.some(
+        (edital) => edital.reading?.status === "PENDING" || edital.syllabus?.status === "PENDING",
+      )
+        ? 5000
+        : false,
   });
 }
 
@@ -185,6 +189,45 @@ export function useReadEdital(targetId: string) {
     mutationFn: (documentId: string) =>
       apiPostJson<StudyDocument>(
         `/me/study-targets/${targetId}/documents/${documentId}/reading`,
+        requireToken(accessToken),
+        undefined,
+      ),
+    onSuccess: invalidate,
+  });
+}
+
+/**
+ * Escolhe o cargo entre os da leitura do edital (só grava; o conteúdo é pedido à parte, com
+ * {@link useReadSyllabus}). No concurso cadastrado à mão ele vira também o cargo do concurso; no
+ * da lista, o cargo do concurso continua o coletado.
+ */
+export function useChooseEditalPosition(targetId: string) {
+  const { userId, accessToken } = useSession();
+  const queryClient = useQueryClient();
+  const invalidate = useInvalidateMaterials(targetId);
+  return useMutation({
+    mutationFn: ({ documentId, ...position }: { documentId: string; name: string; specialty: string | null }) =>
+      apiPut<StudyDocument>(
+        `/me/study-targets/${targetId}/documents/${documentId}/position`,
+        requireToken(accessToken),
+        position,
+      ),
+    onSuccess: () => {
+      void invalidate();
+      void queryClient.invalidateQueries({ queryKey: studyKeys.detail(userId, targetId) });
+      void queryClient.invalidateQueries({ queryKey: studyKeys.list(userId) });
+    },
+  });
+}
+
+/** Pede a leitura do conteúdo programático do cargo escolhido (ou de novo, depois de falha passageira). */
+export function useReadSyllabus(targetId: string) {
+  const { accessToken } = useSession();
+  const invalidate = useInvalidateMaterials(targetId);
+  return useMutation({
+    mutationFn: (documentId: string) =>
+      apiPostJson<StudyDocument>(
+        `/me/study-targets/${targetId}/documents/${documentId}/syllabus`,
         requireToken(accessToken),
         undefined,
       ),

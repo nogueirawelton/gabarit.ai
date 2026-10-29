@@ -5,6 +5,7 @@ import com.gabarit.core.exam.ExamService;
 import com.gabarit.core.exam.ExamStatus;
 import com.gabarit.core.exam.ExamSummary;
 import com.gabarit.core.shared.NotFoundException;
+import com.gabarit.core.study.EditalReadEvent;
 import com.gabarit.core.user.UserProfileService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,21 +20,31 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Avisos de concurso novo: criados quando um concurso aparece (mesmas regras do "meus concursos"),
- * lidos no sininho do app e enviados no resumo diário por e-mail ({@link NotificationDigestJob}).
+ * Avisos do sininho: concurso novo (criado quando um concurso aparece, com as mesmas regras do "meus
+ * concursos", e enviado no resumo diário por e-mail, {@link NotificationDigestJob}) e leitura do
+ * edital de um concurso da carteira (só no sininho).
  */
 @Service
 public class NotificationService {
 
 	private static final Logger log = LoggerFactory.getLogger(NotificationService.class);
 
-	/** Aviso com o concurso já resolvido, para a API. */
-	public record NotificationView(UUID id, Instant createdAt, boolean read, ExamSummary exam) {
+	/**
+	 * Aviso para a API. {@code NEW_EXAM}: {@code exam} com o concurso; {@code EDITAL_*}:
+	 * {@code studyTarget} com o concurso da carteira.
+	 */
+	public record NotificationView(UUID id, Instant createdAt, boolean read, Notification.Type type,
+			ExamSummary exam, StudyTargetRef studyTarget) {
+	}
+
+	/** Concurso da carteira, com o título do momento do aviso. */
+	public record StudyTargetRef(UUID id, String title) {
 	}
 
 	private final NotificationRepository repository;
@@ -73,20 +84,29 @@ public class NotificationService {
 		}
 	}
 
+	/** Leitura do edital de um concurso da carteira terminou: aviso no sininho (não vai por e-mail). */
+	@EventListener
+	@Transactional
+	public void onEditalRead(EditalReadEvent event) {
+		repository.save(Notification.editalReading(event.userId(), event.studyTargetId(), event.title(), event.ok(),
+				clock.instant()));
+	}
+
 	/** Avisos do usuário, mais novos primeiro. Número fixo de queries: avisos + concursos da página. */
 	@Transactional(readOnly = true)
 	public Page<NotificationView> list(String userId, int page, int size) {
 		Page<Notification> notifications = repository.findByUserIdOrderByCreatedAtDescIdDesc(userId,
 				PageRequest.of(page, size));
 		Map<UUID, ExamSummary> byExamId = exams
-			.summaries(notifications.stream().map(Notification::getExamId).toList())
+			.summaries(notifications.stream().map(Notification::getExamId).filter(Objects::nonNull).toList())
 			.stream()
 			.collect(Collectors.toMap(ExamSummary::id, Function.identity()));
 		// concurso apagado some do aviso (o FK com cascade apaga o aviso também; isto cobre a corrida)
 		List<NotificationView> views = notifications.stream()
-			.filter(n -> byExamId.containsKey(n.getExamId()))
-			.map(n -> new NotificationView(n.getId(), n.getCreatedAt(), n.getReadAt() != null,
-					byExamId.get(n.getExamId())))
+			.filter(n -> n.getType() != Notification.Type.NEW_EXAM || byExamId.containsKey(n.getExamId()))
+			.map(n -> new NotificationView(n.getId(), n.getCreatedAt(), n.getReadAt() != null, n.getType(),
+					n.getExamId() == null ? null : byExamId.get(n.getExamId()),
+					n.getStudyTargetId() == null ? null : new StudyTargetRef(n.getStudyTargetId(), n.getTitle())))
 			.toList();
 		return new PageImpl<>(views, notifications.getPageable(), notifications.getTotalElements());
 	}

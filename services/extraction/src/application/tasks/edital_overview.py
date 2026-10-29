@@ -1,5 +1,6 @@
 """EDITAL_OVERVIEW: edital inteiro → órgão, banca, ano, datas e cargos."""
 
+from collections.abc import Sequence
 from datetime import date
 from typing import Literal
 
@@ -33,3 +34,14 @@ class EditalOverviewV1(BaseModel):
     registration_end: date | None = Field(description="Fim das inscrições.")
     exam_date: date | None = Field(description="Data da prova objetiva, se o edital fixa o dia.")
     positions: list[PositionV1] = Field(description="Todos os cargos oferecidos.")
+
+
+def original_pages(result: dict[str, object], sent: Sequence[int]) -> dict[str, object]:
+    """`page` de cada cargo é a página do PDF recortado: vira a do edital original (a partir de 1).
+    Página fora do recorte (o modelo inventou) vira None."""
+    positions = []
+    for position in result.get("positions") or []:
+        page = position.get("page")
+        inside = isinstance(page, int) and 1 <= page <= len(sent)
+        positions.append(position | {"page": sent[page - 1] + 1 if inside else None})
+    return result | {"positions": positions}

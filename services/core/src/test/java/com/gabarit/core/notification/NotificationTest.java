@@ -11,6 +11,7 @@ import com.gabarit.core.exam.ExamStatus;
 import com.gabarit.core.exam.ExamSummary;
 import com.gabarit.core.shared.ClockConfig;
 import com.gabarit.core.shared.NotFoundException;
+import com.gabarit.core.study.EditalReadEvent;
 import com.gabarit.core.user.UserProfileService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,6 +22,7 @@ import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -76,6 +78,9 @@ class NotificationTest {
 
 	@Autowired
 	TestEntityManager em;
+
+	@Autowired
+	JdbcTemplate jdbc;
 
 	Map<String, UUID> catalogIds;
 
@@ -203,6 +208,27 @@ class NotificationTest {
 		UUID id = notifications.list("maria", 0, 1).getContent().getFirst().id();
 
 		assertThatThrownBy(() -> notifications.markRead("joao", id)).isInstanceOf(NotFoundException.class);
+	}
+
+	@Test
+	void leituraDoEditalViraAvisoComOConcursoDaCarteira() {
+		UUID target = UUID.randomUUID();
+		jdbc.update("INSERT INTO study_target (id, user_id, title, created_at, updated_at) VALUES (?, 'maria', 'TJ-SP 2023', now(), now())",
+				target);
+
+		notifications.onEditalRead(new EditalReadEvent("maria", target, "TJ-SP 2023", true));
+		notifications.onEditalRead(new EditalReadEvent("maria", target, "TJ-SP 2023", false));
+		em.flush();
+		em.clear();
+
+		var page = notifications.list("maria", 0, 20);
+		assertThat(page.getContent()).extracting(NotificationService.NotificationView::type)
+			.containsExactlyInAnyOrder(Notification.Type.EDITAL_READ, Notification.Type.EDITAL_FAILED);
+		assertThat(page.getContent()).allSatisfy(n -> {
+			assertThat(n.exam()).isNull();
+			assertThat(n.studyTarget()).isEqualTo(new NotificationService.StudyTargetRef(target, "TJ-SP 2023"));
+		});
+		assertThat(notifications.unreadCount("maria")).isEqualTo(2);
 	}
 
 }

@@ -8,7 +8,7 @@
   "required": ["extraction_id", "task", "prompt_version", "documents", "params"],
   "properties": {
     "extraction_id": { "type": "string", "format": "uuid", "description": "Id do pedido no core; volta na resposta." },
-    "task": { "type": "string", "enum": ["ECHO", "EDITAL_OVERVIEW"], "description": "ECHO: lê os documentos e devolve os parâmetros, sem LLM (teste do caminho core → worker → core). EDITAL_OVERVIEW: um edital → órgão, banca, ano, datas e cargos." },
+    "task": { "type": "string", "enum": ["ECHO", "EDITAL_OVERVIEW", "EDITAL_SYLLABUS"], "description": "ECHO: lê os documentos e devolve os parâmetros, sem LLM (teste do caminho core → worker → core). EDITAL_OVERVIEW: um edital → órgão, banca, ano, datas e cargos. EDITAL_SYLLABUS: um edital + params.position {name, specialty} (um cargo da EDITAL_OVERVIEW) → disciplinas e tópicos daquele cargo." },
     "prompt_version": { "type": "string", "pattern": "^v[0-9]+$", "description": "Versão do prompt da tarefa (prompts/<tarefa>/<versão>.md no extraction). Versão que o worker não tem é falha." },
     "documents": {
       "description": "PDFs de entrada, na ordem que a tarefa espera (ex.: prova, depois gabarito).",

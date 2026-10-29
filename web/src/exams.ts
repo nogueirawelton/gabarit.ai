@@ -7,7 +7,7 @@ export function formatDate(iso: string, withYear = false): string {
 }
 
 /** Dias de hoje (no fuso do navegador) até a data: 0 = hoje. */
-function daysUntil(iso: string): number {
+export function daysUntil(iso: string): number {
   const [year, month, day] = iso.split("-").map(Number);
   const now = new Date();
   const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());

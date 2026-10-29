@@ -131,12 +131,15 @@ export type Page<T> = {
 };
 
 /** Aviso de concurso novo para os cargos do usuário (GET /me/notifications). */
+/** Aviso do sininho: concurso novo (`exam`) ou leitura do edital de um concurso da carteira (`studyTarget`). */
 export type AppNotification = {
   id: string;
   createdAt: string;
   read: boolean;
-  exam: ExamSummary;
-};
+} & (
+  | { type: "NEW_EXAM"; exam: ExamSummary; studyTarget: null }
+  | { type: "EDITAL_READ" | "EDITAL_FAILED"; exam: null; studyTarget: { id: string; title: string } }
+);
 
 /** Concurso na carteira (GET /me/study-targets). `exam`: o concurso da lista, se veio dela. */
 export type StudyTargetSummary = {
@@ -187,6 +190,10 @@ export type StudyDocument = {
   url: string | null;
   /** Leitura do edital pela IA (só no edital do concurso; null se nunca foi pedida). */
   reading: EditalReading | null;
+  /** Cargo escolhido entre os da leitura, como o edital escreve: base do conteúdo programático. */
+  position: { name: string; specialty: string | null } | null;
+  /** Leitura do conteúdo programático do cargo escolhido (null se nenhum cargo ou não pedida). */
+  syllabus: SyllabusReading | null;
 };
 
 /**
@@ -198,6 +205,28 @@ export type EditalReading = {
   overview: EditalOverview | null;
   failureReason: string | null;
   retryable: boolean;
+};
+
+/** Leitura do conteúdo programático do cargo: mesmos estados da leitura do edital. */
+export type SyllabusReading = {
+  status: "PENDING" | "DONE" | "FAILED";
+  syllabus: EditalSyllabus | null;
+  failureReason: string | null;
+  retryable: boolean;
+};
+
+/** Disciplinas e tópicos do cargo. `positionFound` false: o edital não traz o conteúdo do cargo. */
+export type EditalSyllabus = {
+  positionFound: boolean;
+  subjects: SyllabusSubject[];
+};
+
+/** `group`: bloco do edital ("Conhecimentos Específicos"), quando agrupa as disciplinas. */
+export type SyllabusSubject = {
+  name: string;
+  group: string | null;
+  topics: string[];
+  page: number | null;
 };
 
 /** O que a IA leu do edital: sugestão para conferir e aplicar. Ausente no edital = null. */

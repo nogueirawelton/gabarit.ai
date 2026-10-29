@@ -1,106 +1,59 @@
 import { BookOpen, CalendarDays, ChevronRight, Plus } from "lucide-react";
-import { type FormEvent, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 
-import { ApiError, type StudyTargetSummary } from "../api";
+import type { StudyTargetSummary } from "../api";
 import { StatusBadge } from "../components/ExamCard";
+import { StudyAgenda } from "../components/StudyAgenda";
 import { ExamListSkeleton } from "../components/Skeleton";
-import { useAddStudyTarget, useStudyTargets } from "../data/study";
+import { useStudyTargets } from "../data/study";
 import { formatDate } from "../exams";
 
 /**
- * Carteira: os concursos que a pessoa estuda. Um da lista entra pela página do concurso; um que já
- * passou (para estudar pelas provas dele) entra aqui, só com o título.
+ * Meus concursos: os que a pessoa estuda (carteira). Cada um é montado passo a passo: dados,
+ * edital, cargo, provas relacionadas e, no fim, o estudo.
  */
 export function StudiesPage() {
   const targets = useStudyTargets();
-  const [adding, setAdding] = useState(false);
 
   return (
     <>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Estudos</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Meus concursos</h1>
           <p className="mt-2 max-w-2xl text-slate-600 dark:text-slate-400">
-            Os concursos que você está estudando. Pode ser um aberto ou um que já passou: provas
-            relacionadas (do mesmo cargo ou banca) servem de base para estudar.
+            Os concursos que você está estudando. Pode ser um aberto ou um que já passou: provas relacionadas (do mesmo
+            cargo ou banca) servem de base para estudar.
           </p>
         </div>
-        {!adding && (
-          <button type="button" onClick={() => setAdding(true)} className={primaryButton}>
-            <Plus className="size-4" aria-hidden="true" />
-            Cadastrar concurso
-          </button>
-        )}
+        <Link to="/meus-concursos/novo" className={primaryButton}>
+          <Plus className="size-4" aria-hidden="true" />
+          Novo concurso
+        </Link>
       </div>
-
-      {adding && <AddCustomForm onCancel={() => setAdding(false)} />}
 
       {targets.isPending ? (
         <ExamListSkeleton count={2} />
       ) : targets.isError ? (
         <p className="mt-6 text-sm text-red-700 dark:text-red-300">
-          Não foi possível carregar seus estudos agora. Recarregue a página.
+          Não foi possível carregar seus concursos agora. Recarregue a página.
         </p>
       ) : targets.data.length === 0 ? (
-        <Empty onAdd={() => setAdding(true)} />
+        <Empty />
       ) : (
-        <ul className="mt-8 grid gap-4 sm:grid-cols-2">
-          {targets.data.map((target) => (
-            <li key={target.id}>
-              <TargetCard target={target} />
-            </li>
-          ))}
-        </ul>
+        <>
+          <ul className="mt-8 grid gap-4 sm:grid-cols-2">
+            {targets.data.map((target) => (
+              <li key={target.id}>
+                <TargetCard target={target} />
+              </li>
+            ))}
+          </ul>
+          <div className="mt-8">
+            <StudyAgenda targets={targets.data} />
+          </div>
+        </>
       )}
     </>
-  );
-}
-
-/** Concurso fora da lista: só o título; órgão, banca, cargo e data a pessoa completa (ou o edital, depois). */
-function AddCustomForm({ onCancel }: { onCancel: () => void }) {
-  const add = useAddStudyTarget();
-  const navigate = useNavigate();
-  const [title, setTitle] = useState("");
-
-  function submit(event: FormEvent) {
-    event.preventDefault();
-    add.mutate({ title: title.trim() }, { onSuccess: (target) => void navigate(`/estudos/${target.id}`) });
-  }
-
-  return (
-    <form
-      onSubmit={submit}
-      className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900"
-    >
-      <label className="grid gap-1.5 text-sm">
-        <span className="font-medium">Qual concurso?</span>
-        <span className="text-slate-500 dark:text-slate-400">
-          Ex.: "TJ-SP 2023 - Escrevente". O resto você completa depois.
-        </span>
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          maxLength={200}
-          required
-          autoFocus
-          className="mt-1 h-11 w-full rounded-[10px] border border-slate-200 bg-white px-3 text-[15px] outline-none transition focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/20 dark:border-slate-800 dark:bg-slate-950"
-        />
-      </label>
-      {add.isError && (
-        <p className="mt-2 text-sm text-red-700 dark:text-red-300">
-          {add.error instanceof ApiError && add.error.detail ? add.error.detail : "Não foi possível cadastrar agora."}
-        </p>
-      )}
-      <div className="mt-4 flex gap-2">
-        <button type="submit" disabled={!title.trim() || add.isPending} className={primaryButton}>
-          {add.isPending ? "Cadastrando…" : "Cadastrar"}
-        </button>
-        <button type="button" onClick={onCancel} className={secondaryButton}>
-          Cancelar
-        </button>
-      </div>
-    </form>
   );
 }
 
@@ -108,7 +61,7 @@ function TargetCard({ target }: { target: StudyTargetSummary }) {
   const meta = [target.board, target.year].filter(Boolean).join(" · ");
   return (
     <Link
-      to={`/estudos/${target.id}`}
+      to={`/meus-concursos/${target.id}`}
       className="group flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-5 transition hover:border-indigo-300 hover:shadow-md hover:shadow-indigo-900/5 focus-visible:border-indigo-600 focus-visible:ring-4 focus-visible:ring-indigo-600/20 focus-visible:outline-none dark:border-slate-800 dark:bg-slate-900 dark:hover:border-indigo-500/50"
     >
       <div className="flex items-start justify-between gap-3">
@@ -138,24 +91,22 @@ function TargetCard({ target }: { target: StudyTargetSummary }) {
   );
 }
 
-function Empty({ onAdd }: { onAdd: () => void }) {
+function Empty() {
   return (
     <div className="mt-8 rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center dark:border-slate-700 dark:bg-slate-900">
       <span className="mx-auto grid size-12 place-items-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
         <BookOpen className="size-6" aria-hidden="true" />
       </span>
-      <h2 className="mt-4 text-lg font-semibold">Nenhum concurso na carteira</h2>
+      <h2 className="mt-4 text-lg font-semibold">Nenhum concurso ainda</h2>
       <p className="mx-auto mt-2 max-w-md text-sm text-slate-600 dark:text-slate-400">
-        Escolha um concurso aberto na lista e toque em "Estudar para este concurso", ou cadastre um que já passou para
-        estudar pelas provas dele.
+        Escolha um concurso da nossa lista ou cadastre um que já passou para estudar pelas provas dele. Depois é passo a
+        passo: edital, cargo e provas relacionadas.
       </p>
       <div className="mt-5 flex flex-wrap justify-center gap-2">
-        <Link to="/" className={secondaryButton}>
-          Ver concursos abertos
+        <Link to="/meus-concursos/novo" className={primaryButton}>
+          <Plus className="size-4" aria-hidden="true" />
+          Novo concurso
         </Link>
-        <button type="button" onClick={onAdd} className={primaryButton}>
-          Cadastrar concurso
-        </button>
       </div>
     </div>
   );

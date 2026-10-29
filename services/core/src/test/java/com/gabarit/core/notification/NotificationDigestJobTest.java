@@ -130,4 +130,17 @@ class NotificationDigestJobTest {
 			.isZero();
 	}
 
+	@Test
+	void avisoDeEditalNaoVaiPorEmail() {
+		sql("""
+				INSERT INTO study_target (id, user_id, title, created_at, updated_at)
+				VALUES ('0193a1f0-0000-7000-8000-0000000000f1', 'maria', 'TJ-SP 2023', now(), now())""");
+		sql("""
+				INSERT INTO notification (id, user_id, type, study_target_id, title, created_at)
+				VALUES (gen_random_uuid(), 'maria', 'EDITAL_READ', '0193a1f0-0000-7000-8000-0000000000f1', 'TJ-SP 2023', now())""");
+
+		assertThat(job.run()).isZero();
+		assertThat(smtp.getReceivedMessages()).isEmpty();
+	}
+
 }

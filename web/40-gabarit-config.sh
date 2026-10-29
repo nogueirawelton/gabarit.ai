@@ -4,7 +4,7 @@ set -eu
 
 : "${KEYCLOAK_URL:?defina KEYCLOAK_URL}"
 : "${API_URL:?defina API_URL}"
-export KEYCLOAK_REALM="${KEYCLOAK_REALM:-gabarit}"
+export KEYCLOAK_REALM="${KEYCLOAK_REALM:-gabaritai}"
 export KEYCLOAK_CLIENT_ID="${KEYCLOAK_CLIENT_ID:-web}"
 
 envsubst '${KEYCLOAK_URL} ${KEYCLOAK_REALM} ${KEYCLOAK_CLIENT_ID} ${API_URL}' \
