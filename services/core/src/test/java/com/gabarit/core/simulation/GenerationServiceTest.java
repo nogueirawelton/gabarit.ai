@@ -43,6 +43,7 @@ import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 /** Postgres real e sem a transação de teste (as cópias rodam em transação própria; ids novos por teste). */
@@ -60,9 +61,9 @@ class GenerationServiceTest {
 
 	static final String GENERATED = """
 			{"questions": [
-			  {"statement": "Assinale o uso correto da crase.", "options": [{"letter": "A", "text": "à pé"},
+			  {"base_text": "Fui à feira e comprei à vista.", "statement": "Assinale o uso correto da crase no texto.", "options": [{"letter": "A", "text": "à pé"},
 			   {"letter": "B", "text": "à vista"}], "answer": "b", "explanation": "À vista é locução feminina."},
-			  {"statement": "Antes de verbo não há crase.", "options": [], "answer": "C", "explanation": "Verbo não admite artigo."}]}
+			  {"base_text": null, "statement": "Antes de verbo não há crase.", "options": [], "answer": "C", "explanation": "Verbo não admite artigo."}]}
 			""";
 
 	@Autowired
@@ -142,7 +143,11 @@ class GenerationServiceTest {
 			.containsEntry("answer_format", "MULTIPLE_CHOICE")
 			.containsEntry("options_count", 5)
 			.containsEntry("subject", "Português")
-			.containsEntry("topic", "Regência.");
+			.containsEntry("topic", "Regência.")
+			.containsEntry("count", 10)
+			// primeira rodada: nada a evitar
+			.containsEntry("round", 1L)
+			.containsEntry("avoid", List.of());
 		assertThatThrownBy(() -> service.generate("maria", targetId, 0, 9)).isInstanceOf(NotFoundException.class);
 	}
 
@@ -158,6 +163,7 @@ class GenerationServiceTest {
 				new StudyReadyEvent("maria", targetId, "TJ", StudyReadyEvent.What.QUESTIONS, true));
 		assertThat(service.overview("maria", targetId)).first().satisfies(crase -> {
 			assertThat(crase.practice()).isEqualTo(2);
+			assertThat(crase.unseen()).isEqualTo(2);
 			assertThat(crase.generation().status()).isEqualTo(Extraction.Status.DONE);
 		});
 		var practice = service.practice("maria", targetId, 0, 0);
@@ -167,6 +173,9 @@ class GenerationServiceTest {
 			// o comentário só depois de entregar
 			assertThat(q.explanation()).isNull();
 		});
+		// a questão que cita um texto vem com ele
+		assertThat(practice.questions()).extracting(SimulationService.QuestionView::baseText)
+			.containsExactly("Fui à feira e comprei à vista.", null);
 		assertThat(practice.questions().get(1).kind()).isEqualTo("TRUE_FALSE");
 		simulations.answer("maria", practice.id(), practice.questions().getFirst().id(), "B");
 		var finished = simulations.finish("maria", practice.id());
@@ -174,9 +183,18 @@ class GenerationServiceTest {
 			assertThat(q.correct()).isTrue();
 			assertThat(q.explanation()).isEqualTo("À vista é locução feminina.");
 		});
+		assertThat(service.overview("maria", targetId).getFirst().unseen()).isZero();
+		// terminado fica; em aberto pode ser apagado, e as questões voltam a ser não vistas
+		assertThatThrownBy(() -> simulations.delete("maria", practice.id())).isInstanceOf(BadRequestException.class);
+		var again = service.practice("maria", targetId, 0, 0);
+		assertThatThrownBy(() -> simulations.delete("joao", again.id())).isInstanceOf(NotFoundException.class);
+		simulations.delete("maria", again.id());
+		assertThat(simulations.list("maria", targetId)).extracting(SimulationService.SimulationSummary::id)
+			.containsExactly(practice.id());
 	}
 
 	@Test
+	@SuppressWarnings("unchecked")
 	void simuladoIneditoNaEstruturaDoQuadroDeProvas() {
 		// quadro: 3 questões de Português (Crase recebe 2, Regência 1)
 		given(documents.targetExam("maria", targetId)).willReturn(Optional.of(new EditalOverview.Exam(1, "Todos",
@@ -199,6 +217,15 @@ class GenerationServiceTest {
 		assertThat(exam.deadline()).isNotNull();
 		// as duas geradas (a geração foi a mesma para os dois tópicos)
 		assertThat(exam.questions()).hasSize(2).allSatisfy(q -> assertThat(q.generated()).isTrue());
+
+		// já vistas: o próximo simulado pede outra rodada, sem repetir as geradas
+		assertThat(service.mockExam("maria", targetId).readyTopics()).isZero();
+		service.prepareMockExam("maria", targetId);
+		ArgumentCaptor<Map<String, Object>> params = ArgumentCaptor.forClass(Map.class);
+		verify(extractions, times(4)).request(eq("maria"), eq(ExtractionTask.TOPIC_QUESTIONS), eq(List.of()),
+				params.capture());
+		assertThat(params.getAllValues().subList(2, 4)).allSatisfy(p -> assertThat(p).containsEntry("round", 2L)
+			.containsEntry("avoid", List.of("Assinale o uso correto da crase no texto.", "Antes de verbo não há crase.")));
 	}
 
 }

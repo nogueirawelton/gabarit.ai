@@ -347,6 +347,8 @@ export type SimulationQuestion = {
   options: { letter: string; text: string }[];
   hasImage: boolean;
   page: number | null;
+  /** PDF da prova aberto na página da questão (questão de prova relacionada; URL que expira). */
+  pdfUrl: string | null;
   /** Resposta marcada (letra, ou C/E). */
   chosen: string | null;
   answer: string | null;
@@ -443,11 +445,15 @@ export type PlanSession = {
 /** Sessão na agenda de todos os concursos. */
 export type AgendaSession = PlanSession & { studyTargetId: string; targetTitle: string };
 
-/** Um tópico do conteúdo (ordinais a partir de 0): questões para praticar (reais e geradas) e a geração. */
+/**
+ * Um tópico do conteúdo (ordinais a partir de 0): questões para praticar (reais e geradas), quantas
+ * você ainda não viu em simulados e a última geração.
+ */
 export type TopicPractice = {
   subjectOrdinal: number;
   topicOrdinal: number;
   practice: number;
+  unseen: number;
   generation: GenerationState | null;
 };
 
@@ -459,7 +465,10 @@ export type GenerationState = {
   outdated: boolean;
 };
 
-/** Simulado inédito do cargo: estrutura como no quadro de provas e o preparo (tópicos com questões geradas). */
+/**
+ * Simulado inédito do cargo: estrutura como no quadro de provas e o preparo. Tópico pronto: tem
+ * questões geradas que você ainda não viu para a parte dele (depois de um simulado, o próximo pede outras).
+ */
 export type MockExamStatus = {
   questions: number;
   sections: { subject: string; questions: number }[];

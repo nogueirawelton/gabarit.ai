@@ -10,7 +10,7 @@ from src.application.tasks.edital_overview import EditalOverviewV1
 from src.application.tasks.edital_syllabus import EditalSyllabusV1
 from src.application.tasks.exam_paper import ExamPaperV1
 from src.application.tasks.question_topics import QuestionTopicsV1
-from src.application.tasks.topic_questions import TopicQuestionsV1
+from src.application.tasks.topic_questions import TopicQuestionsV2
 from src.application.tasks.topic_summary import TopicSummaryV1
 from src.application.use_cases.process_extraction import ProcessExtraction
 from src.domain.errors import TransientError
@@ -292,18 +292,21 @@ async def test_questoes_do_topico_sem_documento_com_a_banca() -> None:
         "options_count": 5,
         "subject": "Língua Portuguesa",
         "topic": "Crase.",
-        "count": 5,
+        "count": 10,
+        "round": 2,
+        "avoid": ["Assinale o uso correto da crase."],
     }
 
     await ProcessExtraction(FakeDocumentStore(), llm, publisher, FakePdf()).execute(
-        command(task="TOPIC_QUESTIONS", documents=[], params=params)
+        command(task="TOPIC_QUESTIONS", prompt_version="v2", documents=[], params=params)
     )
 
     [(shas, instructions, output_model, effort)] = llm.calls
     assert shas == []
-    assert output_model is TopicQuestionsV1
+    assert output_model is TopicQuestionsV2
     assert effort == "high"
     assert '"board": "FGV"' in instructions
+    assert "Assinale o uso correto da crase." in instructions
 
 
 def question(number: int, page: int, *, answer: str | None = "A", statement: str = "Q") -> dict:

@@ -102,10 +102,10 @@ class Question {
 		this.page = page;
 	}
 
-	/** Questão inédita gerada para um tópico (TOPIC_QUESTIONS): sem texto-base, imagem nem página. */
-	static Question generated(UUID extractionId, int ordinal, String subject, Kind kind, String statement,
-			String options, String answer, String explanation) {
-		Question question = new Question(extractionId, ordinal, ordinal + 1, subject, kind, null, statement, options,
+	/** Questão inédita gerada para um tópico (TOPIC_QUESTIONS): texto-base só se citar um; sem imagem nem página. */
+	static Question generated(UUID extractionId, int ordinal, String subject, Kind kind, String baseText,
+			String statement, String options, String answer, String explanation) {
+		Question question = new Question(extractionId, ordinal, ordinal + 1, subject, kind, baseText, statement, options,
 				answer, false, false, null);
 		question.generated = true;
 		question.explanation = explanation;

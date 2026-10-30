@@ -17,6 +17,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.PropertyNamingStrategies;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Clock;
@@ -41,27 +42,37 @@ import java.util.stream.Collectors;
 @Service
 public class GenerationService {
 
-	/** Questões geradas por pedido. */
-	static final int PER_TOPIC = 5;
+	/** Questões geradas por pedido (cada "gerar mais" traz outras tantas). */
+	static final int PER_TOPIC = 10;
+
+	/** Enunciados das gerações anteriores do tópico mandados para a IA não repetir (os mais recentes). */
+	static final int AVOID = 40;
 
 	/** Questões do simulado inédito quando o edital não tem quadro de provas. */
 	static final int DEFAULT_QUESTIONS = 50;
 
-	/** Questões numa prática de tópico. */
-	static final int MAX_PRACTICE = 20;
+	/** Questões numa prática de tópico (as ainda não vistas primeiro). */
+	static final int MAX_PRACTICE = 10;
 
-	private static final JsonMapper JSON = JsonMapper.builder().build();
+	// a saída do worker vem em snake_case (base_text)
+	private static final JsonMapper JSON = JsonMapper.builder()
+		.propertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
+		.build();
 
 	/**
 	 * Um tópico do conteúdo (ordinais a partir de 0): quantas questões há para praticar (reais e
-	 * geradas) e o pedido de geração, se houve.
+	 * geradas), quantas a pessoa ainda não viu em simulados do concurso e o último pedido de geração,
+	 * se houve.
 	 */
-	public record TopicPractice(int subjectOrdinal, int topicOrdinal, int practice, GenerationState generation) {
+	public record TopicPractice(int subjectOrdinal, int topicOrdinal, int practice, int unseen,
+			GenerationState generation) {
 	}
 
 	/**
 	 * Simulado inédito do cargo: {@code questions} no total, por disciplina como no quadro de provas;
-	 * {@code topics} usados, quantos já têm questões geradas, estão gerando ou falharam.
+	 * {@code topics} usados; prontos são os que têm questões geradas que a pessoa ainda não viu para
+	 * a parte deles (depois de um simulado, o próximo pede outras), os outros estão gerando, falharam
+	 * ou faltam gerar.
 	 */
 	public record MockExamStatus(int questions, List<MockExamSection> sections, int topics, int readyTopics,
 			int pendingTopics, int failedTopics) {
@@ -82,7 +93,8 @@ public class GenerationService {
 	/** Saída da leitura TOPIC_QUESTIONS. */
 	record Result(List<Item> questions) {
 
-		record Item(String statement, List<ExamPaper.Option> options, String answer,
+		/** {@code baseText}: só a partir da v2 (a v1 não tinha). */
+		record Item(String baseText, String statement, List<ExamPaper.Option> options, String answer,
 				String explanation) {
 		}
 
@@ -140,6 +152,7 @@ public class GenerationService {
 			return List.of();
 		}
 		Map<SimulationService.TopicRef, List<UUID>> practice = topics.practiceQuestions(userId, targetId);
+		Set<UUID> seen = new HashSet<>(questions.seenInSimulations(userId, targetId));
 		List<TopicGeneration> requested = generations.findByStudyTargetIdAndUserId(targetId, userId);
 		Map<UUID, Extraction> readings = requested.isEmpty() ? Map.of()
 				: extractions.find(requested.stream().map(TopicGeneration::getExtractionId).toList());
@@ -162,17 +175,19 @@ public class GenerationService {
 		for (int s = 0; s < subjects.size(); s++) {
 			List<String> texts = subjects.get(s).topics() == null ? List.of() : subjects.get(s).topics();
 			for (int t = 0; t < texts.size(); t++) {
-				int count = practice.getOrDefault(new SimulationService.TopicRef(subjects.get(s).name(), texts.get(t)),
-						List.of()).size();
-				result.add(new TopicPractice(s, t, Math.min(count, MAX_PRACTICE), states.get(s + "|" + t)));
+				List<UUID> ids = practice.getOrDefault(new SimulationService.TopicRef(subjects.get(s).name(), texts.get(t)),
+						List.of());
+				int unseen = (int) ids.stream().filter(id -> !seen.contains(id)).count();
+				result.add(new TopicPractice(s, t, ids.size(), unseen, states.get(s + "|" + t)));
 			}
 		}
 		return result;
 	}
 
 	/**
-	 * Pede questões inéditas para o tópico, no estilo da banca e no formato da prova do cargo (ou de
-	 * novo, se falhou ou o prompt mudou). Mesma banca, formato e tópico (de qualquer pessoa): a mesma
+	 * Pede {@link #PER_TOPIC} questões inéditas para o tópico, no estilo da banca e no formato da
+	 * prova do cargo: a primeira vez, ou mais (diferentes das já geradas), ou de novo se falhou. Já
+	 * gerando: só devolve o estado. Mesma banca, formato, tópico e rodada (de qualquer pessoa): a mesma
 	 * leitura.
 	 *
 	 * @throws NotFoundException concurso de outro usuário ou tópico que não existe
@@ -187,6 +202,10 @@ public class GenerationService {
 			.findFirst()
 			.orElseThrow(() -> new NotFoundException("tópico %d.%d não existe".formatted(subjectOrdinal + 1,
 					topicOrdinal + 1)));
+		Extraction current = requested(userId, targetId).get(topic.getId());
+		if (current != null && current.getStatus() == Extraction.Status.PENDING) {
+			return state(current);
+		}
 		return request(userId, targetId, topic, style);
 	}
 
@@ -203,8 +222,9 @@ public class GenerationService {
 	}
 
 	/**
-	 * Prepara o simulado inédito: gera as questões dos tópicos que ele usa e ainda não têm (uma vez:
-	 * os próximos simulados reaproveitam, e a geração é compartilhada entre quem tem a mesma banca).
+	 * Prepara o (próximo) simulado inédito: gera mais questões dos tópicos que ele usa e não têm
+	 * questões que a pessoa ainda não viu para a parte deles (a geração é compartilhada entre quem tem
+	 * a mesma banca e o mesmo conteúdo).
 	 *
 	 * @throws BadRequestException sem conteúdo do cargo
 	 */
@@ -213,14 +233,20 @@ public class GenerationService {
 		Map<String, Object> style = style(userId, targetId);
 		List<Slot> slots = blueprint(userId, targetId);
 		Map<UUID, Extraction> requested = requested(userId, targetId);
+		Map<UUID, Integer> unseen = unseenGenerated(userId, targetId, slots);
 		slots.stream()
-			.map(Slot::topic)
-			.filter(t -> {
-				Extraction reading = requested.get(t.getId());
-				return reading == null || isOutdated(reading)
-						|| (reading.getStatus() == Extraction.Status.FAILED && reading.isRetryable());
+			.filter(slot -> {
+				Extraction reading = requested.get(slot.topic().getId());
+				if (reading != null && reading.getStatus() == Extraction.Status.PENDING) {
+					return false;
+				}
+				if (reading != null && reading.getStatus() == Extraction.Status.FAILED && !reading.isRetryable()
+						&& !isOutdated(reading)) {
+					return false;
+				}
+				return unseen.getOrDefault(slot.topic().getId(), 0) < slot.questions();
 			})
-			.forEach(topic -> request(userId, targetId, topic, style));
+			.forEach(slot -> request(userId, targetId, slot.topic(), style));
 		return status(userId, targetId, slots);
 	}
 
@@ -326,18 +352,20 @@ public class GenerationService {
 
 	private MockExamStatus status(String userId, UUID targetId, List<Slot> slots) {
 		Map<UUID, Extraction> requested = requested(userId, targetId);
+		Map<UUID, Integer> unseen = unseenGenerated(userId, targetId, slots);
 		int ready = 0;
 		int pending = 0;
 		int failed = 0;
 		for (Slot slot : slots) {
 			Extraction reading = requested.get(slot.topic().getId());
-			if (reading == null) {
-				continue;
+			if (reading != null && reading.getStatus() == Extraction.Status.PENDING) {
+				pending++;
 			}
-			switch (reading.getStatus()) {
-				case DONE -> ready++;
-				case PENDING -> pending++;
-				case FAILED -> failed++;
+			else if (unseen.getOrDefault(slot.topic().getId(), 0) >= slot.questions()) {
+				ready++;
+			}
+			else if (reading != null && reading.getStatus() == Extraction.Status.FAILED) {
+				failed++;
 			}
 		}
 		Map<String, Integer> sections = new LinkedHashMap<>();
@@ -345,6 +373,20 @@ public class GenerationService {
 		return new MockExamStatus(slots.stream().mapToInt(Slot::questions).sum(),
 				sections.entrySet().stream().map(e -> new MockExamSection(e.getKey(), e.getValue())).toList(),
 				slots.size(), ready, pending, failed);
+	}
+
+	/** Quantas questões geradas de cada tópico da estrutura a pessoa ainda não viu em simulados do concurso. */
+	private Map<UUID, Integer> unseenGenerated(String userId, UUID targetId, List<Slot> slots) {
+		if (slots.isEmpty()) {
+			return Map.of();
+		}
+		Set<UUID> seen = new HashSet<>(questions.seenInSimulations(userId, targetId));
+		Map<UUID, Integer> unseen = new HashMap<>();
+		links.generatedFor(slots.stream().map(s -> s.topic().getId()).toList(), userId)
+			.stream()
+			.filter(g -> !seen.contains(g.getQuestionId()))
+			.forEach(g -> unseen.merge(g.getTopicId(), 1, Integer::sum));
+		return unseen;
 	}
 
 	/** Banca (do concurso, ou a lida do edital) e formato da prova do cargo: o que as questões geradas imitam. */
@@ -389,12 +431,21 @@ public class GenerationService {
 		return byTopic;
 	}
 
-	/** Pede (ou pede de novo) as questões de um tópico. */
+	/**
+	 * Pede as questões de um tópico: a rodada seguinte às já geradas (com os enunciados delas, para
+	 * não repetir), ou a mesma de novo se a última falhou (parâmetros iguais, a mesma leitura).
+	 */
 	private GenerationState request(String userId, UUID targetId, SyllabusTopic topic, Map<String, Object> style) {
+		List<Question> previous = questions.generatedForTopic(topic.getId());
 		Map<String, Object> params = new HashMap<>(style);
 		params.put("subject", topic.getSubject().getName());
 		params.put("topic", topic.getText().length() > 4000 ? topic.getText().substring(0, 4000) : topic.getText());
 		params.put("count", PER_TOPIC);
+		params.put("round", previous.stream().map(Question::getExtractionId).distinct().count() + 1);
+		params.put("avoid", previous.subList(Math.max(0, previous.size() - AVOID), previous.size())
+			.stream()
+			.map(q -> q.getStatement().length() > 200 ? q.getStatement().substring(0, 199) + "…" : q.getStatement())
+			.toList());
 		Extraction extraction = extractions.request(userId, ExtractionTask.TOPIC_QUESTIONS, List.of(), params);
 		TopicGeneration generation = generations.findByStudyTargetIdAndTopicId(targetId, topic.getId())
 			.orElseGet(() -> new TopicGeneration(userId, targetId, topic.getId()));
@@ -430,9 +481,12 @@ public class GenerationService {
 		}
 		EditalSyllabus.Subject subject = syllabus.subjects().get(subjectOrdinal);
 		String text = subject.topics().get(topicOrdinal);
+		Set<UUID> seen = new HashSet<>(questions.seenInSimulations(userId, targetId));
 		List<UUID> ids = topics.practiceQuestions(userId, targetId)
 			.getOrDefault(new SimulationService.TopicRef(subject.name(), text), List.of())
 			.stream()
+			// as ainda não vistas primeiro (estável: reais, depois geradas)
+			.sorted(Comparator.comparing(seen::contains))
 			.limit(MAX_PRACTICE)
 			.toList();
 		if (ids.isEmpty()) {
@@ -479,7 +533,8 @@ public class GenerationService {
 				Result.Item item = items.get(i);
 				boolean trueFalse = item.options() == null || item.options().isEmpty();
 				rows.add(Question.generated(extraction.getId(), i, subject,
-						trueFalse ? Question.Kind.TRUE_FALSE : Question.Kind.MULTIPLE_CHOICE, item.statement(),
+						trueFalse ? Question.Kind.TRUE_FALSE : Question.Kind.MULTIPLE_CHOICE, blankToNull(item.baseText()),
+						item.statement(),
 						JSON.writeValueAsString(trueFalse ? List.of() : item.options()),
 						item.answer() == null ? null : item.answer().strip().toUpperCase(Locale.ROOT),
 						item.explanation()));
@@ -499,6 +554,10 @@ public class GenerationService {
 	private static GenerationState state(Extraction extraction) {
 		return new GenerationState(extraction.getStatus(), extraction.getFailureReason(), extraction.isRetryable(),
 				isOutdated(extraction));
+	}
+
+	private static String blankToNull(String text) {
+		return text == null || text.isBlank() ? null : text.strip();
 	}
 
 }

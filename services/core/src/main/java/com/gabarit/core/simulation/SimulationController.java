@@ -10,6 +10,7 @@ import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -63,6 +64,13 @@ class SimulationController {
 	@GetMapping("/me/simulations/{id}")
 	SimulationView get(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
 		return service.get(jwt.getSubject(), id);
+	}
+
+	/** Só simulado em aberto. */
+	@DeleteMapping("/me/simulations/{id}")
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	void delete(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
+		service.delete(jwt.getSubject(), id);
 	}
 
 	@PutMapping("/me/simulations/{id}/answers/{questionId}")

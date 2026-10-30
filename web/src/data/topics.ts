@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { type QueryClient, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
   apiGet,
@@ -86,6 +86,7 @@ export function usePracticeTopic(targetId: string) {
     onSuccess: (simulation) => {
       queryClient.setQueryData(simulationKeys.detail(userId, simulation.id), simulation);
       void queryClient.invalidateQueries({ queryKey: ["simulations", userId] });
+      invalidateUnseen(queryClient, userId, targetId);
     },
   });
 }
@@ -126,8 +127,15 @@ export function useStartMockExam(targetId: string) {
     onSuccess: (simulation) => {
       queryClient.setQueryData(simulationKeys.detail(userId, simulation.id), simulation);
       void queryClient.invalidateQueries({ queryKey: ["simulations", userId] });
+      invalidateUnseen(queryClient, userId, targetId);
     },
   });
+}
+
+/** Questões entraram num simulado (viraram vistas): a prática dos tópicos e o simulado inédito mudam. */
+function invalidateUnseen(queryClient: QueryClient, userId: string | undefined, targetId: string) {
+  void queryClient.invalidateQueries({ queryKey: topicKeys.practice(userId, targetId) });
+  void queryClient.invalidateQueries({ queryKey: topicKeys.mockExam(userId, targetId) });
 }
 
 /** Resumo do tópico (null se ainda não pedido); confere enquanto é gerado. */

@@ -524,6 +524,24 @@ public class StudyDocumentService {
 			.collect(Collectors.toMap(StudyPaper::getId, StudyPaper::getExtractionId));
 	}
 
+	/**
+	 * O PDF de cada prova relacionada lida do concurso, por leitura da prova (para abrir a página de
+	 * uma questão com figura). URLs que expiram.
+	 */
+	@Transactional(readOnly = true)
+	public Map<UUID, URI> paperPdfs(String userId, UUID targetId) {
+		checkTarget(userId, targetId);
+		Map<UUID, URI> urls = new HashMap<>();
+		for (StudyPaper paper : papers.findByStudyTargetIdOrderByCreatedAtAscIdAsc(targetId)) {
+			if (paper.getExtractionId() != null && !urls.containsKey(paper.getExtractionId())) {
+				repository.findByPaperIdAndKind(paper.getId(), Kind.PROVA)
+					.map(StudyDocumentService::ready)
+					.ifPresent(d -> urls.put(paper.getExtractionId(), documents.viewUrl(d.getBlobSha256())));
+			}
+		}
+		return urls;
+	}
+
 	private static StudyDocument ready(StudyDocument document) {
 		return document != null && document.getStatus() == StudyDocument.Status.READY ? document : null;
 	}

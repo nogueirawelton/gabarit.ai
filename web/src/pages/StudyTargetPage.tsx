@@ -29,7 +29,7 @@ import { ExamDetailSkeleton } from "../components/Skeleton";
 import { EditalFiles, RelatedPapers } from "../components/StudyDocuments";
 import { PlanForm, PlanPanel } from "../components/StudyPlan";
 import { usePlan } from "../data/plans";
-import { useSimulations, useStartSimulation } from "../data/simulations";
+import { useDeleteSimulation, useSimulations, useStartSimulation } from "../data/simulations";
 import { useMockExam, usePrepareMockExam, useStartMockExam, useTopicPractice, useTopics } from "../data/topics";
 import { useRemoveStudyTarget, useStudyMaterials, useStudyTarget, useUpdateStudyTarget } from "../data/study";
 import { primaryButton, secondaryButton } from "./StudiesPage";
@@ -362,11 +362,11 @@ function StudyActions({
       ) : mockExam.data ? (
         <>
           {mockExam.data.pendingTopics > 0
-            ? `Preparando: ${mockExam.data.readyTopics} de ${mockExam.data.topics} tópicos prontos…`
-            : mockExam.data.readyTopics === 0
-              ? "Preparado uma vez, serve para os próximos simulados."
-              : `${mockExam.data.readyTopics} de ${mockExam.data.topics} tópicos prontos.`}
-          {/* pronto em parte (tópico que falhou ou conteúdo que mudou): dá para completar */}
+            ? `Gerando questões: ${mockExam.data.readyTopics} de ${mockExam.data.topics} tópicos prontos…`
+            : mockExam.data.readyTopics === mockExam.data.topics
+              ? "Pronto, com questões que você ainda não viu."
+              : `${mockExam.data.readyTopics} de ${mockExam.data.topics} tópicos com questões que você ainda não viu. Preparar gera as que faltam.`}
+          {/* pronto em parte: dá para começar com repetidas em vez de esperar */}
           {mockExam.data.pendingTopics === 0 &&
             mockExam.data.readyTopics > 0 &&
             mockExam.data.readyTopics < mockExam.data.topics && (
@@ -374,11 +374,10 @@ function StudyActions({
                 {" "}
                 <button
                   type="button"
-                  onClick={() => prepareMock.mutate()}
-                  disabled={prepareMock.isPending}
+                  onClick={() => setStartingMock(true)}
                   className="font-semibold text-indigo-700 hover:underline dark:text-indigo-300"
                 >
-                  Completar
+                  Começar assim mesmo
                 </button>
               </>
             )}
@@ -395,10 +394,10 @@ function StudyActions({
         ? undefined
         : mockExam.data.pendingTopics > 0
           ? { label: "Preparando…", onClick: () => undefined, disabled: true }
-          : mockExam.data.readyTopics > 0
+          : mockExam.data.readyTopics === mockExam.data.topics
             ? { label: "Começar simulado inédito", onClick: () => setStartingMock(true) }
             : {
-                label: prepareMock.isPending ? "Pedindo…" : "Preparar simulado",
+                label: prepareMock.isPending ? "Pedindo…" : "Preparar simulado inédito",
                 onClick: () => prepareMock.mutate(),
                 disabled: prepareMock.isPending,
               },
@@ -592,6 +591,7 @@ const dateTimeFormat = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", ti
 /** Simulados já feitos (ou em andamento) deste concurso. */
 function SimulationHistory({ targetId }: { targetId: string }) {
   const simulations = useSimulations(targetId);
+  const remove = useDeleteSimulation(targetId);
   if (!simulations.data || simulations.data.length === 0) {
     return null;
   }
@@ -600,10 +600,10 @@ function SimulationHistory({ targetId }: { targetId: string }) {
       <h3 className="text-sm font-semibold">Seus simulados</h3>
       <ul className="mt-2 divide-y divide-slate-100 rounded-xl border border-slate-200 dark:divide-slate-800 dark:border-slate-800">
         {simulations.data.map((simulation) => (
-          <li key={simulation.id}>
+          <li key={simulation.id} className="flex items-center">
             <Link
               to={`/simulados/${simulation.id}`}
-              className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm transition hover:bg-slate-50 dark:hover:bg-slate-800/50"
+              className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm transition hover:bg-slate-50 dark:hover:bg-slate-800/50"
             >
               <span>
                 <span className="font-medium">{simulation.title}</span>
@@ -621,9 +621,31 @@ function SimulationHistory({ targetId }: { targetId: string }) {
                 </span>
               )}
             </Link>
+            {/* só em aberto: o terminado entra no desempenho por tópico */}
+            {!simulation.finished && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm(`Apagar "${simulation.title}"? As respostas dele saem junto.`)) {
+                    remove.mutate(simulation.id);
+                  }
+                }}
+                disabled={remove.isPending && remove.variables === simulation.id}
+                aria-label={`Apagar ${simulation.title}`}
+                title="Apagar simulado"
+                className="mr-2 grid size-9 shrink-0 place-items-center rounded-lg text-slate-400 transition hover:bg-red-50 hover:text-red-700 disabled:opacity-50 dark:hover:bg-red-400/10 dark:hover:text-red-300"
+              >
+                <Trash2 className="size-4" aria-hidden="true" />
+              </button>
+            )}
           </li>
         ))}
       </ul>
+      {remove.isError && (
+        <p role="alert" className="mt-2 text-sm text-red-700 dark:text-red-300">
+          {remove.error instanceof ApiError && remove.error.detail ? remove.error.detail : "Não foi possível apagar agora."}
+        </p>
+      )}
     </div>
   );
 }

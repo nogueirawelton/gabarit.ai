@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, Bookmark, Check, Clock, Flag, ImageIcon, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Bookmark, Check, Clock, ExternalLink, FileText, Flag, ImageIcon, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router";
 
@@ -158,7 +158,7 @@ function Running({ simulation }: { simulation: Simulation }) {
 
       <div className="mt-6 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_16rem]">
         <section className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 dark:border-slate-800 dark:bg-slate-900">
-          <QuestionBody question={question} />
+          <QuestionBody question={question} position={index + 1} />
 
           <ol className="mt-5 grid gap-2">
             {question.kind === "TRUE_FALSE"
@@ -221,7 +221,7 @@ function Running({ simulation }: { simulation: Simulation }) {
                 <button
                   type="button"
                   onClick={() => setIndex(position)}
-                  aria-label={`Questão ${q.number}${q.chosen ? ", respondida" : ""}${marked.has(q.id) ? ", marcada para revisar" : ""}`}
+                  aria-label={`Questão ${position + 1}${q.chosen ? ", respondida" : ""}${marked.has(q.id) ? ", marcada para revisar" : ""}`}
                   aria-current={position === index ? "step" : undefined}
                   className={`relative grid h-8 w-full place-items-center rounded-md text-xs font-semibold tabular-nums transition ${
                     q.chosen
@@ -229,7 +229,7 @@ function Running({ simulation }: { simulation: Simulation }) {
                       : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400"
                   } ${position === index ? "ring-2 ring-indigo-600 ring-offset-2 dark:ring-indigo-400 dark:ring-offset-slate-900" : ""}`}
                 >
-                  {q.number}
+                  {position + 1}
                   {marked.has(q.id) && (
                     <span className="absolute -top-1 -right-1 size-2.5 rounded-full bg-amber-500" aria-hidden="true" />
                   )}
@@ -252,12 +252,12 @@ function Running({ simulation }: { simulation: Simulation }) {
 }
 
 /** Texto-base (recolhível), número, disciplina e enunciado. */
-function QuestionBody({ question }: { question: SimulationQuestion }) {
+function QuestionBody({ question, position }: { question: SimulationQuestion; position: number }) {
   return (
     <>
       <p className="flex flex-wrap items-center gap-x-2 text-xs font-semibold tracking-wide text-indigo-700 uppercase dark:text-indigo-300">
         <span>
-          Questão {question.number}
+          Questão {position}
           {question.subject && <span className="text-slate-500 dark:text-slate-400"> · {question.subject}</span>}
         </span>
         {question.generated && (
@@ -277,13 +277,39 @@ function QuestionBody({ question }: { question: SimulationQuestion }) {
         </details>
       )}
       {question.hasImage && (
-        <p className="mt-3 flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-400/10 dark:text-amber-300">
-          <ImageIcon className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-          Esta questão tem figura, gráfico ou tabela{question.page ? ` (página ${question.page} da prova)` : ""}. A descrição
-          está entre colchetes no enunciado.
-        </p>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-400/10 dark:text-amber-300">
+          <p className="flex items-start gap-2">
+            <ImageIcon className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+            {question.pdfUrl
+              ? "Esta questão tem figura, gráfico ou tabela. Veja na prova; a descrição está entre colchetes no enunciado."
+              : `Esta questão tem figura, gráfico ou tabela${question.page ? ` (página ${question.page} da prova)` : ""}. A descrição está entre colchetes no enunciado.`}
+          </p>
+          {question.pdfUrl && (
+            <a
+              href={question.pdfUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-amber-100 px-2.5 py-1 font-semibold text-amber-900 transition hover:bg-amber-200 dark:bg-amber-400/20 dark:text-amber-200 dark:hover:bg-amber-400/30"
+            >
+              Abrir a prova na página {question.page}
+              <ExternalLink className="size-3.5" aria-hidden="true" />
+            </a>
+          )}
+        </div>
       )}
       <p className="mt-3 leading-relaxed whitespace-pre-line">{question.statement}</p>
+      {/* sem figura: o acesso à prova fica discreto */}
+      {question.pdfUrl && !question.hasImage && (
+        <a
+          href={question.pdfUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-2 inline-flex items-center gap-1 text-xs text-slate-500 hover:text-indigo-700 dark:text-slate-400 dark:hover:text-indigo-300"
+        >
+          <FileText className="size-3.5" aria-hidden="true" />
+          Ver na prova (página {question.page})
+        </a>
+      )}
     </>
   );
 }
@@ -437,7 +463,7 @@ function Result({ simulation }: { simulation: Simulation }) {
                 key={question.id}
                 className="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900"
               >
-                <ReviewedQuestion question={question} />
+                <ReviewedQuestion question={question} position={simulation.questions.indexOf(question) + 1} />
                 <ReportQuestion simulationId={simulation.id} question={question} />
               </li>
             ))}
@@ -565,7 +591,7 @@ function ReportQuestion({ simulationId, question }: { simulationId: string; ques
 }
 
 /** Questão corrigida: a certa em verde, a sua (se errada) em vermelho. */
-function ReviewedQuestion({ question }: { question: SimulationQuestion }) {
+function ReviewedQuestion({ question, position }: { question: SimulationQuestion; position: number }) {
   const options =
     question.kind === "TRUE_FALSE"
       ? [
@@ -587,7 +613,7 @@ function ReviewedQuestion({ question }: { question: SimulationQuestion }) {
     <>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <QuestionBody question={question} />
+          <QuestionBody question={question} position={position} />
           {question.topic && (
             <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
               Tópico: <span className="font-medium text-slate-700 dark:text-slate-300">{question.topic.topic}</span> (

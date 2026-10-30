@@ -23,12 +23,14 @@ import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.PropertyNamingStrategies;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.net.URI;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -143,6 +145,7 @@ class SimulationServiceTest {
 
 	@Test
 	void comecaComAsObjetivasESemOGabarito() {
+		given(documents.paperPdfs("maria", targetId)).willReturn(Map.of(extractionId, URI.create("http://minio/prova.pdf")));
 		SimulationView started = service.start("maria", targetId, paperId, null);
 
 		assertThat(started.title()).isEqualTo("Prova de 2019 · Tipo 1");
@@ -154,6 +157,8 @@ class SimulationServiceTest {
 		assertThat(number(started, 1)).satisfies(q -> {
 			assertThat(q.baseText()).isEqualTo("Texto I");
 			assertThat(q.options()).extracting(ExamPaper.Option::letter).containsExactly("A", "B", "C");
+			// a prova aberta na página da questão
+			assertThat(q.pdfUrl()).isEqualTo("http://minio/prova.pdf#page=1");
 			// gabarito só depois de entregar
 			assertThat(q.answer()).isNull();
 			assertThat(q.annulled()).isNull();

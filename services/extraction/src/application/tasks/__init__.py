@@ -154,6 +154,14 @@ LLM_TASKS: dict[Task, dict[str, PromptVersion]] = {
             documents=0,
             params_model=topic_questions.TopicQuestionsParamsV1,
         ),
+        # v2: texto-base próprio (a v1 citava "o texto" sem trazê-lo) e rodadas que não repetem
+        "v2": PromptVersion(
+            instructions=_prompt("topic_questions", "v2"),
+            output_model=topic_questions.TopicQuestionsV2,
+            effort="high",
+            documents=0,
+            params_model=topic_questions.TopicQuestionsParamsV2,
+        ),
     },
     Task.TOPIC_SUMMARY: {
         "v1": PromptVersion(

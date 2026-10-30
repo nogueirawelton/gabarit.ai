@@ -8,6 +8,7 @@ import com.gabarit.core.study.StudyDocumentService.PaperQuestions;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.net.URI;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -49,9 +50,11 @@ public class SimulationService {
 	 * tópico do conteúdo do cargo (só depois de terminar, e se a prova foi ligada aos tópicos).
 	 * {@code generated}: inédita, gerada por IA para o tópico; {@code explanation}: o comentário
 	 * dela (só depois de terminar). {@code reported}: a pessoa reportou com problema (fora da nota).
+	 * {@code pdfUrl}: o PDF da prova aberto na página da questão (questão de prova relacionada com
+	 * página; URL que expira).
 	 */
 	public record QuestionView(UUID id, int number, String subject, String kind, String baseText, String statement,
-			List<ExamPaper.Option> options, boolean hasImage, Integer page, String chosen, String answer,
+			List<ExamPaper.Option> options, boolean hasImage, Integer page, String pdfUrl, String chosen, String answer,
 			Boolean annulled, Boolean correct, TopicRef topic, boolean generated, String explanation,
 			boolean reported) {
 	}
@@ -160,6 +163,22 @@ public class SimulationService {
 			questions.addToSimulation(simulation.getId(), questionIds.get(i), i);
 		}
 		return view(simulation, questionsOf(simulation), Map.of());
+	}
+
+	/**
+	 * Apaga um simulado em aberto: as questões dele voltam a contar como não vistas. Terminado não se
+	 * apaga (entra no desempenho por tópico e no plano).
+	 *
+	 * @throws NotFoundException não existe ou é de outro usuário
+	 * @throws BadRequestException já terminado
+	 */
+	@Transactional
+	public void delete(String userId, UUID id) {
+		Simulation simulation = find(userId, id);
+		if (simulation.isFinished(clock.instant())) {
+			throw new BadRequestException("simulado terminado não pode ser apagado");
+		}
+		simulations.delete(simulation);
 	}
 
 	/** @throws NotFoundException não existe ou é de outro usuário */
@@ -304,10 +323,14 @@ public class SimulationService {
 		boolean finished = simulation.isFinished(now);
 		Map<UUID, TopicRef> topics = finished ? topics(simulation, objective) : Map.of();
 		Set<UUID> reported = reported(simulation.getUserId(), objective);
+		Map<UUID, URI> pdfs = objective.stream().anyMatch(q -> q.getPage() != null)
+				? documents.paperPdfs(simulation.getUserId(), simulation.getStudyTargetId()) : Map.of();
 		List<QuestionView> views = objective.stream().map(q -> {
 			String mine = chosen.get(q.getId());
+			URI pdf = q.getPage() == null ? null : pdfs.get(q.getExtractionId());
 			return new QuestionView(q.getId(), q.getNumber(), q.getSubject(), q.getKind().name(), q.getBaseText(),
-					q.getStatement(), options(q), q.hasImage(), q.getPage(), mine, finished ? q.getAnswer() : null,
+					q.getStatement(), options(q), q.hasImage(), q.getPage(),
+					pdf == null ? null : pdf + "#page=" + q.getPage(), mine, finished ? q.getAnswer() : null,
 					finished ? q.isAnnulled() : null,
 					finished && !reported.contains(q.getId()) ? isCorrect(q, mine) : null, topics.get(q.getId()),
 					q.isGenerated(), finished ? q.getExplanation() : null, reported.contains(q.getId()));

@@ -22,7 +22,7 @@ public enum ExtractionTask {
 	QUESTION_TOPICS("v1"),
 
 	/** Sem documento: tópico + banca + formato (params) → questões inéditas no estilo da banca, com comentário. */
-	TOPIC_QUESTIONS("v1"),
+	TOPIC_QUESTIONS("v2"),
 
 	/** Sem documento: disciplina + tópico (params) → resumo, o que mais cai, pegadinhas, leis e leituras. */
 	TOPIC_SUMMARY("v1");

@@ -30,6 +30,12 @@ interface QuestionRepository extends JpaRepository<Question, UUID> {
 			GROUP BY 1 ORDER BY count(*) DESC, 1 DESC LIMIT 1""")
 	Integer mostCommonOptionCount(Collection<UUID> extractions);
 
+	/** As questões geradas ligadas ao tópico, da geração mais antiga para a mais nova. */
+	@Query(nativeQuery = true, value = """
+			SELECT q.* FROM question q JOIN question_topic qt ON qt.question_id = q.id
+			WHERE qt.topic_id = :topicId AND q.generated ORDER BY q.extraction_id, q.ordinal""")
+	List<Question> generatedForTopic(UUID topicId);
+
 	/** Questões que a pessoa já recebeu em simulados de prática ou inéditos deste concurso. */
 	@Query(nativeQuery = true, value = """
 			SELECT DISTINCT sq.question_id FROM simulation_question sq JOIN simulation s ON s.id = sq.simulation_id

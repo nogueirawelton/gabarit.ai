@@ -131,7 +131,8 @@ function TopicActions({
   const practice = usePracticeTopic(targetId);
   const navigate = useNavigate();
   const generation = state?.generation;
-  const canGenerate = !generation || generation.outdated || (generation.status === "FAILED" && generation.retryable);
+  // falha que não adianta repetir (mesmo pedido, mesma resposta): só com prompt novo
+  const stuck = generation?.status === "FAILED" && !generation.retryable && !generation.outdated;
   const error = generate.error ?? practice.error;
   const action = "font-semibold text-indigo-700 hover:underline disabled:opacity-60 dark:text-indigo-300";
 
@@ -147,7 +148,7 @@ function TopicActions({
             disabled={practice.isPending}
             className={action}
           >
-            {practice.isPending ? "Abrindo…" : `Praticar (${state.practice})`}
+            {practice.isPending ? "Abrindo…" : `Praticar (${Math.min(state.practice, 10)})`}
           </button>
         )}
         {generation?.status === "PENDING" ? (
@@ -156,14 +157,20 @@ function TopicActions({
             gerando questões…
           </span>
         ) : (
-          canGenerate && (
+          !stuck && (
             <button type="button" onClick={() => generate.mutate({ subject, topic })} disabled={generate.isPending} className={action}>
               <Sparkles className="mr-1 inline size-3" aria-hidden="true" />
-              {generate.isPending ? "Pedindo…" : generation ? "Gerar de novo" : "Gerar questões"}
+              {generate.isPending
+                ? "Pedindo…"
+                : generation?.status === "FAILED"
+                  ? "Tentar de novo"
+                  : generation
+                    ? "Gerar mais 10"
+                    : "Gerar 10 questões"}
             </button>
           )
         )}
-        {generation?.status === "FAILED" && !generation.retryable && (
+        {stuck && (
           <span className="text-slate-500 dark:text-slate-400">não deu para gerar questões deste tópico</span>
         )}
         {error && (

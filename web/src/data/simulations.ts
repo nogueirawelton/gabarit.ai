@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
+  apiDelete,
   apiGet,
   apiPostJson,
   apiPut,
@@ -47,6 +48,21 @@ export function useStartSimulation(targetId: string) {
     onSuccess: (simulation) => {
       queryClient.setQueryData(simulationKeys.detail(userId, simulation.id), simulation);
       void queryClient.invalidateQueries({ queryKey: simulationKeys.list(userId, targetId) });
+    },
+  });
+}
+
+/** Apaga um simulado em aberto (as questões dele voltam a contar como não vistas). */
+export function useDeleteSimulation(targetId: string) {
+  const { userId, accessToken } = useSession();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiDelete(`/me/simulations/${id}`, requireToken(accessToken)),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: simulationKeys.list(userId, targetId) });
+      // as questões dele voltam a ser não vistas: prática dos tópicos e simulado inédito (chaves de data/topics)
+      void queryClient.invalidateQueries({ queryKey: ["topic-practice", userId, targetId] });
+      void queryClient.invalidateQueries({ queryKey: ["mock-exam", userId, targetId] });
     },
   });
 }

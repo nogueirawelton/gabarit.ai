@@ -119,8 +119,10 @@ function Questions({ targetId, subject, topic }: { targetId: string; subject: nu
   const state = practiceState.data?.find((p) => p.subjectOrdinal === subject && p.topicOrdinal === topic);
   const generation = state?.generation;
   const count = state?.practice ?? 0;
+  const unseen = state?.unseen ?? 0;
   const generating = generation?.status === "PENDING";
-  const canGenerate = !generation || generation.outdated || (generation.status === "FAILED" && generation.retryable);
+  // falha que não adianta repetir (mesmo pedido, mesma resposta): só com prompt novo
+  const stuck = generation?.status === "FAILED" && !generation.retryable && !generation.outdated;
   const error = generate.error ?? practice.error;
 
   return (
@@ -131,7 +133,7 @@ function Questions({ targetId, subject, topic }: { targetId: string; subject: nu
       </h2>
       <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
         {count > 0
-          ? `${count} ${count === 1 ? "questão" : "questões"} sobre este tópico, das provas relacionadas e geradas pela IA no estilo da banca. A correção mostra o gabarito e o comentário.`
+          ? `${count} ${count === 1 ? "questão" : "questões"} sobre este tópico (${unseen} que você ainda não viu), das provas relacionadas e geradas pela IA no estilo da banca. Cada prática traz ${PRACTICE_SIZE}, as não vistas primeiro.`
           : "Ainda não há questões deste tópico. Gere questões inéditas no estilo da banca, ou ligue provas relacionadas aos tópicos no passo Provas."}
       </p>
       <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -145,7 +147,7 @@ function Questions({ targetId, subject, topic }: { targetId: string; subject: nu
             className={primaryButton}
           >
             <ListChecks className="size-4" aria-hidden="true" />
-            {practice.isPending ? "Abrindo…" : `Praticar (${count})`}
+            {practice.isPending ? "Abrindo…" : `Praticar (${Math.min(count, PRACTICE_SIZE)})`}
           </button>
         )}
         {generating ? (
@@ -154,20 +156,27 @@ function Questions({ targetId, subject, topic }: { targetId: string; subject: nu
             Gerando questões…
           </span>
         ) : (
-          canGenerate && (
+          !stuck && (
             <button
               type="button"
               onClick={() => generate.mutate({ subject, topic })}
               disabled={generate.isPending}
-              className={count > 0 ? secondaryButton : primaryButton}
+              // sem questão não vista, gerar mais é o próximo passo
+              className={count > 0 && unseen > 0 ? secondaryButton : primaryButton}
             >
               <Sparkles className="size-4" aria-hidden="true" />
-              {generate.isPending ? "Pedindo…" : generation ? "Gerar de novo" : "Gerar questões"}
+              {generate.isPending
+                ? "Pedindo…"
+                : generation?.status === "FAILED"
+                  ? "Tentar de novo"
+                  : generation
+                    ? `Gerar mais ${PRACTICE_SIZE}`
+                    : `Gerar ${PRACTICE_SIZE} questões`}
             </button>
           )
         )}
       </div>
-      {generation?.status === "FAILED" && !generation.retryable && (
+      {stuck && (
         <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">Não deu para gerar questões deste tópico.</p>
       )}
       {error && (
@@ -211,6 +220,9 @@ function TopicLink({
     </Link>
   );
 }
+
+/** Questões por prática e por geração (no core: MAX_PRACTICE e PER_TOPIC). */
+const PRACTICE_SIZE = 10;
 
 const primaryButton =
   "inline-flex h-10 items-center gap-2 rounded-[10px] bg-indigo-600 px-4 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-progress disabled:opacity-70 dark:bg-indigo-500 dark:hover:bg-indigo-400";

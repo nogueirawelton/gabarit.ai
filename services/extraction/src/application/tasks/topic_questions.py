@@ -3,7 +3,7 @@
 Os parâmetros não têm nada do usuário: a mesma banca e o mesmo tópico geram uma vez para todos.
 """
 
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -17,6 +17,12 @@ class TopicQuestionsParamsV1(BaseModel):
     subject: str = Field(min_length=1, max_length=300)
     topic: str = Field(min_length=1, max_length=4000)
     count: int = Field(ge=1, le=10)
+
+
+class TopicQuestionsParamsV2(TopicQuestionsParamsV1):
+    # rodada de geração do tópico (1, 2...) e enunciados das anteriores, para não repetir
+    round: int = Field(ge=1, le=1000)
+    avoid: list[Annotated[str, Field(max_length=300)]] = Field(max_length=40)
 
 
 class GeneratedOptionV1(BaseModel):
@@ -33,3 +39,14 @@ class GeneratedQuestionV1(BaseModel):
 
 class TopicQuestionsV1(BaseModel):
     questions: list[GeneratedQuestionV1]
+
+
+class GeneratedQuestionV2(GeneratedQuestionV1):
+    base_text: str | None = Field(
+        description="Texto-base completo que a questão cita (interpretação, caso, tabela); "
+        "null se o enunciado se basta."
+    )
+
+
+class TopicQuestionsV2(BaseModel):
+    questions: list[GeneratedQuestionV2]
