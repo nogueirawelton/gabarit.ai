@@ -9,6 +9,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,8 +26,10 @@ import java.util.Collection;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -42,6 +45,9 @@ import java.util.stream.Collectors;
 public class ExtractionService {
 
 	static final String COMMANDS_EXCHANGE = "gabarit.commands";
+
+	/** Pendente por mais que isto: o worker não vai responder (fila longa demora minutos, não horas). */
+	static final Duration STUCK = Duration.ofHours(2);
 
 	private static final Logger log = LoggerFactory.getLogger(ExtractionService.class);
 
@@ -93,7 +99,7 @@ public class ExtractionService {
 				throw new IllegalArgumentException("sha256 inválido: " + sha256);
 			}
 		});
-		String inputsJson = JSON.writeValueAsString(canonical(Map.of("documents", documents, "params", params)));
+		String inputsJson = inputsJson(documents, params);
 		String inputsHash = sha256(inputsJson);
 
 		Extraction existing = repository.findByTaskAndInputsHashAndPromptVersion(task, inputsHash, task.promptVersion())
@@ -161,6 +167,20 @@ public class ExtractionService {
 		return extraction;
 	}
 
+	/**
+	 * A leitura com estas entradas (e o prompt atual), se já existe: para mostrar sem pedir (ex.: o
+	 * resumo de um tópico, compartilhado entre todos, sem tabela própria).
+	 */
+	@Transactional(readOnly = true)
+	public Optional<Extraction> lookup(ExtractionTask task, List<String> documents, Map<String, Object> params) {
+		return repository.findByTaskAndInputsHashAndPromptVersion(task, sha256(inputsJson(documents, params)),
+				task.promptVersion());
+	}
+
+	private static String inputsJson(List<String> documents, Map<String, Object> params) {
+		return JSON.writeValueAsString(canonical(Map.of("documents", documents, "params", params)));
+	}
+
 	/** Leituras por id (id que não existe é ignorado). Uma query. */
 	@Transactional(readOnly = true)
 	public Map<UUID, Extraction> find(Collection<UUID> ids) {
@@ -175,6 +195,26 @@ public class ExtractionService {
 				events.publishEvent(new ExtractionFinishedEvent(id, extraction.getTask(), extraction.getStatus()));
 			}
 		}, () -> log.warn("extraction.completed de pedido desconhecido: {}", id));
+	}
+
+	/**
+	 * A cada 10 min: leitura pendente há mais de {@link #STUCK} vira falha que pode ser repetida
+	 * (worker parado, mensagem perdida na DLQ). Quem pediu vê "tentar de novo"; se o resultado chegar
+	 * depois, ainda é aceito ({@link Extraction#complete}).
+	 */
+	@Scheduled(fixedDelay = 10, initialDelay = 10, timeUnit = TimeUnit.MINUTES)
+	@Transactional
+	public void expireStuck() {
+		Instant now = clock.instant();
+		for (Extraction extraction : repository.findByStatusAndRequestedAtBefore(Extraction.Status.PENDING,
+				now.minus(STUCK))) {
+			if (extraction.fail("o worker não respondeu em %d h".formatted(STUCK.toHours()), true, now)) {
+				log.warn("extraction {} ({}) parada desde {}: dada como falha", extraction.getId(), extraction.getTask(),
+						extraction.getRequestedAt());
+				events.publishEvent(new ExtractionFinishedEvent(extraction.getId(), extraction.getTask(),
+						extraction.getStatus()));
+			}
+		}
 	}
 
 	/** Grava um extraction.failed. Repetido ou atrasado: ignorado. */

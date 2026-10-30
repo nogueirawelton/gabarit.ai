@@ -222,11 +222,12 @@ export function PlanPanel({ plan, onRedo }: { plan: StudyPlan; onRedo: () => voi
 
       {late.length > 0 && (
         <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-400/10 dark:text-amber-300">
-          {late.length} {late.length === 1 ? "sessão ficou" : "sessões ficaram"} para trás.{" "}
+          {late.length} {late.length === 1 ? "sessão ficou" : "sessões ficaram"} para trás. Esta madrugada o plano é
+          refeito sozinho, redistribuindo o tempo até a prova; se quiser,{" "}
           <button type="button" onClick={onRedo} className="font-semibold underline">
-            Refaça o plano
-          </button>{" "}
-          para redistribuir o tempo até a prova.
+            refaça agora
+          </button>
+          .
         </p>
       )}
 

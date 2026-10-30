@@ -12,6 +12,7 @@ import com.gabarit.core.exam.ExamSummary;
 import com.gabarit.core.shared.ClockConfig;
 import com.gabarit.core.shared.NotFoundException;
 import com.gabarit.core.study.EditalReadEvent;
+import com.gabarit.core.study.StudyReadyEvent;
 import com.gabarit.core.user.UserProfileService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -229,6 +230,23 @@ class NotificationTest {
 			assertThat(n.studyTarget()).isEqualTo(new NotificationService.StudyTargetRef(target, "TJ-SP 2023"));
 		});
 		assertThat(notifications.unreadCount("maria")).isEqualTo(2);
+	}
+
+	@Test
+	void outrasLeiturasViramAvisoDoConcurso() {
+		UUID target = UUID.randomUUID();
+		jdbc.update("INSERT INTO study_target (id, user_id, title, created_at, updated_at) VALUES (?, 'maria', 'TJ-SP 2023', now(), now())",
+				target);
+
+		notifications.onStudyReady(new StudyReadyEvent("maria", target, "TJ-SP 2023", StudyReadyEvent.What.SYLLABUS, true));
+		notifications.onStudyReady(new StudyReadyEvent("maria", target, "TJ-SP 2023", StudyReadyEvent.What.PAPER, false));
+		notifications.onStudyReady(new StudyReadyEvent("maria", target, "TJ-SP 2023", StudyReadyEvent.What.QUESTIONS, true));
+		em.flush();
+		em.clear();
+
+		assertThat(notifications.list("maria", 0, 20).getContent()).extracting(NotificationService.NotificationView::type)
+			.containsExactlyInAnyOrder(Notification.Type.SYLLABUS_READ, Notification.Type.PAPER_FAILED,
+					Notification.Type.QUESTIONS_READY);
 	}
 
 }

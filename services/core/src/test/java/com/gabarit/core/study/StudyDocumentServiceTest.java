@@ -532,4 +532,25 @@ class StudyDocumentServiceTest {
 		assertThat(jdbc.queryForObject("SELECT extraction_id FROM study_paper WHERE id = ?", UUID.class, paperId)).isNull();
 	}
 
+	@Test
+	void conteudoEQuestoesDaProvaProntosAvisamOConcurso() {
+		var edital = lido(pdf(30, "edital"));
+		leituraPronta();
+		service.choosePosition("maria", targetId, edital.id(), "Escrevente", null);
+		service.readSyllabus("maria", targetId, edital.id());
+		UUID paperId = paper(true);
+		send(Kind.PROVA, paperId, pdf(4, "prova"));
+		service.readPaper("maria", targetId, paperId);
+		em.flush();
+
+		readingListener
+			.onExtractionFinished(new ExtractionFinishedEvent(SYLLABUS, ExtractionTask.EDITAL_SYLLABUS, Extraction.Status.DONE));
+		readingListener
+			.onExtractionFinished(new ExtractionFinishedEvent(PAPER_READING, ExtractionTask.EXAM_PAPER, Extraction.Status.FAILED));
+
+		assertThat(events.stream(StudyReadyEvent.class)).containsExactly(
+				new StudyReadyEvent("maria", targetId, "TJ-SP 2023", StudyReadyEvent.What.SYLLABUS, true),
+				new StudyReadyEvent("maria", targetId, "TJ-SP 2023", StudyReadyEvent.What.PAPER, false));
+	}
+
 }

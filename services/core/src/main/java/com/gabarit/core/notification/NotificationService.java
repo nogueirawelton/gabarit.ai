@@ -6,6 +6,7 @@ import com.gabarit.core.exam.ExamStatus;
 import com.gabarit.core.exam.ExamSummary;
 import com.gabarit.core.shared.NotFoundException;
 import com.gabarit.core.study.EditalReadEvent;
+import com.gabarit.core.study.StudyReadyEvent;
 import com.gabarit.core.user.UserProfileService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -89,6 +90,19 @@ public class NotificationService {
 	@Transactional
 	public void onEditalRead(EditalReadEvent event) {
 		repository.save(Notification.editalReading(event.userId(), event.studyTargetId(), event.title(), event.ok(),
+				clock.instant()));
+	}
+
+	/** Outra leitura de um concurso da carteira terminou: aviso no sininho (não vai por e-mail). */
+	@EventListener
+	@Transactional
+	public void onStudyReady(StudyReadyEvent event) {
+		Notification.Type type = switch (event.what()) {
+			case SYLLABUS -> event.ok() ? Notification.Type.SYLLABUS_READ : Notification.Type.SYLLABUS_FAILED;
+			case PAPER -> event.ok() ? Notification.Type.PAPER_READ : Notification.Type.PAPER_FAILED;
+			case QUESTIONS -> Notification.Type.QUESTIONS_READY;
+		};
+		repository.save(Notification.studyReady(event.userId(), event.studyTargetId(), event.title(), type,
 				clock.instant()));
 	}
 

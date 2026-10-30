@@ -69,6 +69,10 @@ public class StudyPaper {
 		return id;
 	}
 
+	public UUID getStudyTargetId() {
+		return studyTargetId;
+	}
+
 	public Integer getYear() {
 		return year;
 	}

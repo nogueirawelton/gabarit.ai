@@ -11,6 +11,7 @@ import com.gabarit.core.study.EditalOverview;
 import com.gabarit.core.study.EditalSyllabus;
 import com.gabarit.core.study.StudyDocumentService;
 import com.gabarit.core.study.StudyDocumentService.TargetSyllabus;
+import com.gabarit.core.study.StudyReadyEvent;
 import com.gabarit.core.study.StudyTargetService;
 import com.gabarit.core.study.StudyTargetService.StudyTargetDetail;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,6 +23,8 @@ import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabas
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.event.ApplicationEvents;
+import org.springframework.test.context.event.RecordApplicationEvents;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -48,6 +51,7 @@ import static org.mockito.Mockito.verify;
 @Import({ PostgresTestConfiguration.class, GenerationService.class, TopicService.class, SimulationService.class,
 		QuestionCatalog.class, TopicCatalog.class, SimulationServiceTest.Clocks.class })
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
+@RecordApplicationEvents
 class GenerationServiceTest {
 
 	// Português: Crase (0.0), Regência (0.1)
@@ -72,6 +76,9 @@ class GenerationServiceTest {
 
 	@Autowired
 	TransactionTemplate transaction;
+
+	@Autowired
+	ApplicationEvents events;
 
 	@MockitoBean
 	StudyDocumentService documents;
@@ -146,6 +153,9 @@ class GenerationServiceTest {
 
 		finish();
 
+		// geração do concurso terminou: aviso no sininho
+		assertThat(events.stream(StudyReadyEvent.class)).containsExactly(
+				new StudyReadyEvent("maria", targetId, "TJ", StudyReadyEvent.What.QUESTIONS, true));
 		assertThat(service.overview("maria", targetId)).first().satisfies(crase -> {
 			assertThat(crase.practice()).isEqualTo(2);
 			assertThat(crase.generation().status()).isEqualTo(Extraction.Status.DONE);

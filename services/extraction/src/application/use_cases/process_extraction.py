@@ -5,10 +5,10 @@ from collections.abc import Collection
 from pydantic import ValidationError
 
 from src.application.messages import ExtractionCompleted, ExtractionFailed, ExtractionRequested
-from src.application.tasks import ECHO_VERSIONS, LLM_TASKS
+from src.application.tasks import ECHO_VERSIONS, LLM_TASKS, Merge, PromptVersion
 from src.domain.edital import EditalPart, edital_parts, pages_to_send
 from src.domain.errors import InvalidInputError, UnreadablePdfError
-from src.domain.extraction import Document, ExtractionOutput, Task
+from src.domain.extraction import Document, ExtractionOutput, Task, Usage
 from src.domain.ports.document_store import DocumentStore
 from src.domain.ports.event_publisher import EventPublisher
 from src.domain.ports.llm_client import LlmClient
@@ -105,6 +105,12 @@ class ProcessExtraction:
                 f"```json\n{params.model_dump_json(indent=2)}\n```\n"
             )
         documents = await self._read(command)
+        if prompt.chunk_pages is not None and prompt.merge is not None:
+            pages = await self._page_count(documents[0])
+            # um pouco acima do trecho ainda vai inteiro (não vale dividir por 1 ou 2 páginas)
+            if pages is not None and pages > prompt.chunk_pages + 4:
+                chunk = (prompt.chunk_pages, prompt.merge)
+                return await self._chunked(command, prompt, instructions, documents, pages, chunk)
         sent = None
         if prompt.edital_parts is not None:
             documents[0], sent = await self._trim(command, documents[0], prompt.edital_parts)
@@ -119,6 +125,70 @@ class ProcessExtraction:
                 update={"result": prompt.original_pages(output.result, sent)}
             )
         return output
+
+    async def _page_count(self, document: Document) -> int | None:
+        try:
+            return len(await self._pdf.texts(document.content))
+        except UnreadablePdfError:
+            return None
+
+    async def _chunked(
+        self,
+        command: ExtractionRequested,
+        prompt: PromptVersion,
+        instructions: str,
+        documents: list[Document],
+        pages: int,
+        chunk: tuple[int, Merge],
+    ) -> ExtractionOutput:
+        """PDF longo em trechos de `chunk_pages` páginas, com uma de sobra entre um e outro (questão
+        cortada na divisa). Gabarito no mesmo arquivo (um documento só): as 2 últimas páginas, onde
+        ele costuma ficar, vão em todo trecho. Os outros documentos (o gabarito separado) vão
+        inteiros em todos."""
+        size, merge = chunk
+        tail = [] if len(documents) > 1 else list(range(max(0, pages - 2), pages))
+        parts: list[tuple[dict[str, object], list[int]]] = []
+        usage = Usage()
+        model = None
+        start = 0
+        while True:
+            end = min(pages, start + size)
+            sent = list(range(start, end)) + [p for p in tail if p >= end]
+            content = await self._pdf.subset(documents[0].content, sent)
+            note = (
+                f"\n\nEste arquivo é um trecho da prova: as páginas {start + 1} a {end} de {pages}"
+                + (", e no fim as últimas páginas, onde costuma estar o gabarito" if tail else "")
+                + ". Extraia só as questões que começam nas páginas do trecho; a questão cortada no"
+                " fim do trecho entra só se o enunciado e as alternativas estiverem inteiros."
+            )
+            output = await self._llm.extract(
+                documents=[
+                    Document(sha256=hashlib.sha256(content).hexdigest(), content=content),
+                    *documents[1:],
+                ],
+                instructions=instructions + note,
+                output_model=prompt.output_model,
+                effort=prompt.effort,
+            )
+            parts.append((output.result, sent))
+            usage = Usage(
+                input_tokens=usage.input_tokens + output.usage.input_tokens,
+                output_tokens=usage.output_tokens + output.usage.output_tokens,
+                cache_read_input_tokens=usage.cache_read_input_tokens
+                + output.usage.cache_read_input_tokens,
+                cache_creation_input_tokens=usage.cache_creation_input_tokens
+                + output.usage.cache_creation_input_tokens,
+            )
+            model = output.model
+            if end >= pages:
+                break
+            # uma página de sobra: a questão que atravessa a divisa aparece inteira em um dos dois
+            start = end - 1
+        logger.info(
+            "prova lida em trechos",
+            extra={"extraction_id": command.extraction_id, "pages": pages, "chunks": len(parts)},
+        )
+        return ExtractionOutput(result=merge(parts), usage=usage, model=model)
 
     async def _trim(
         self, command: ExtractionRequested, edital: Document, keep: frozenset[EditalPart]

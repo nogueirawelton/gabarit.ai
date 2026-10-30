@@ -17,6 +17,7 @@ import java.net.URI;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -486,6 +487,31 @@ public class StudyDocumentService {
 			}
 		}
 		return Optional.empty();
+	}
+
+	/**
+	 * A banca lida do edital do concurso (o com o cargo escolhido, ou o primeiro lido), para quando o
+	 * concurso não tem a banca preenchida. Vazio sem leitura pronta ou sem banca nela.
+	 *
+	 * @throws NotFoundException concurso que não é do usuário
+	 */
+	@Transactional(readOnly = true)
+	public Optional<String> editalBoard(String userId, UUID targetId) {
+		checkTarget(userId, targetId);
+		List<StudyDocument> editais = repository.findByStudyTargetIdOrderByCreatedAtAscIdAsc(targetId)
+			.stream()
+			.filter(d -> d.isTargetEdital() && d.getExtractionId() != null)
+			// o do cargo escolhido primeiro
+			.sorted(Comparator.comparing((StudyDocument d) -> d.getPositionName() == null))
+			.toList();
+		Map<UUID, Extraction> readings = editais.isEmpty() ? Map.of()
+				: extractions.find(editais.stream().map(StudyDocument::getExtractionId).toList());
+		return editais.stream()
+			.map(d -> readings.get(d.getExtractionId()))
+			.filter(e -> e != null && e.getStatus() == Extraction.Status.DONE)
+			.map(e -> EditalOverview.parse(e.getResult()).board())
+			.filter(board -> board != null && !board.isBlank())
+			.findFirst();
 	}
 
 	/** A leitura atual das questões de cada prova relacionada do concurso (prova → leitura; sem leitura fica de fora). */

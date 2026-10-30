@@ -11,6 +11,7 @@ from src.application.tasks.edital_syllabus import EditalSyllabusV1
 from src.application.tasks.exam_paper import ExamPaperV1
 from src.application.tasks.question_topics import QuestionTopicsV1
 from src.application.tasks.topic_questions import TopicQuestionsV1
+from src.application.tasks.topic_summary import TopicSummaryV1
 from src.application.use_cases.process_extraction import ProcessExtraction
 from src.domain.errors import TransientError
 from src.domain.extraction import Task
@@ -303,3 +304,80 @@ async def test_questoes_do_topico_sem_documento_com_a_banca() -> None:
     assert output_model is TopicQuestionsV1
     assert effort == "high"
     assert '"board": "FGV"' in instructions
+
+
+def question(number: int, page: int, *, answer: str | None = "A", statement: str = "Q") -> dict:
+    return {
+        "number": number,
+        "subject": None,
+        "kind": "MULTIPLE_CHOICE",
+        "text_id": None,
+        "statement": statement,
+        "options": [{"letter": "A", "text": "a"}],
+        "answer": answer,
+        "annulled": False,
+        "has_image": False,
+        "page": page,
+    }
+
+
+async def test_prova_longa_e_lida_em_trechos_com_o_gabarito_do_fim() -> None:
+    publisher = FakePublisher()
+    pdf = FakePdf(["página"] * 40)
+    chunk = {"variant": "Tipo 1", "answer_key_found": True, "texts": [], "questions": []}
+    llm = FakeLlm(
+        results=[
+            chunk
+            | {"questions": [question(1, 1), question(30, 16, answer=None, statement="Cort")]},
+            chunk | {"questions": [question(30, 2, statement="Cortada, mas inteira aqui")]},
+            chunk | {"questions": [question(80, 10)]},
+        ]
+    )
+
+    await ProcessExtraction(FakeDocumentStore({KEY: PDF}), llm, publisher, pdf).execute(
+        command(task="EXAM_PAPER", params={})
+    )
+
+    # 40 páginas: 1–16, 16–31, 31–40, cada trecho com as 2 últimas (o gabarito costuma estar lá)
+    assert pdf.subsets == [
+        list(range(0, 16)) + [38, 39],
+        list(range(15, 31)) + [38, 39],
+        list(range(30, 40)),
+    ]
+    assert len(llm.calls) == 3
+    assert "páginas 16 a 31 de 40" in llm.calls[1][1]
+    _, event = only_event(publisher)
+    questions = event["data"]["result"]["questions"]
+    # a 30 apareceu nos dois trechos: fica a inteira, com a página da prova toda
+    assert [(q["number"], q["page"]) for q in questions] == [(1, 1), (30, 17), (80, 40)]
+    assert questions[1]["statement"] == "Cortada, mas inteira aqui"
+    assert event["data"]["usage"]["input_tokens"] == 3000
+
+
+async def test_prova_curta_vai_inteira() -> None:
+    publisher = FakePublisher()
+    pdf = FakePdf(["página"] * 18)
+
+    await ProcessExtraction(
+        FakeDocumentStore({KEY: PDF}), FakeLlm({"questions": []}), publisher, pdf
+    ).execute(command(task="EXAM_PAPER", params={}))
+
+    assert pdf.subsets == []
+
+
+async def test_resumo_do_topico_sem_documento() -> None:
+    publisher = FakePublisher()
+    llm = FakeLlm({"summary": "…", "key_points": [], "pitfalls": [], "laws": [], "readings": []})
+
+    await ProcessExtraction(FakeDocumentStore(), llm, publisher, FakePdf()).execute(
+        command(
+            task="TOPIC_SUMMARY",
+            documents=[],
+            params={"subject": "Direito Administrativo", "topic": "Atos administrativos."},
+        )
+    )
+
+    [(shas, instructions, output_model, _)] = llm.calls
+    assert shas == []
+    assert output_model is TopicSummaryV1
+    assert '"topic": "Atos administrativos."' in instructions

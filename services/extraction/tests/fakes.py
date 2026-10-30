@@ -29,10 +29,16 @@ class FakePublisher:
 
 
 class FakeLlm:
-    """Devolve a saída configurada e guarda o que recebeu."""
+    """Devolve a saída configurada (ou uma de `results` por chamada, na ordem) e guarda o que
+    recebeu."""
 
-    def __init__(self, result: dict[str, object] | None = None) -> None:
-        self._result = result or {}
+    def __init__(
+        self,
+        result: dict[str, object] | None = None,
+        *,
+        results: list[dict[str, object]] | None = None,
+    ) -> None:
+        self._results = results or [result or {}]
         self.calls: list[tuple[list[str], str, type[BaseModel], str]] = []
 
     async def extract(
@@ -45,7 +51,7 @@ class FakeLlm:
     ) -> ExtractionOutput:
         self.calls.append(([d.sha256 for d in documents], instructions, output_model, effort))
         return ExtractionOutput(
-            result=self._result,
+            result=self._results[min(len(self.calls), len(self._results)) - 1],
             usage=Usage(input_tokens=1000, output_tokens=200, cache_read_input_tokens=900),
             model="claude-opus-5-5",
         )

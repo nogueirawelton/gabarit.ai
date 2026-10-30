@@ -17,6 +17,8 @@ interface StudyDocumentRepository extends JpaRepository<StudyDocument, UUID> {
 	/** Arquivos com esta leitura (o mesmo edital pode ser de várias pessoas). */
 	List<StudyDocument> findByExtractionId(UUID extractionId);
 
+	List<StudyDocument> findBySyllabusExtractionId(UUID syllabusExtractionId);
+
 	Optional<StudyDocument> findByPaperIdAndKind(UUID paperId, StudyDocument.Kind kind);
 
 	List<StudyDocument> findByPaperId(UUID paperId);

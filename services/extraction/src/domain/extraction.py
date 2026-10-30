@@ -17,6 +17,8 @@ class Task(StrEnum):
     QUESTION_TOPICS = "QUESTION_TOPICS"
     # tópico + banca → questões inéditas no estilo dela (sem documento)
     TOPIC_QUESTIONS = "TOPIC_QUESTIONS"
+    # disciplina + tópico → resumo, o que mais cai, pegadinhas, leis e leituras (sem documento)
+    TOPIC_SUMMARY = "TOPIC_SUMMARY"
 
 
 class DocumentRef(BaseModel):

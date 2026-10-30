@@ -8,6 +8,7 @@ import {
   type PaperTopics,
   type Simulation,
   type TopicPractice,
+  type TopicSummary,
   type TopicsOverview,
 } from "../api";
 import { simulationKeys } from "./simulations";
@@ -17,6 +18,8 @@ const topicKeys = {
   overview: (userId: string | undefined, targetId: string) => ["topics", userId, targetId] as const,
   practice: (userId: string | undefined, targetId: string) => ["topic-practice", userId, targetId] as const,
   mockExam: (userId: string | undefined, targetId: string) => ["mock-exam", userId, targetId] as const,
+  summary: (userId: string | undefined, targetId: string, subject: number, topic: number) =>
+    ["topic-summary", userId, targetId, subject, topic] as const,
 };
 
 /** O que mais cai (questões por tópico) e a ligação de cada prova; confere enquanto alguma liga. */
@@ -124,5 +127,36 @@ export function useStartMockExam(targetId: string) {
       queryClient.setQueryData(simulationKeys.detail(userId, simulation.id), simulation);
       void queryClient.invalidateQueries({ queryKey: ["simulations", userId] });
     },
+  });
+}
+
+/** Resumo do tópico (null se ainda não pedido); confere enquanto é gerado. */
+export function useTopicSummary(targetId: string, subject: number, topic: number, enabled: boolean) {
+  const { userId, accessToken } = useSession();
+  return useQuery({
+    queryKey: topicKeys.summary(userId, targetId, subject, topic),
+    queryFn: async ({ signal }) =>
+      (await apiGet<TopicSummary | undefined>(
+        `/me/study-targets/${targetId}/topics/${subject}/${topic}/summary`,
+        requireToken(accessToken),
+        signal,
+      )) ?? null,
+    enabled: enabled && Boolean(accessToken),
+    refetchInterval: (query) => (query.state.data?.status === "PENDING" ? 5000 : false),
+  });
+}
+
+/** Pede o resumo do tópico pela IA. */
+export function useRequestSummary(targetId: string, subject: number, topic: number) {
+  const { userId, accessToken } = useSession();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      apiPostJson<TopicSummary>(
+        `/me/study-targets/${targetId}/topics/${subject}/${topic}/summary`,
+        requireToken(accessToken),
+        undefined,
+      ),
+    onSuccess: (summary) => queryClient.setQueryData(topicKeys.summary(userId, targetId, subject, topic), summary),
   });
 }

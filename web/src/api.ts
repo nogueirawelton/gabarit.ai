@@ -132,13 +132,27 @@ export type Page<T> = {
 
 /** Aviso de concurso novo para os cargos do usuário (GET /me/notifications). */
 /** Aviso do sininho: concurso novo (`exam`) ou leitura do edital de um concurso da carteira (`studyTarget`). */
+/** Avisos de leitura pronta (ou que falhou) de um concurso da carteira. */
+export type StudyNotificationType =
+  | "EDITAL_READ"
+  | "EDITAL_FAILED"
+  | "SYLLABUS_READ"
+  | "SYLLABUS_FAILED"
+  | "PAPER_READ"
+  | "PAPER_FAILED"
+  | "QUESTIONS_READY";
+
 export type AppNotification = {
   id: string;
   createdAt: string;
   read: boolean;
 } & (
   | { type: "NEW_EXAM"; exam: ExamSummary; studyTarget: null }
-  | { type: "EDITAL_READ" | "EDITAL_FAILED"; exam: null; studyTarget: { id: string; title: string } }
+  | {
+      type: StudyNotificationType;
+      exam: null;
+      studyTarget: { id: string; title: string };
+    }
 );
 
 /** Concurso na carteira (GET /me/study-targets). `exam`: o concurso da lista, se veio dela. */
@@ -453,4 +467,17 @@ export type MockExamStatus = {
   readyTopics: number;
   pendingTopics: number;
   failedTopics: number;
+};
+
+/** Resumo de um tópico pela IA (GET .../topics/{s}/{t}/summary; 204 = ainda não pedido). */
+export type TopicSummary = {
+  status: "PENDING" | "DONE" | "FAILED";
+  summary: string | null;
+  keyPoints: string[];
+  pitfalls: string[];
+  /** `url`: o texto (Constituição, no Planalto) ou a busca da norma no LexML. */
+  laws: { name: string; articles: string[]; url: string }[];
+  readings: { author: string; title: string }[];
+  failureReason: string | null;
+  retryable: boolean;
 };

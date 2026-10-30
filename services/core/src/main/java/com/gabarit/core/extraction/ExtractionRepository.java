@@ -3,6 +3,7 @@ package com.gabarit.core.extraction;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -13,5 +14,7 @@ interface ExtractionRepository extends JpaRepository<Extraction, UUID> {
 			String promptVersion);
 
 	long countByRequestedByAndCreatedAtAfter(String requestedBy, Instant after);
+
+	List<Extraction> findByStatusAndRequestedAtBefore(Extraction.Status status, Instant before);
 
 }

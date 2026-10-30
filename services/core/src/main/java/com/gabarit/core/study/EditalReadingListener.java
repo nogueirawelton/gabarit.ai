@@ -8,6 +8,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
@@ -26,13 +27,16 @@ class EditalReadingListener {
 
 	private final StudyDocumentRepository documents;
 
+	private final StudyPaperRepository papers;
+
 	private final StudyTargetRepository targets;
 
 	private final ApplicationEventPublisher events;
 
-	EditalReadingListener(StudyDocumentRepository documents, StudyTargetRepository targets,
-			ApplicationEventPublisher events) {
+	EditalReadingListener(StudyDocumentRepository documents, StudyPaperRepository papers,
+			StudyTargetRepository targets, ApplicationEventPublisher events) {
 		this.documents = documents;
+		this.papers = papers;
 		this.targets = targets;
 		this.events = events;
 	}
@@ -40,15 +44,36 @@ class EditalReadingListener {
 	@EventListener
 	@Transactional
 	public void onExtractionFinished(ExtractionFinishedEvent event) {
-		if (event.task() != ExtractionTask.EDITAL_OVERVIEW) {
-			return;
+		boolean ok = event.status() == Extraction.Status.DONE;
+		switch (event.task()) {
+			case EDITAL_OVERVIEW -> editalRead(event, ok);
+			case EDITAL_SYLLABUS -> notify(documents.findBySyllabusExtractionId(event.extractionId())
+				.stream()
+				.map(StudyDocument::getStudyTargetId)
+				.toList(), StudyReadyEvent.What.SYLLABUS, ok);
+			case EXAM_PAPER -> notify(papers.findByExtractionId(event.extractionId())
+				.stream()
+				.map(StudyPaper::getStudyTargetId)
+				.toList(), StudyReadyEvent.What.PAPER, ok);
+			default -> {
+				// as outras tarefas avisam pelo próprio pacote (ou não avisam)
+			}
 		}
+	}
+
+	/** Um aviso por concurso (o mesmo conteúdo em vários concursos: a leitura é uma só e avisa todos). */
+	private void notify(List<UUID> targetIds, StudyReadyEvent.What what, boolean ok) {
+		targets.findAllById(targetIds.stream().distinct().toList())
+			.forEach(target -> events
+				.publishEvent(new StudyReadyEvent(target.getUserId(), target.getId(), target.getTitle(), what, ok)));
+	}
+
+	private void editalRead(ExtractionFinishedEvent event, boolean ok) {
 		var withReading = documents.findByExtractionId(event.extractionId());
 		Map<UUID, StudyTarget> byId = targets
 			.findAllById(withReading.stream().map(StudyDocument::getStudyTargetId).distinct().toList())
 			.stream()
 			.collect(Collectors.toMap(StudyTarget::getId, Function.identity()));
-		boolean ok = event.status() == Extraction.Status.DONE;
 		withReading.stream()
 			.map(StudyDocument::getStudyTargetId)
 			.distinct()

@@ -3,12 +3,14 @@ package com.gabarit.core.simulation;
 import com.gabarit.core.simulation.GenerationService.GenerationState;
 import com.gabarit.core.simulation.GenerationService.MockExamStatus;
 import com.gabarit.core.simulation.GenerationService.TopicPractice;
+import com.gabarit.core.simulation.SummaryService.SummaryView;
 import com.gabarit.core.simulation.TopicService.PaperTopics;
 import com.gabarit.core.simulation.TopicService.TopicsView;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -33,9 +35,12 @@ class TopicController {
 
 	private final GenerationService generation;
 
-	TopicController(TopicService service, GenerationService generation) {
+	private final SummaryService summaries;
+
+	TopicController(TopicService service, GenerationService generation, SummaryService summaries) {
 		this.service = service;
 		this.generation = generation;
+		this.summaries = summaries;
 	}
 
 	/** O que mais cai (questões por tópico) e a ligação de cada prova. */
@@ -68,6 +73,22 @@ class TopicController {
 	SimulationService.SimulationView startMockExam(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID targetId,
 			@Valid @RequestBody MockExamRequest request) {
 		return generation.startMockExam(jwt.getSubject(), targetId, request.timeLimitMinutes());
+	}
+
+	/** O resumo do tópico (ordinais a partir de 0); 204 se ainda não foi pedido. */
+	@GetMapping("/me/study-targets/{targetId}/topics/{subject}/{topic}/summary")
+	ResponseEntity<SummaryView> summary(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID targetId,
+			@PathVariable int subject, @PathVariable int topic) {
+		return summaries.get(jwt.getSubject(), targetId, subject, topic)
+			.map(ResponseEntity::ok)
+			.orElse(ResponseEntity.noContent().build());
+	}
+
+	/** Pede o resumo do tópico pela IA. */
+	@PostMapping("/me/study-targets/{targetId}/topics/{subject}/{topic}/summary")
+	SummaryView requestSummary(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID targetId, @PathVariable int subject,
+			@PathVariable int topic) {
+		return summaries.request(jwt.getSubject(), targetId, subject, topic);
 	}
 
 	/** Gera questões inéditas para o tópico (ordinais a partir de 0), no estilo da banca. */

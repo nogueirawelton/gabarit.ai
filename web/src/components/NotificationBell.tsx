@@ -1,7 +1,7 @@
 import { Bell, BellOff } from "lucide-react";
 import { useNavigate } from "react-router";
 
-import type { AppNotification } from "../api";
+import type { AppNotification, StudyNotificationType } from "../api";
 import { useMarkAllRead, useMarkRead, useNotifications, useUnreadCount } from "../data/notifications";
 import { statusBadge } from "../exams";
 import { useMenu } from "./useMenu";
@@ -10,6 +10,22 @@ const KIND_LABEL: Record<AppNotification["type"], string> = {
   NEW_EXAM: "Concurso novo",
   EDITAL_READ: "Edital lido",
   EDITAL_FAILED: "Edital",
+  SYLLABUS_READ: "Conteúdo lido",
+  SYLLABUS_FAILED: "Conteúdo",
+  PAPER_READ: "Prova lida",
+  PAPER_FAILED: "Prova",
+  QUESTIONS_READY: "Questões prontas",
+};
+
+/** O que fazer com o aviso de um concurso da carteira, e em que passo ele abre. */
+const STUDY_NOTICE: Record<StudyNotificationType, { text: string; step: string }> = {
+  EDITAL_READ: { text: "Confira os dados e escolha o seu cargo", step: "edital" },
+  EDITAL_FAILED: { text: "Não conseguimos ler o edital. Veja na página do concurso", step: "edital" },
+  SYLLABUS_READ: { text: "O conteúdo programático do seu cargo está pronto", step: "cargo" },
+  SYLLABUS_FAILED: { text: "Não conseguimos ler o conteúdo do seu cargo. Tente de novo", step: "cargo" },
+  PAPER_READ: { text: "As questões da prova relacionada foram lidas", step: "provas" },
+  PAPER_FAILED: { text: "Não conseguimos ler uma prova relacionada. Veja no passo Provas", step: "provas" },
+  QUESTIONS_READY: { text: "As questões geradas estão prontas: já dá para fazer o simulado inédito", step: "estudar" },
 };
 
 const relative = new Intl.RelativeTimeFormat("pt-BR", { numeric: "auto" });
@@ -27,7 +43,8 @@ function timeAgo(iso: string): string {
 }
 
 /**
- * Sininho: avisos de concurso novo para os cargos do usuário e de leitura do edital dos concursos da carteira. O contador atualiza sozinho; a lista
+ * Sininho: avisos de concurso novo para os cargos do usuário e de leituras prontas dos concursos da carteira (edital,
+ * conteúdo do cargo, provas relacionadas, questões geradas). O contador atualiza sozinho; a lista
  * só é buscada ao abrir. Abrir um aviso marca como lido e vai para o concurso.
  */
 export function NotificationBell() {
@@ -44,7 +61,9 @@ export function NotificationBell() {
       markRead.mutate(notification.id);
     }
     void navigate(
-      notification.type === "NEW_EXAM" ? `/concursos/${notification.exam.id}` : `/meus-concursos/${notification.studyTarget.id}`,
+      notification.type === "NEW_EXAM"
+        ? `/concursos/${notification.exam.id}`
+        : `/meus-concursos/${notification.studyTarget.id}?passo=${STUDY_NOTICE[notification.type].step}`,
     );
   }
 
@@ -137,9 +156,7 @@ export function NotificationBell() {
                         <span className="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">
                           {notification.type === "NEW_EXAM"
                             ? `${notification.exam.uf ?? "Nacional"} · ${statusBadge(notification.exam).label}`
-                            : notification.type === "EDITAL_READ"
-                              ? "Confira os dados e escolha o seu cargo"
-                              : "Não conseguimos ler o edital. Veja na página do concurso"}
+                            : STUDY_NOTICE[notification.type].text}
                         </span>
                       </span>
                     </button>

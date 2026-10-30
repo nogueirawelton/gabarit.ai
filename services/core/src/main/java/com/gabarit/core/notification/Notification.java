@@ -27,7 +27,15 @@ public class Notification {
 		/** A leitura do edital de um concurso da carteira ficou pronta. */
 		EDITAL_READ,
 		/** A leitura do edital falhou. */
-		EDITAL_FAILED
+		EDITAL_FAILED,
+		/** O conteúdo programático do cargo ficou pronto. */
+		SYLLABUS_READ,
+		SYLLABUS_FAILED,
+		/** As questões de uma prova relacionada foram lidas. */
+		PAPER_READ,
+		PAPER_FAILED,
+		/** As questões geradas (simulado inédito, prática por tópico) ficaram prontas. */
+		QUESTIONS_READY
 
 	}
 
@@ -70,6 +78,17 @@ public class Notification {
 		this.type = Type.NEW_EXAM;
 		this.examId = examId;
 		this.createdAt = createdAt;
+	}
+
+	/** Outra leitura de um concurso da carteira terminou (conteúdo, prova, questões geradas). */
+	static Notification studyReady(String userId, UUID studyTargetId, String title, Type type, Instant createdAt) {
+		Notification notification = new Notification();
+		notification.userId = userId;
+		notification.type = type;
+		notification.studyTargetId = studyTargetId;
+		notification.title = title;
+		notification.createdAt = createdAt;
+		return notification;
 	}
 
 	static Notification editalReading(String userId, UUID studyTargetId, String title, boolean ok, Instant createdAt) {

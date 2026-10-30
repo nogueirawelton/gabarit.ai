@@ -11,10 +11,13 @@ import com.gabarit.core.study.StudyDocumentService;
 import com.gabarit.core.study.StudyDocumentService.TargetSyllabus;
 import com.gabarit.core.study.StudyTargetService;
 import com.gabarit.core.study.StudyTargetService.StudyTargetSummary;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
-import java.text.Normalizer;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -39,6 +42,8 @@ import java.util.stream.Collectors;
  */
 @Service
 public class PlanService {
+
+	private static final Logger log = LoggerFactory.getLogger(PlanService.class);
 
 	/** Questões de uma prática de sessão (as primeiras, na ordem das provas). */
 	public static final int MAX_PRACTICE = 20;
@@ -87,16 +92,20 @@ public class PlanService {
 
 	private final SimulationService simulations;
 
+	private final TransactionTemplate transaction;
+
 	private final Clock clock;
 
 	PlanService(StudyPlanRepository plans, PlanSessionRepository sessions, StudyTargetService targets,
-			StudyDocumentService documents, TopicService topics, SimulationService simulations, Clock clock) {
+			StudyDocumentService documents, TopicService topics, SimulationService simulations,
+			TransactionTemplate transaction, Clock clock) {
 		this.plans = plans;
 		this.sessions = sessions;
 		this.targets = targets;
 		this.documents = documents;
 		this.topics = topics;
 		this.simulations = simulations;
+		this.transaction = transaction;
 		this.clock = clock;
 	}
 
@@ -155,6 +164,26 @@ public class PlanService {
 			.toList());
 		sessions.flush();
 		return view(plan);
+	}
+
+	/**
+	 * Toda madrugada: plano com sessão atrasada (de antes de hoje, não feita) é refeito a partir de
+	 * hoje, com as mesmas horas e data da prova. O que foi feito fica; o atrasado é redistribuído até a
+	 * prova. Um plano que não dá para refazer (conteúdo sumiu, sem tempo até a prova) fica como está.
+	 */
+	@Scheduled(cron = "0 0 4 * * *", zone = "America/Sao_Paulo")
+	public void replanLate() {
+		for (StudyPlan plan : plans.findLate(LocalDate.now(clock))) {
+			try {
+				// uma transação por plano: um que falha não desfaz os outros
+				transaction.executeWithoutResult(status -> save(plan.getUserId(), plan.getStudyTargetId(),
+						plan.getEndDate(), plan.getDailyMinutes()));
+				log.info("plano {} refeito: tinha sessões atrasadas", plan.getId());
+			}
+			catch (RuntimeException e) {
+				log.warn("plano {} não refeito sozinho: {}", plan.getId(), e.getMessage());
+			}
+		}
 	}
 
 	/**
@@ -277,25 +306,14 @@ public class PlanService {
 		return inputs;
 	}
 
-	/** Questões × peso da disciplina no quadro de provas, casada pelo nome (sem acento nem caixa). */
+	/** Questões × peso da disciplina no quadro de provas, casada pelo nome ({@link EditalOverview#sameSubject}). */
 	private static double weight(String subject, List<EditalOverview.Section> sections) {
-		String name = normalize(subject);
 		return sections.stream()
 			.filter(section -> section.questions() != null)
-			.filter(section -> {
-				String other = normalize(section.subject());
-				return other.equals(name) || (!other.isEmpty() && (other.contains(name) || name.contains(other)));
-			})
+			.filter(section -> EditalOverview.sameSubject(section.subject(), subject))
 			.findFirst()
 			.map(section -> section.questions() * (section.weight() == null ? 1 : section.weight()))
 			.orElse(0.0);
-	}
-
-	private static String normalize(String text) {
-		return Normalizer.normalize(text == null ? "" : text, Normalizer.Form.NFD)
-			.replaceAll("\\p{M}", "")
-			.toLowerCase(Locale.ROOT)
-			.replaceAll("[^a-z0-9]", "");
 	}
 
 	private PlanView view(StudyPlan plan) {

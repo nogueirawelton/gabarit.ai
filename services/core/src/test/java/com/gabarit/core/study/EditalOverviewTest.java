@@ -69,4 +69,13 @@ class EditalOverviewTest {
 			.doesNotContain("registration_start");
 	}
 
+	@Test
+	void mesmaDisciplinaComNomesUmPoucoDiferentes() {
+		assertThat(EditalOverview.sameSubject("Conhecimento de Normas", "Conhecimentos de Normas")).isTrue();
+		assertThat(EditalOverview.sameSubject("Conhecimentos Específicos por cargo", "Conhecimentos Específicos")).isTrue();
+		assertThat(EditalOverview.sameSubject("LÍNGUA PORTUGUESA", "Língua Portuguesa")).isTrue();
+		assertThat(EditalOverview.sameSubject("Língua Inglesa", "Língua Portuguesa")).isFalse();
+		assertThat(EditalOverview.sameSubject("Direito", null)).isFalse();
+	}
+
 }

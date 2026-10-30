@@ -111,12 +111,19 @@ public class Extraction {
 		requestedAt = now;
 	}
 
-	/** @return false se já não estava pendente (resultado repetido ou atrasado: ignorado) */
+	/**
+	 * Aceita o resultado pendente, ou o que chegou depois de a leitura ser dada como parada (falha
+	 * que pode ser repetida: a chamada já foi paga, não se joga fora).
+	 *
+	 * @return false se já tinha resultado ou falhou de vez (repetido: ignorado)
+	 */
 	boolean complete(String result, String model, Usage usage, Instant now) {
-		if (status != Status.PENDING) {
+		if (status == Status.DONE || (status == Status.FAILED && !canRetry())) {
 			return false;
 		}
 		this.status = Status.DONE;
+		this.failureReason = null;
+		this.retryable = null;
 		this.result = result;
 		this.model = model;
 		this.inputTokens = usage.inputTokens();
@@ -185,6 +192,10 @@ public class Extraction {
 	/** Custo em US$ (nulo se não terminou ou o modelo não está na tabela de preços). */
 	public BigDecimal getCostUsd() {
 		return costUsd;
+	}
+
+	public Instant getRequestedAt() {
+		return requestedAt;
 	}
 
 	public Instant getCompletedAt() {

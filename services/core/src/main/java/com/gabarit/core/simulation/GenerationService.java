@@ -11,13 +11,14 @@ import com.gabarit.core.study.EditalSyllabus;
 import com.gabarit.core.study.ExamPaper;
 import com.gabarit.core.study.StudyDocumentService;
 import com.gabarit.core.study.StudyDocumentService.TargetSyllabus;
+import com.gabarit.core.study.StudyReadyEvent;
 import com.gabarit.core.study.StudyTargetService;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.json.JsonMapper;
 
-import java.text.Normalizer;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -105,12 +106,14 @@ public class GenerationService {
 
 	private final ExtractionService extractions;
 
+	private final ApplicationEventPublisher events;
+
 	private final Clock clock;
 
 	GenerationService(TopicGenerationRepository generations, QuestionRepository questions,
 			QuestionTopicRepository links, TopicCatalog topicCatalog, TopicService topics,
 			SimulationService simulations, StudyDocumentService documents, StudyTargetService targets,
-			ExtractionService extractions, Clock clock) {
+			ExtractionService extractions, ApplicationEventPublisher events, Clock clock) {
 		this.generations = generations;
 		this.questions = questions;
 		this.links = links;
@@ -120,6 +123,7 @@ public class GenerationService {
 		this.documents = documents;
 		this.targets = targets;
 		this.extractions = extractions;
+		this.events = events;
 		this.clock = clock;
 	}
 
@@ -229,7 +233,7 @@ public class GenerationService {
 	 */
 	@Transactional
 	public SimulationService.SimulationView startMockExam(String userId, UUID targetId, Integer timeLimitMinutes) {
-		String board = targets.get(userId, targetId).board();
+		String board = board(userId, targetId);
 		List<Slot> slots = blueprint(userId, targetId);
 		MockExamStatus status = status(userId, targetId, slots);
 		if (status.pendingTopics() > 0) {
@@ -274,10 +278,8 @@ public class GenerationService {
 			if (section.questions() == null || section.questions() <= 0) {
 				continue;
 			}
-			String name = normalize(section.subject());
 			for (int s = 0; s < subjects.size(); s++) {
-				String other = normalize(subjects.get(s).name());
-				if (other.equals(name) || (!name.isEmpty() && (other.contains(name) || name.contains(other)))) {
+				if (EditalOverview.sameSubject(section.subject(), subjects.get(s).name())) {
 					questionsBySubject.merge(s, section.questions(), Integer::sum);
 					break;
 				}
@@ -345,9 +347,9 @@ public class GenerationService {
 				slots.size(), ready, pending, failed);
 	}
 
-	/** Banca do concurso e formato da prova do cargo: o que as questões geradas imitam. */
+	/** Banca (do concurso, ou a lida do edital) e formato da prova do cargo: o que as questões geradas imitam. */
 	private Map<String, Object> style(String userId, UUID targetId) {
-		String board = targets.get(userId, targetId).board();
+		String board = board(userId, targetId);
 		boolean trueFalse = documents.targetExam(userId, targetId)
 			.map(EditalOverview.Exam::answerFormat)
 			.map("TRUE_FALSE"::equals)
@@ -360,6 +362,12 @@ public class GenerationService {
 		style.put("answer_format", trueFalse ? "TRUE_FALSE" : "MULTIPLE_CHOICE");
 		style.put("options_count", optionCount == null || optionCount < 2 || optionCount > 5 ? 5 : optionCount);
 		return style;
+	}
+
+	/** A banca preenchida no concurso; sem ela, a lida do edital; sem nenhuma, nula (estilo neutro). */
+	private String board(String userId, UUID targetId) {
+		String board = targets.get(userId, targetId).board();
+		return board != null && !board.isBlank() ? board : documents.editalBoard(userId, targetId).orElse(null);
 	}
 
 	private TargetSyllabus syllabus(String userId, UUID targetId) {
@@ -397,27 +405,6 @@ public class GenerationService {
 			apply(extraction);
 		}
 		return state(extraction);
-	}
-
-	/** Questões da disciplina no quadro de provas, casada pelo nome (sem acento nem caixa); 0 sem quadro. */
-	private static double questionsInExam(String subject, List<EditalOverview.Section> sections) {
-		String name = normalize(subject);
-		return sections.stream()
-			.filter(section -> section.questions() != null)
-			.filter(section -> {
-				String other = normalize(section.subject());
-				return other.equals(name) || (!other.isEmpty() && (other.contains(name) || name.contains(other)));
-			})
-			.findFirst()
-			.map(section -> section.questions() * (section.weight() == null ? 1 : section.weight()))
-			.orElse(0.0);
-	}
-
-	private static String normalize(String text) {
-		return Normalizer.normalize(text == null ? "" : text, Normalizer.Form.NFD)
-			.replaceAll("\\p{M}", "")
-			.toLowerCase(Locale.ROOT)
-			.replaceAll("[^a-z0-9]", "");
 	}
 
 	private static boolean isOutdated(Extraction extraction) {
@@ -458,9 +445,23 @@ public class GenerationService {
 	/** A geração terminou: grava as questões (uma vez) e liga ao tópico de cada pedido. */
 	@EventListener
 	void onFinished(ExtractionFinishedEvent event) {
-		if (event.task() == ExtractionTask.TOPIC_QUESTIONS && event.status() == Extraction.Status.DONE) {
+		if (event.task() != ExtractionTask.TOPIC_QUESTIONS) {
+			return;
+		}
+		if (event.status() == Extraction.Status.DONE) {
 			apply(extractions.find(List.of(event.extractionId())).get(event.extractionId()));
 		}
+		// concurso sem mais nenhuma geração pendente: um aviso só (preparar o simulado inédito pede várias)
+		Map<UUID, String> requesters = new LinkedHashMap<>();
+		generations.findByExtractionId(event.extractionId())
+			.forEach(g -> requesters.putIfAbsent(g.getStudyTargetId(), g.getUserId()));
+		requesters.forEach((targetId, userId) -> {
+			var states = requested(userId, targetId).values().stream().map(Extraction::getStatus).toList();
+			if (!states.contains(Extraction.Status.PENDING) && states.contains(Extraction.Status.DONE)) {
+				events.publishEvent(new StudyReadyEvent(userId, targetId, targets.get(userId, targetId).title(),
+						StudyReadyEvent.What.QUESTIONS, true));
+			}
+		});
 	}
 
 	private void apply(Extraction extraction) {

@@ -15,4 +15,6 @@ interface StudyPaperRepository extends JpaRepository<StudyPaper, UUID> {
 
 	long countByStudyTargetId(UUID studyTargetId);
 
+	List<StudyPaper> findByExtractionId(UUID extractionId);
+
 }

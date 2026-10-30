@@ -49,6 +49,14 @@ class TopicGeneration {
 		this.requestedAt = now;
 	}
 
+	String getUserId() {
+		return userId;
+	}
+
+	UUID getStudyTargetId() {
+		return studyTargetId;
+	}
+
 	UUID getTopicId() {
 		return topicId;
 	}

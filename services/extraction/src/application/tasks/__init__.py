@@ -23,6 +23,7 @@ from src.application.tasks import (
     exam_paper,
     question_topics,
     topic_questions,
+    topic_summary,
 )
 from src.domain.edital import EditalPart
 from src.domain.extraction import Task
@@ -31,6 +32,10 @@ from src.domain.ports.llm_client import Effort
 PROMPTS = Path(__file__).resolve().parent.parent.parent / "prompts"
 
 SYSTEM_PROMPT = (PROMPTS / "system.md").read_text(encoding="utf-8")
+
+
+# junta os trechos de um PDF longo: (resultado, páginas mandadas a partir de 0) de cada um
+Merge = Callable[[Sequence[tuple[dict[str, object], Sequence[int]]]], dict[str, object]]
 
 
 @dataclass(frozen=True)
@@ -49,6 +54,10 @@ class PromptVersion:
     original_pages: Callable[[dict[str, object], Sequence[int]], dict[str, object]] | None = None
     # parâmetros que a tarefa recebe (validados; vão no fim das instruções). None = nenhum
     params_model: type[BaseModel] | None = None
+    # PDF longo (o 1º documento): lido em trechos deste número de páginas, juntados por `merge`
+    # (resultado e páginas mandadas de cada trecho, a partir de 0)
+    chunk_pages: int | None = None
+    merge: Merge | None = None
 
     def __post_init__(self) -> None:
         single = self.documents == 1 and self.max_documents in (None, 1)
@@ -119,6 +128,9 @@ LLM_TASKS: dict[Task, dict[str, PromptVersion]] = {
             documents=1,
             max_documents=2,
             params_model=exam_paper.ExamPaperParamsV1,
+            # ~3 questões por página: 16 páginas cabem com folga no limite de saída
+            chunk_pages=16,
+            merge=exam_paper.merge_chunks,
         ),
     },
     Task.QUESTION_TOPICS: {
@@ -141,6 +153,16 @@ LLM_TASKS: dict[Task, dict[str, PromptVersion]] = {
             effort="high",
             documents=0,
             params_model=topic_questions.TopicQuestionsParamsV1,
+        ),
+    },
+    Task.TOPIC_SUMMARY: {
+        "v1": PromptVersion(
+            instructions=_prompt("topic_summary", "v1"),
+            output_model=topic_summary.TopicSummaryV1,
+            # material de estudo: errar conteúdo é o risco, vale pensar
+            effort="high",
+            documents=0,
+            params_model=topic_summary.TopicSummaryParamsV1,
         ),
     },
 }
