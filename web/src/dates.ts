@@ -24,14 +24,6 @@ export function mondayOf(iso: string) {
   return addDays(iso, -((weekday + 6) % 7));
 }
 
-const weekdayFormat = new Intl.DateTimeFormat("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit", timeZone: "UTC" });
-
-/** "ter., 10/11". */
-export function formatWeekday(iso: string) {
-  const [year, month, day] = iso.split("-").map(Number);
-  return weekdayFormat.format(new Date(Date.UTC(year, month - 1, day)));
-}
-
 /** 90 → "1h30", 60 → "1h", 45 → "45 min". */
 export function formatMinutes(minutes: number) {
   const hours = Math.floor(minutes / 60);

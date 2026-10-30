@@ -415,7 +415,11 @@ function StudyActions({
           </button>
         </p>
       )}
-      {plan.data && !editingPlan && <PlanPanel plan={plan.data} onRedo={() => setEditingPlan(true)} />}
+      {plan.data && !editingPlan && <PlanPanel
+          plan={plan.data}
+          subjects={edital?.syllabus?.syllabus?.subjects ?? []}
+          onRedo={() => setEditingPlan(true)}
+        />}
       <ul className="grid gap-3 sm:grid-cols-3">
         {actions.map(({ icon: Icon, title, description, needs, action }) => (
           <li

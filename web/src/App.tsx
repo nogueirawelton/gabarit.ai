@@ -10,6 +10,7 @@ import { ProfilePage } from "./pages/ProfilePage";
 import { SimulationPage } from "./pages/SimulationPage";
 import { StudiesPage } from "./pages/StudiesPage";
 import { StudyTargetPage } from "./pages/StudyTargetPage";
+import { TopicPage } from "./pages/TopicPage";
 
 export function App() {
   return (
@@ -28,6 +29,7 @@ export function App() {
         <Route path="/meus-concursos" element={<StudiesPage />} />
         <Route path="/meus-concursos/novo" element={<NewStudyTargetPage />} />
         <Route path="/meus-concursos/:id" element={<StudyTargetPage />} />
+        <Route path="/meus-concursos/:id/topicos/:subject/:topic" element={<TopicPage />} />
         {/* endereços antigos (links salvos, avisos já lidos) */}
         <Route path="/estudos" element={<Navigate to="/meus-concursos" replace />} />
         <Route path="/estudos/:id" element={<OldStudyRedirect />} />

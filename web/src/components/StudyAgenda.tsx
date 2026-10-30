@@ -79,7 +79,7 @@ export function StudyAgenda({ targets }: { targets: StudyTargetSummary[] }) {
               <h3 className="mt-5 text-xs font-semibold tracking-wide text-slate-500 uppercase md:mt-4 dark:text-slate-400">
                 Estudar hoje
               </h3>
-              <ul className="mt-1 divide-y divide-slate-100 dark:divide-slate-800">
+              <ul className="mt-2 space-y-2">
                 {todaySessions.map((session) => (
                   <SessionItem key={session.id} session={session} context={session.targetTitle} />
                 ))}
